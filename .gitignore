@@ -1,0 +1,89 @@
+# ==========================
+# Python
+# ==========================
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/**/*.pyd
+backend/.pytest_cache/
+backend/.mypy_cache/
+# Python
+__pycache__/
+*.py[cod]
+
+# Environment Variables
+backend/.env
+
+# Logs
+backend/logs/
+backend/*.log
+
+# Uploads
+backend/uploads/
+
+# ==========================
+# Node.js / React
+# ==========================
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.vite/
+
+# Logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# ==========================
+# VS Code
+# ==========================
+.vscode/
+
+# ==========================
+# JetBrains (PyCharm / IntelliJ)
+# ==========================
+.idea/
+
+# ==========================
+# OS Files
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Git
+# ==========================
+*.swp
+*.swo
+
+# ==========================
+# Coverage
+# ==========================
+.coverage
+htmlcov/
+
+# ==========================
+# Build Files
+# ==========================
+*.egg-info/
+build/
+dist/
+
+# ==========================
+# Secrets
+# ==========================
+.env
+.env.*
+
+
+# Virtual Environment
+backend/venv/
+
+# Environment Variables
+backend/.env
+frontend/.env
+
+# React
+frontend/node_modules/
+frontend/dist/
