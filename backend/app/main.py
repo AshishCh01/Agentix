@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
-from app.routes import health
+from app.routes import health, session
+from app.auth.dependencies import get_current_user
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -11,7 +12,6 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Configure CORS for Frontend Client
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -20,8 +20,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API Routers
+# Register Routers
 app.include_router(health.router, prefix=settings.API_V1_STR)
+app.include_router(session.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/", tags=["Root"])
