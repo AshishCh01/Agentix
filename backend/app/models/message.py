@@ -1,35 +1,34 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, ForeignKey, Text, UUID
+from sqlalchemy import DateTime, ForeignKey, String, Text, UUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from pgvector.sqlalchemy import Vector
 from app.models.base import Base
 
 
-class DocumentChunk(Base):
-    __tablename__ = "document_chunks"
+class Message(Base):
+    __tablename__ = "messages"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    document_id: Mapped[uuid.UUID] = mapped_column(
+    session_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("documents.id", ondelete="CASCADE"),
+        ForeignKey("chat_sessions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
+    sender: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # 'user' or 'assistant'
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    metadata_: Mapped[dict] = mapped_column(
-        "metadata", JSONB, default=dict, nullable=False
-    )
-    embedding = mapped_column(
-        Vector(384), nullable=True
-    )  # Set dimension matching your model (e.g. 384 or 768)
+    citations: Mapped[list] = mapped_column(
+        JSONB, default=list, nullable=False
+    )  # Source file refs
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )
 
     # Relationships
-    document = relationship("Document", back_populates="chunks")
+    session = relationship("ChatSession", back_populates="messages")
