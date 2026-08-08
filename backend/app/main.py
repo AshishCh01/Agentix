@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
-from app.routes import health, session
+from app.routes import auth, chat, health, search, session, upload  # <-- Added search
 from app.auth.dependencies import get_current_user
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -22,8 +23,11 @@ app.add_middleware(
 
 # Register Routers
 app.include_router(health.router, prefix=settings.API_V1_STR)
+app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(session.router, prefix=settings.API_V1_STR)
-
+app.include_router(upload.router, prefix=settings.API_V1_STR)
+app.include_router(search.router, prefix=settings.API_V1_STR)  # <-- Registered search router
+app.include_router(chat.router, prefix=settings.API_V1_STR)  # <-- Registered chat router
 
 @app.get("/", tags=["Root"])
 async def root():

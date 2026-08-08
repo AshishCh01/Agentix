@@ -27,7 +27,6 @@ backend/uploads/
 # ==========================
 frontend/node_modules/
 frontend/dist/
-frontend/.env
 frontend/.vite/
 
 # Logs
@@ -87,3 +86,10 @@ frontend/.env
 # React
 frontend/node_modules/
 frontend/dist/
+
+# Python Caches
+__pycache__/
+*.pyc
+
+# Local Dev Test Artifacts
+.dev_session_id

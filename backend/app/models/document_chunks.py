@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, ForeignKey, Text, UUID
+from sqlalchemy import DateTime, ForeignKey, Integer, Text, UUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
@@ -19,13 +19,14 @@ class DocumentChunk(Base):
         nullable=False,
         index=True,
     )
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     metadata_: Mapped[dict] = mapped_column(
         "metadata", JSONB, default=dict, nullable=False
     )
     embedding = mapped_column(
-        Vector(384), nullable=True
-    )  # Set dimension matching your model (e.g. 384 or 768)
+        Vector(768), nullable=False
+    )  # 768 dimensions for BAAI/bge-base-en-v1.5
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
