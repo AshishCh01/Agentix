@@ -6,9 +6,11 @@ from langchain_core.runnables import RunnableConfig
 
 from ai.agents.answer import run_answer_agent
 from ai.agents.greeting import run_greeting_agent
+from ai.agents.reflection import evaluate_response
 from ai.agents.state import AgentState
 from ai.agents.supervisor import classify_intent
 from ai.tools.vector_search import vector_search_tool
+from ai.tools.web_search import web_search_tool
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 # --- 1. Node Definitions ---
 
 async def supervisor_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
-    """Classifies user intent (GREETING vs RAG_QUERY)."""
+    """Classifies user intent (GREETING, RAG_QUERY, or WEB_SEARCH)."""
     intent = await classify_intent(state)
     return {"intent": intent}
 
@@ -26,13 +28,14 @@ def route_intent(state: AgentState) -> str:
     intent = state.get("intent", "RAG_QUERY")
     if intent == "GREETING":
         return "greeting"
+    elif intent == "WEB_SEARCH":
+        return "web_search"
     return "vector_search"
 
 
 async def greeting_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Fast-path greeting generator node."""
-    updated = await run_greeting_agent(state)
-    return {"final_response": updated.get("final_response", "")}
+    return await run_greeting_agent(state)
 
 
 async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
@@ -43,7 +46,6 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
     if db is None:
         raise ValueError("AsyncSession 'db' was not provided in RunnableConfig['configurable']")
 
-    # Convert session_id string to UUID object
     session_uuid = (
         state["session_id"]
         if isinstance(state["session_id"], uuid.UUID)
@@ -63,10 +65,23 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
     }
 
 
+async def web_search_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
+    """Web search engine retrieval node."""
+    tool_result = await web_search_tool(query=state["user_query"], max_results=4)
+    return {
+        "formatted_context": tool_result.get("formatted_context", ""),
+        "tool_outputs": state.get("tool_outputs", []) + [{"tool": "web_search", "result": tool_result}],
+    }
+
+
 async def answer_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Answer synthesis agent node."""
-    updated = await run_answer_agent(state)
-    return {"final_response": updated.get("final_response", "")}
+    return await run_answer_agent(state)
+
+
+async def reflection_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
+    """Reflection & groundedness evaluator node."""
+    return await evaluate_response(state)
 
 
 # --- 2. Build StateGraph Workflow ---
@@ -78,7 +93,9 @@ def build_graph():
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("greeting", greeting_node)
     workflow.add_node("vector_search", vector_search_node)
+    workflow.add_node("web_search", web_search_node)
     workflow.add_node("answer", answer_node)
+    workflow.add_node("reflection", reflection_node)
 
     # Set Entry Point
     workflow.set_entry_point("supervisor")
@@ -90,13 +107,16 @@ def build_graph():
         {
             "greeting": "greeting",
             "vector_search": "vector_search",
+            "web_search": "web_search",
         },
     )
 
     # Node Edges
     workflow.add_edge("greeting", END)
     workflow.add_edge("vector_search", "answer")
-    workflow.add_edge("answer", END)
+    workflow.add_edge("web_search", "answer")
+    workflow.add_edge("answer", "reflection")
+    workflow.add_edge("reflection", END)
 
     return workflow.compile()
 
