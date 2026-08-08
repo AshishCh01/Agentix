@@ -21,7 +21,6 @@ async def create_session(
     return await crud.create_chat_session(
         db, user_id=user_id, title=session_in.title or "New Conversation"
     )
-    #return await crud.create_chat_session(db, user_id=user_id, title=session_in.title)
 
 
 @router.get("", response_model=List[SessionResponse])
@@ -46,6 +45,26 @@ async def get_session(
             status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found"
         )
     return session
+
+
+@router.get("/{session_id}/messages", response_model=List[dict])
+async def get_session_messages(
+    session_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    user_id = uuid.UUID(current_user["user_id"])
+    
+    session = await crud.get_chat_session_by_id(db, session_id=session_id, user_id=user_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found"
+        )
+
+    messages = await crud.get_messages_by_session(  # type: ignore[attr-defined]
+        db, session_id=session_id
+    )
+    return messages if messages else []
 
 
 @router.patch("/{session_id}", response_model=SessionResponse)

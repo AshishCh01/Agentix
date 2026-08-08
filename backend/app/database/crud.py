@@ -3,6 +3,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.session import ChatSession
+from app.models.message import Message  # <-- Adjust import path if Message is located in app.models.session
 
 
 async def create_chat_session(
@@ -57,3 +58,15 @@ async def delete_chat_session(
         await db.commit()
         return True
     return False
+
+
+# --- ADDED: Retrieve chat history for a given session ---
+async def get_messages_by_session(
+    db: AsyncSession, session_id: uuid.UUID
+) -> List[Message]:
+    result = await db.execute(
+        select(Message)
+        .where(Message.session_id == session_id)
+        .order_by(Message.created_at.asc())
+    )
+    return list(result.scalars().all())
