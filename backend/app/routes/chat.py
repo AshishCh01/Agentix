@@ -1,5 +1,8 @@
+import json
 import uuid
+from typing import AsyncGenerator
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -84,7 +87,7 @@ async def chat_endpoint(
         Message(
             session_id=uuid.UUID(session_id),
             sender="assistant",
-            content=final_state["final_response"],
+            content=final_state.get("final_response", ""),
             citations=[s.model_dump() for s in sources],
         )
     )
@@ -93,7 +96,117 @@ async def chat_endpoint(
     return ChatResponse(
         session_id=session_id,
         user_message=request.message,
-        assistant_message=final_state["final_response"],
+        assistant_message=final_state.get("final_response", ""),
         intent=final_state.get("intent"),
         sources=sources,
     )
+
+
+@router.post("/stream")
+async def chat_stream_endpoint(
+    request: ChatRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Server-Sent Events (SSE) streaming endpoint that streams node updates and tokens
+    in real-time as LangGraph executes.
+    """
+    user_id = str(current_user.get("id") or current_user.get("sub", ""))
+    session_id = str(request.session_id)
+
+    # 1. Fetch recent chat history
+    stmt = (
+        select(Message)
+        .where(Message.session_id == uuid.UUID(session_id))
+        .order_by(Message.created_at.desc())
+        .limit(6)
+    )
+    result = await db.execute(stmt)
+    history_records = list(reversed(result.scalars().all()))
+    chat_history = [{"role": msg.sender, "content": msg.content} for msg in history_records]
+
+    # 2. Build initial state
+    initial_state: AgentState = {
+        "session_id": session_id,
+        "user_id": user_id,
+        "user_query": request.message,
+        "intent": None,
+        "chat_history": chat_history,
+        "retrieved_chunks": [],
+        "formatted_context": "",
+        "tool_outputs": [],
+        "final_response": "",
+        "error": None,
+    }
+
+    # 3. Save incoming user message
+    db.add(
+        Message(
+            session_id=uuid.UUID(session_id),
+            sender="user",
+            content=request.message,
+            citations=[],
+        )
+    )
+    await db.commit()
+
+    async def event_generator() -> AsyncGenerator[str, None]:
+        final_state: dict = {}
+        try:
+            # Stream node transition events from LangGraph
+            async for event in rag_graph.astream_events(
+                initial_state,
+                version="v2",
+                config={"configurable": {"db": db}},
+            ):
+                kind = event.get("event")
+                node_name = event.get("name", "")
+
+                if kind == "on_chain_start" and node_name in ["supervisor", "vector_search", "web_search", "answer", "reflection"]:
+                    payload = json.dumps({"type": "node_start", "node": node_name})
+                    yield f"data: {payload}\n\n"
+
+                elif kind == "on_chain_end" and node_name == "LangGraph":
+                    final_state = event.get("data", {}).get("output", {})
+
+            # Stream final aggregated payload
+            final_response_text = final_state.get("final_response", "")
+            intent = final_state.get("intent", "RAG_QUERY")
+            retrieved_chunks = final_state.get("retrieved_chunks", [])
+
+            sources = [
+                {
+                    "filename": chunk.get("filename", ""),
+                    "chunk_index": chunk.get("chunk_index", 0),
+                    "similarity_score": chunk.get("similarity_score", 0.0),
+                }
+                for chunk in retrieved_chunks
+            ]
+
+            # Save assistant message to DB
+            db.add(
+                Message(
+                    session_id=uuid.UUID(session_id),
+                    sender="assistant",
+                    content=final_response_text,
+                    citations=sources,
+                )
+            )
+            await db.commit()
+
+            completion_payload = json.dumps({
+                "type": "completion",
+                "session_id": session_id,
+                "intent": intent,
+                "assistant_message": final_response_text,
+                "sources": sources,
+            })
+            yield f"data: {completion_payload}\n\n"
+
+        except Exception as e:
+            error_payload = json.dumps({"type": "error", "detail": str(e)})
+            yield f"data: {error_payload}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+

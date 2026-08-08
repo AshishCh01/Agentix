@@ -7,18 +7,25 @@ from ai.services.llm_service import llm_service
 
 logger = logging.getLogger(__name__)
 
-# Fast-path keyword matching for instant detection
-FAST_GREETING_KEYWORDS = {
+# Fast-path keyword sets
+SHORT_GREETINGS = {
     "hi",
     "hello",
     "hey",
+    "howdy",
+    "sup",
+    "greetings",
     "good morning",
     "good afternoon",
     "good evening",
-    "howdy",
-    "sup",
+}
+
+CAPABILITY_PHRASES = {
     "who are you",
     "what can you do",
+    "how can you help",
+    "what are your features",
+    "what is your purpose",
 }
 
 FAST_WEB_KEYWORDS = {
@@ -35,8 +42,15 @@ FAST_WEB_KEYWORDS = {
 def is_simple_greeting(query: str) -> bool:
     cleaned = query.strip().lower()
     words = cleaned.split()
-    if len(words) <= 3 and any(w in FAST_GREETING_KEYWORDS for w in words):
+
+    # 1. Short greetings (3 words or fewer)
+    if len(words) <= 3 and any(w.strip("!,.") in SHORT_GREETINGS for w in words):
         return True
+
+    # 2. Identity or capability questions (regardless of word count)
+    if any(phrase in cleaned for phrase in CAPABILITY_PHRASES):
+        return True
+
     return False
 
 
