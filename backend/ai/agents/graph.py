@@ -24,13 +24,23 @@ async def supervisor_node(state: AgentState, config: RunnableConfig) -> Dict[str
 
 
 def route_intent(state: AgentState) -> str:
-    """Conditional Edge router function."""
+    """Conditional Edge router function for supervisor."""
     intent = state.get("intent", "RAG_QUERY")
     if intent == "GREETING":
         return "greeting"
     elif intent == "WEB_SEARCH":
         return "web_search"
     return "vector_search"
+
+
+# ADDED: Router after vector search to fallback if no chunks found
+def route_after_vector_search(state: AgentState) -> str:
+    """Routes to web_search if vector database returned zero chunks."""
+    retrieved_chunks = state.get("retrieved_chunks", [])
+    if not retrieved_chunks or len(retrieved_chunks) == 0:
+        logger.info("⚠️ Vector store returned 0 chunks. Rerouting to web_search fallback...")
+        return "web_search"
+    return "answer"
 
 
 async def greeting_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
@@ -100,7 +110,7 @@ def build_graph():
     # Set Entry Point
     workflow.set_entry_point("supervisor")
 
-    # Conditional Routing Edges
+    # Conditional Routing Edges from Supervisor
     workflow.add_conditional_edges(
         "supervisor",
         route_intent,
@@ -111,9 +121,18 @@ def build_graph():
         },
     )
 
-    # Node Edges
+    # ADDED: Conditional Edge after Vector Search (Fallback to Web Search)
+    workflow.add_conditional_edges(
+        "vector_search",
+        route_after_vector_search,
+        {
+            "web_search": "web_search",
+            "answer": "answer",
+        },
+    )
+
+    # Direct Node Edges
     workflow.add_edge("greeting", END)
-    workflow.add_edge("vector_search", "answer")
     workflow.add_edge("web_search", "answer")
     workflow.add_edge("answer", "reflection")
     workflow.add_edge("reflection", END)

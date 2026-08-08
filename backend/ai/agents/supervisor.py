@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from ai.agents.state import AgentState
-from ai.prompts.supervisor_prompt import SUPERVISOR_SYSTEM_PROMPT
+from ai.prompts.supervisor_prompt import SUPERVISOR_PROMPT
 from ai.services.llm_service import llm_service
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ async def classify_intent(state: AgentState) -> str:
         return "WEB_SEARCH"
 
     messages = [
-        {"role": "system", "content": SUPERVISOR_SYSTEM_PROMPT},
+        {"role": "system", "content": SUPERVISOR_PROMPT},
         {"role": "user", "content": f"User Query: {user_query}"},
     ]
 
