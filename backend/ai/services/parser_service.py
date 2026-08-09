@@ -2,6 +2,7 @@ import io
 from pypdf import PdfReader
 from docx import Document
 import pandas as pd
+from ai.services.llm_service import llm_service
 
 
 async def parse_document(file_bytes: bytes, filename: str) -> str:
@@ -32,6 +33,10 @@ async def parse_document(file_bytes: bytes, filename: str) -> str:
 
     elif ext in ["txt", "md", "json"]:
         return file_bytes.decode("utf-8", errors="ignore")
+
+    elif ext in ["png", "jpg", "jpeg", "webp"]:
+        mime_type = "image/jpeg" if ext in ["jpg", "jpeg"] else f"image/{ext}"
+        return await llm_service.describe_image(file_bytes=file_bytes, mime_type=mime_type)
 
     else:
         raise ValueError(f"Unsupported file format: .{ext}")

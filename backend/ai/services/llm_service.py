@@ -1,5 +1,6 @@
+import base64
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from openai import AsyncOpenAI
 
 from app.config.settings import settings
@@ -40,7 +41,7 @@ class LLMService:
 
     async def generate_response(
         self,
-        messages: List[Dict[str, str]],
+        messages: List[Dict[str, Any]],
         temperature: float = 0.3,
         max_tokens: int = 1024,
         model: Optional[str] = None,
@@ -53,7 +54,7 @@ class LLMService:
         try:
             response = await self.client.chat.completions.create(
                 model=target_model,
-                messages=messages,
+                messages=messages,  # type: ignore[arg-type]
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
@@ -61,6 +62,54 @@ class LLMService:
         except Exception as e:
             logger.error(f"Gemini LLM API invocation failed: {str(e)}")
             raise RuntimeError(f"LLM service error: {str(e)}")
+
+    async def describe_image(
+        self,
+        file_bytes: bytes,
+        mime_type: str = "image/png",
+        prompt: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> str:
+        """
+        Sends raw image bytes to Gemini Vision endpoint and returns a comprehensive textual breakdown.
+        """
+        target_model = model or self.default_model
+        base64_image = base64.b64encode(file_bytes).decode("utf-8")
+
+        default_prompt = (
+            "Provide a detailed and comprehensive textual breakdown of this image. "
+            "Extract all readable text word-for-word, describe all diagrams, charts, "
+            "flowcharts, architecture, visual elements, and tables, and summarize the key "
+            "information accurately for vector database indexing."
+        )
+        image_prompt = prompt or default_prompt
+
+        messages: List[Dict[str, Any]] = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": image_prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{base64_image}"
+                        },
+                    },
+                ],
+            }
+        ]
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=target_model,
+                messages=messages,  # type: ignore[arg-type]
+                temperature=0.2,
+                max_tokens=2048,
+            )
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            logger.error(f"Gemini Vision API invocation failed: {str(e)}")
+            raise RuntimeError(f"Vision service error: {str(e)}")
 
 
 # Global singleton instance

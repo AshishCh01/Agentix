@@ -7,8 +7,11 @@ class ChatRequest(BaseModel):
     session_id: uuid.UUID = Field(
         ..., description="UUID of the chat session"
     )
-    message: str = Field(
-        ..., min_length=1, description="User prompt or question message"
+    message: Optional[str] = Field(
+        "", description="User prompt or question message"
+    )
+    image_data: Optional[str] = Field(
+        None, description="Base64 encoded image string (e.g., data:image/png;base64,...)"
     )
 
 

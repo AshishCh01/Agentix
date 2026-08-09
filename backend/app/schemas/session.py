@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel, ConfigDict
+
 
 class SessionCreate(BaseModel):
     title: Optional[str] = "New Conversation"
@@ -17,5 +18,16 @@ class SessionResponse(BaseModel):
     title: str
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MessageResponse(BaseModel):
+    id: uuid.UUID
+    session_id: uuid.UUID
+    sender: str
+    content: str
+    citations: Optional[List[Any]] = []
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

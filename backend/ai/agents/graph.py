@@ -11,6 +11,7 @@ from ai.agents.state import AgentState
 from ai.agents.supervisor import classify_intent
 from ai.tools.vector_search import vector_search_tool
 from ai.tools.web_search import web_search_tool
+from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,6 @@ def route_intent(state: AgentState) -> str:
     return "vector_search"
 
 
-# ADDED: Router after vector search to fallback if no chunks found
 def route_after_vector_search(state: AgentState) -> str:
     """Routes to web_search if vector database returned zero chunks."""
     retrieved_chunks = state.get("retrieved_chunks", [])
@@ -41,6 +41,23 @@ def route_after_vector_search(state: AgentState) -> str:
         logger.info("⚠️ Vector store returned 0 chunks. Rerouting to web_search fallback...")
         return "web_search"
     return "answer"
+
+
+def route_after_answer(state: AgentState) -> str:
+    """Conditional router: skips reflection if set in settings or for non-RAG queries."""
+    # 1. Global toggle check from settings / .env
+    if getattr(settings, "SKIP_REFLECTION", False):
+        logger.info("⏩ Skipping reflection node (SKIP_REFLECTION=True).")
+        return END
+
+    # 2. Skip reflection for Web Search and Greetings (hallucination checks not needed)
+    intent = state.get("intent")
+    if intent in ["WEB_SEARCH", "GREETING"]:
+        logger.info(f"⏩ Skipping reflection node for intent: {intent}.")
+        return END
+
+    # 3. Only execute reflection for private document RAG queries
+    return "reflection"
 
 
 async def greeting_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
@@ -66,6 +83,7 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
         db=db,
         session_id=session_uuid,
         query=state["user_query"],
+        image_data=state.get("image_data"),  # <-- PASSING IMAGE DATA FOR VISUAL SEARCH
         top_k=4,
     )
     return {
@@ -121,7 +139,7 @@ def build_graph():
         },
     )
 
-    # ADDED: Conditional Edge after Vector Search (Fallback to Web Search)
+    # Conditional Routing Edge after Vector Search (Fallback to Web Search)
     workflow.add_conditional_edges(
         "vector_search",
         route_after_vector_search,
@@ -131,10 +149,19 @@ def build_graph():
         },
     )
 
+    # Conditional Routing Edge after Answer Node (Conditional Reflection)
+    workflow.add_conditional_edges(
+        "answer",
+        route_after_answer,
+        {
+            "reflection": "reflection",
+            END: END,
+        },
+    )
+
     # Direct Node Edges
     workflow.add_edge("greeting", END)
     workflow.add_edge("web_search", "answer")
-    workflow.add_edge("answer", "reflection")
     workflow.add_edge("reflection", END)
 
     return workflow.compile()

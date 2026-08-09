@@ -24,6 +24,7 @@ async def chat_endpoint(
 ):
     user_id = str(current_user.get("id") or current_user.get("sub", ""))
     session_id = str(request.session_id)
+    user_query_text = request.message or ""
 
     # 1. Fetch recent chat history
     stmt = (
@@ -36,11 +37,12 @@ async def chat_endpoint(
     history_records = list(reversed(result.scalars().all()))
     chat_history = [{"role": msg.sender, "content": msg.content} for msg in history_records]
 
-    # 2. Prepare initial state payload with explicit AgentState typing
+    # 2. Prepare initial state payload with image_data
     initial_state: AgentState = {
         "session_id": session_id,
         "user_id": user_id,
-        "user_query": request.message,
+        "user_query": user_query_text,
+        "image_data": request.image_data,
         "intent": None,
         "chat_history": chat_history,
         "retrieved_chunks": [],
@@ -55,7 +57,7 @@ async def chat_endpoint(
         Message(
             session_id=uuid.UUID(session_id),
             sender="user",
-            content=request.message,
+            content=user_query_text if user_query_text else "[Image Attached]",
             citations=[],
         )
     )
@@ -95,7 +97,7 @@ async def chat_endpoint(
 
     return ChatResponse(
         session_id=session_id,
-        user_message=request.message,
+        user_message=user_query_text,
         assistant_message=final_state.get("final_response", ""),
         intent=final_state.get("intent"),
         sources=sources,
@@ -114,6 +116,7 @@ async def chat_stream_endpoint(
     """
     user_id = str(current_user.get("id") or current_user.get("sub", ""))
     session_id = str(request.session_id)
+    user_query_text = request.message or ""
 
     # 1. Fetch recent chat history
     stmt = (
@@ -126,11 +129,12 @@ async def chat_stream_endpoint(
     history_records = list(reversed(result.scalars().all()))
     chat_history = [{"role": msg.sender, "content": msg.content} for msg in history_records]
 
-    # 2. Build initial state
+    # 2. Build initial state with image_data
     initial_state: AgentState = {
         "session_id": session_id,
         "user_id": user_id,
-        "user_query": request.message,
+        "user_query": user_query_text,
+        "image_data": request.image_data,
         "intent": None,
         "chat_history": chat_history,
         "retrieved_chunks": [],
@@ -145,7 +149,7 @@ async def chat_stream_endpoint(
         Message(
             session_id=uuid.UUID(session_id),
             sender="user",
-            content=request.message,
+            content=user_query_text if user_query_text else "[Image Attached]",
             citations=[],
         )
     )
@@ -209,4 +213,3 @@ async def chat_stream_endpoint(
             yield f"data: {error_payload}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
-

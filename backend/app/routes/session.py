@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.config.database import get_db
 from app.database import crud
-from app.schemas.session import SessionCreate, SessionResponse, SessionUpdate
+from app.schemas.session import SessionCreate, SessionResponse, SessionUpdate, MessageResponse
 
 router = APIRouter(prefix="/sessions", tags=["Chat Sessions"])
 
@@ -47,7 +47,7 @@ async def get_session(
     return session
 
 
-@router.get("/{session_id}/messages", response_model=List[dict])
+@router.get("/{session_id}/messages", response_model=List[MessageResponse])
 async def get_session_messages(
     session_id: uuid.UUID,
     current_user: dict = Depends(get_current_user),

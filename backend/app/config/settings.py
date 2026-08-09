@@ -7,12 +7,15 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
 
+    # Optimization Controls
+    SKIP_REFLECTION: bool = True  # Set to True to bypass reflection and save tokens/API calls
+
     # Supabase Credentials
-    SUPABASE_URL: str =""
-    SUPABASE_KEY: str =""
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
 
     # Database Settings
-    DATABASE_URL: str =""
+    DATABASE_URL: str = ""
 
     # LLM Settings
     GEMINI_API_KEY: str = ""

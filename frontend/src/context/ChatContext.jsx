@@ -13,7 +13,7 @@ export const ChatProvider = ({ children }) => {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
-  // Load user sessions on initialization
+  // Load user sessions definition
   const fetchSessions = useCallback(async () => {
     setLoadingSessions(true);
     try {
@@ -29,6 +29,11 @@ export const ChatProvider = ({ children }) => {
     }
   }, [activeSessionId]);
 
+  // --- ADDED: Automatically load sessions when component mounts ---
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
   // Fetch messages whenever active session changes
   useEffect(() => {
     if (!activeSessionId) {
@@ -42,7 +47,7 @@ export const ChatProvider = ({ children }) => {
         const history = await sessionApi.getSessionMessages(activeSessionId);
         setMessages(history || []);
       } catch (err) {
-        // Handle 404 (new session with no messages yet)
+        // Fallback gracefully to empty array on brand new sessions
         setMessages([]);
       } finally {
         setLoadingMessages(false);

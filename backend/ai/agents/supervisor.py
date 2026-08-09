@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from typing import Any, Dict, List
 from ai.agents.state import AgentState
 from ai.prompts.supervisor_prompt import SUPERVISOR_PROMPT
 from ai.services.llm_service import llm_service
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 # Fast-path keyword sets
 SHORT_GREETINGS = {
     "hi",
+    "hii",
     "hello",
     "hey",
     "howdy",
@@ -26,6 +28,13 @@ CAPABILITY_PHRASES = {
     "how can you help",
     "what are your features",
     "what is your purpose",
+    "how do you do",
+    "how are you",
+    "how are you doing",
+    "nice to meet you",
+    "good to see you",
+    "what's up",
+    "whats up",
 }
 
 FAST_WEB_KEYWORDS = {
@@ -50,11 +59,16 @@ def is_simple_greeting(query: str) -> bool:
     cleaned = query.strip().lower()
     words = cleaned.split()
 
-    # 1. Short greetings (3 words or fewer)
+
+    # 1. Exact phrase matches
+    if cleaned in CAPABILITY_PHRASES:
+        return True
+    
+    # 2. Short greetings (3 words or fewer)
     if len(words) <= 3 and any(w.strip("!,.") in SHORT_GREETINGS for w in words):
         return True
 
-    # 2. Identity or capability questions
+    # 3. Identity or capability questions
     if any(phrase in cleaned for phrase in CAPABILITY_PHRASES):
         return True
 
@@ -69,20 +83,33 @@ def is_simple_web_search(query: str) -> bool:
 async def classify_intent(state: AgentState) -> str:
     """
     Classifies user intent into GREETING, RAG_QUERY, or WEB_SEARCH using fast keyword
-    matching or LLM JSON evaluation with heuristic fallbacks.
+    matching or LLM multimodal JSON evaluation with heuristic fallbacks.
     """
     user_query = state.get("user_query", "")
+    image_data = state.get("image_data")
 
-    # 1. Fast-path checks
-    if is_simple_greeting(user_query):
-        return "GREETING"
-    if is_simple_web_search(user_query):
-        return "WEB_SEARCH"
+    # 1. Fast-path checks (only apply if NO image is attached)
+    if not image_data:
+        if is_simple_greeting(user_query):
+            return "GREETING"
+        if is_simple_web_search(user_query):
+            return "WEB_SEARCH"
 
-    # 2. LLM Classification
-    messages = [
+    # 2. Build Multimodal Content for LLM Classification
+    user_content: List[Dict[str, Any]] = []
+    
+    if user_query.strip():
+        user_content.append({"type": "text", "text": f"User Query: {user_query}"})
+    else:
+        user_content.append({"type": "text", "text": "User Query: [An image was attached without text]"})
+
+    if image_data:
+        image_url = image_data if image_data.startswith("data:") else f"data:image/png;base64,{image_data}"
+        user_content.append({"type": "image_url", "image_url": {"url": image_url}})
+
+    messages: List[Dict[str, Any]] = [
         {"role": "system", "content": SUPERVISOR_PROMPT},
-        {"role": "user", "content": f"User Query: {user_query}"},
+        {"role": "user", "content": user_content},
     ]
 
     try:
@@ -115,7 +142,10 @@ async def classify_intent(state: AgentState) -> str:
             f"Intent classification parsing fallback triggered ({str(e)}). Applying heuristic classification."
         )
 
-    # 3. Intelligent Heuristic Fallback (Avoid defaulting everything to RAG_QUERY)
+    # 3. Intelligent Heuristic Fallback
+    if image_data:
+        return "RAG_QUERY"
+
     q_lower = user_query.lower()
     if any(k in q_lower for k in ["search", "latest", "news", "who is", "what is", "python", "http", "www"]):
         return "WEB_SEARCH"
