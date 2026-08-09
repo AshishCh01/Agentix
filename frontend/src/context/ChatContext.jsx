@@ -1,10 +1,13 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
+import { createContext, useState, useEffect, useCallback, useContext } from "react";
 import { sessionApi } from "../api/sessionApi";
 import { chatApi } from "../api/chatApi";
+import { AuthContext } from "./AuthContext";
 
 export const ChatContext = createContext(null);
 
 export const ChatProvider = ({ children }) => {
+  const { user } = useContext(AuthContext);
+
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -13,48 +16,100 @@ export const ChatProvider = ({ children }) => {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
-  // Load user sessions definition
+  // Fetch sessions for current user
   const fetchSessions = useCallback(async () => {
     setLoadingSessions(true);
     try {
       const data = await sessionApi.getSessions();
-      setSessions(data || []);
-      if (data && data.length > 0 && !activeSessionId) {
-        setActiveSessionId(data[0].id);
+      const userSessions = data || [];
+      setSessions(userSessions);
+      if (userSessions.length > 0) {
+        setActiveSessionId(userSessions[0].id);
+      } else {
+        setActiveSessionId(null);
+        setMessages([]);
       }
     } catch (err) {
       console.error("Failed to load sessions:", err);
+      setSessions([]);
+      setActiveSessionId(null);
+      setMessages([]);
     } finally {
       setLoadingSessions(false);
     }
-  }, [activeSessionId]);
-
-  // --- ADDED: Automatically load sessions when component mounts ---
-  useEffect(() => {
-    fetchSessions();
   }, []);
 
-  // Fetch messages whenever active session changes
+  // Handle user login/logout/account switching cleanly
   useEffect(() => {
-    if (!activeSessionId) {
+    let isMounted = true;
+
+    if (!user) {
+      setSessions([]);
       setMessages([]);
+      setActiveSessionId(null);
       return;
     }
+
+    const initUserData = async () => {
+      setLoadingSessions(true);
+      try {
+        const data = await sessionApi.getSessions();
+        if (!isMounted) return;
+        const userSessions = data || [];
+        setSessions(userSessions);
+        if (userSessions.length > 0) {
+          setActiveSessionId(userSessions[0].id);
+        } else {
+          setActiveSessionId(null);
+          setMessages([]);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Failed to load user sessions:", err);
+        setSessions([]);
+        setActiveSessionId(null);
+        setMessages([]);
+      } finally {
+        if (isMounted) setLoadingSessions(false);
+      }
+    };
+
+    initUserData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  // Fetch messages whenever activeSessionId changes
+  useEffect(() => {
+    if (!activeSessionId) return;
+
+    let isMounted = true;
 
     const loadMessages = async () => {
       setLoadingMessages(true);
       try {
         const history = await sessionApi.getSessionMessages(activeSessionId);
-        setMessages(history || []);
-      } catch (err) {
-        // Fallback gracefully to empty array on brand new sessions
-        setMessages([]);
+        if (isMounted) {
+          setMessages(history || []);
+        }
+      } catch {
+        if (isMounted) {
+          setMessages([]);
+        }
       } finally {
-        setLoadingMessages(false);
+        if (isMounted) {
+          setLoadingMessages(false);
+        }
       }
     };
 
     loadMessages();
+
+    return () => {
+      isMounted = false;
+    };
   }, [activeSessionId]);
 
   // Create new session
@@ -78,7 +133,9 @@ export const ChatProvider = ({ children }) => {
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       if (activeSessionId === sessionId) {
         const remaining = sessions.filter((s) => s.id !== sessionId);
-        setActiveSessionId(remaining.length > 0 ? remaining[0].id : null);
+        const nextId = remaining.length > 0 ? remaining[0].id : null;
+        setActiveSessionId(nextId);
+        if (!nextId) setMessages([]);
       }
     } catch (err) {
       console.error("Failed to delete session:", err);

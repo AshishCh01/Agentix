@@ -50,9 +50,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    localStorage.clear(); // Ensure all stored user data/tokens are purged
     setUser(null);
     setSession(null);
+    if (error) throw error;
   };
 
   return (
