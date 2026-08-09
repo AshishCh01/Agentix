@@ -23,7 +23,6 @@ async def contextualize_query(query: str, chat_history: list) -> str:
     """Rewrites short or ambiguous follow-up queries into standalone search queries using chat history."""
     clean_query = query.strip()
 
-    # Only contextualize short follow-ups (5 words or fewer) when chat history is present
     if len(clean_query.split()) > 5 or not chat_history:
         return clean_query
 
@@ -47,7 +46,7 @@ async def contextualize_query(query: str, chat_history: list) -> str:
         return clean_query
 
 
-# --- 1. Node Definitions ---
+# --- 1. Node Definitions & Edge Functions ---
 
 async def supervisor_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Classifies user intent (GREETING, RAG_QUERY, or WEB_SEARCH)."""
@@ -76,19 +75,35 @@ def route_after_vector_search(state: AgentState) -> str:
 
 def route_after_answer(state: AgentState) -> str:
     """Conditional router: skips reflection if set in settings or for non-RAG queries."""
-    # 1. Global toggle check from settings / .env
     if getattr(settings, "SKIP_REFLECTION", False):
         logger.info("⏩ Skipping reflection node (SKIP_REFLECTION=True).")
         return END
 
-    # 2. Skip reflection for Web Search and Greetings (hallucination checks not needed)
     intent = state.get("intent")
     if intent in ["WEB_SEARCH", "GREETING"]:
         logger.info(f"⏩ Skipping reflection node for intent: {intent}.")
         return END
 
-    # 3. Only execute reflection for private document RAG queries
     return "reflection"
+
+
+def route_after_reflection(state: AgentState) -> str:
+    """
+    Self-correction loop: If reflection node flagged an ungrounded or irrelevant response,
+    route back to answer_node to retry synthesis up to a max retry count.
+    """
+    error = state.get("error")
+    retry_count = state.get("retry_count", 0)
+    max_retries = 2
+
+    if error and retry_count < max_retries:
+        logger.info(
+            f"🔄 [Reflection Self-Correction] Check failed ({error}). "
+            f"Retrying answer generation (Attempt {retry_count + 1}/{max_retries})..."
+        )
+        return "answer"
+
+    return END
 
 
 async def greeting_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
@@ -110,7 +125,6 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
         else uuid.UUID(state["session_id"])
     )
 
-    # 1. Contextualize follow-up query if it is short and ambiguous
     raw_query = state.get("user_query", "")
     chat_history = state.get("chat_history", [])
     search_query = await contextualize_query(raw_query, chat_history)
@@ -118,7 +132,6 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
     if search_query != raw_query:
         logger.info(f"🔍 Rewrote query from '{raw_query}' to '{search_query}'")
 
-    # 2. Perform vector search using contextualized query
     tool_result = await vector_search_tool(
         db=db,
         session_id=session_uuid,
@@ -144,7 +157,13 @@ async def web_search_node(state: AgentState, config: RunnableConfig) -> Dict[str
 
 async def answer_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Answer synthesis agent node."""
-    return await run_answer_agent(state)
+    current_retry = state.get("retry_count", 0)
+    if state.get("error"):
+        current_retry += 1
+
+    res = await run_answer_agent(state)
+    res["retry_count"] = current_retry
+    return res
 
 
 async def reflection_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
@@ -168,7 +187,7 @@ def build_graph():
     # Set Entry Point
     workflow.set_entry_point("supervisor")
 
-    # Conditional Routing Edges from Supervisor
+    # Routing Edges
     workflow.add_conditional_edges(
         "supervisor",
         route_intent,
@@ -179,7 +198,6 @@ def build_graph():
         },
     )
 
-    # Conditional Routing Edge after Vector Search (Fallback to Web Search)
     workflow.add_conditional_edges(
         "vector_search",
         route_after_vector_search,
@@ -189,7 +207,6 @@ def build_graph():
         },
     )
 
-    # Conditional Routing Edge after Answer Node (Conditional Reflection)
     workflow.add_conditional_edges(
         "answer",
         route_after_answer,
@@ -199,10 +216,19 @@ def build_graph():
         },
     )
 
+    # Self-Correction Edge from Reflection
+    workflow.add_conditional_edges(
+        "reflection",
+        route_after_reflection,
+        {
+            "answer": "answer",
+            END: END,
+        },
+    )
+
     # Direct Node Edges
     workflow.add_edge("greeting", END)
     workflow.add_edge("web_search", "answer")
-    workflow.add_edge("reflection", END)
 
     return workflow.compile()
 

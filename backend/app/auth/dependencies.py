@@ -1,3 +1,4 @@
+import jwt
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -28,12 +29,44 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
     """
-    Validates token directly against Supabase Auth service and returns
-    a normalized user dictionary supporting all route key lookups.
+    Validates tokens locally via PyJWT when SUPABASE_JWT_SECRET is set to eliminate network latency,
+    falling back to remote Supabase Auth network calls if secret is absent or decoding fails.
     """
     token = credentials.credentials
-    supabase = get_supabase_client()
 
+    # 1. Local JWT Verification (Instant, zero network overhead)
+    if settings.SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                options={"verify_aud": False},
+            )
+            uid_str = str(payload.get("sub") or payload.get("id"))
+            if not uid_str:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token payload: missing sub/id",
+                )
+            return {
+                "user_id": uid_str,
+                "id": uid_str,
+                "sub": uid_str,
+                "email": payload.get("email", ""),
+                "role": payload.get("role", "authenticated"),
+            }
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session token has expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except jwt.PyJWTError:
+            pass  # Fall through to remote validation if token verification fails locally
+
+    # 2. Remote Verification Fallback
+    supabase = get_supabase_client()
     try:
         user_response = supabase.auth.get_user(token)
 
@@ -46,7 +79,6 @@ async def get_current_user(
         user = user_response.user
         uid_str = str(user.id)
 
-        # Normalizes id, sub, and user_id to ensure key compatibility across all endpoints
         return {
             "user_id": uid_str,
             "id": uid_str,

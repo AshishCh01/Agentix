@@ -27,13 +27,13 @@ Respond strictly in JSON format:
 async def evaluate_response(state: AgentState) -> Dict[str, Any]:
     """
     Evaluates the assistant's response for groundedness and relevance.
+    Clears error state if response passes evaluation.
     """
     user_query = state.get("user_query", "")
     formatted_context = state.get("formatted_context", "")
     final_response = state.get("final_response", "")
     intent = state.get("intent", "RAG_QUERY")
 
-    # Fast-pass greetings without evaluation
     if intent == "GREETING" or not final_response:
         return {"error": None}
 
@@ -82,12 +82,11 @@ async def evaluate_response(state: AgentState) -> Dict[str, Any]:
 
         logger.info("✅ [Reflection Node] Response verified successfully (Grounded & Relevant).")
         return {
+            "error": None,
             "tool_outputs": state.get("tool_outputs", []) + [
                 {"tool": "reflection", "result": {"is_grounded": True, "is_relevant": True}}
-            ]
+            ],
         }
     except Exception as e:
         logger.error(f"❌ [Reflection Node Error]: {str(e)}")
-        return {"tool_outputs": state.get("tool_outputs", [])}
-
-
+        return {"error": None, "tool_outputs": state.get("tool_outputs", [])}

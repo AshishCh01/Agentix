@@ -16,3 +16,4 @@ class AgentState(TypedDict):
     tool_outputs: List[Dict[str, Any]]
     final_response: str
     error: Optional[str]
+    retry_count: int

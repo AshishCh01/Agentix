@@ -1,42 +1,38 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
 from app.models.base import Base
 
 
 class Document(Base):
     __tablename__ = "documents"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )
-    session_id: Mapped[uuid.UUID] = mapped_column(
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("chat_sessions.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
-    filename: Mapped[str] = mapped_column(String, nullable=False)
-    file_type: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # pdf, docx, csv, xlsx, image
-    file_path: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # Supabase Storage path
-    file_size: Mapped[Optional[int]] = mapped_column(
-        Integer, nullable=True
-    )  # File size in bytes
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+    session_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("chat_sessions.id", ondelete="CASCADE"),  # Fixed target table name
+        nullable=False,
+        index=True,
     )
+    filename = Column(String(255), nullable=False)
+    file_type = Column(String(100), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    session = relationship("ChatSession", back_populates="documents")
     chunks = relationship(
-        "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
+        "DocumentChunk",
+        back_populates="document",
+        cascade="all, delete-orphan",
     )
+    session = relationship("ChatSession", back_populates="documents")
