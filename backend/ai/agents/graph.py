@@ -9,11 +9,42 @@ from ai.agents.greeting import run_greeting_agent
 from ai.agents.reflection import evaluate_response
 from ai.agents.state import AgentState
 from ai.agents.supervisor import classify_intent
+from ai.services.llm_service import llm_service
 from ai.tools.vector_search import vector_search_tool
 from ai.tools.web_search import web_search_tool
 from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
+
+
+# --- Helper Functions ---
+
+async def contextualize_query(query: str, chat_history: list) -> str:
+    """Rewrites short or ambiguous follow-up queries into standalone search queries using chat history."""
+    clean_query = query.strip()
+
+    # Only contextualize short follow-ups (5 words or fewer) when chat history is present
+    if len(clean_query.split()) > 5 or not chat_history:
+        return clean_query
+
+    prompt = (
+        "Given the following conversation history and a short follow-up user query, "
+        "rephrase the follow-up query to be a complete, standalone search query. "
+        "Do NOT answer the query—only output the rewritten standalone query string.\n\n"
+        f"Chat History:\n{chat_history[-2:]}\n\n"
+        f"Follow-up Query: {clean_query}\n"
+        "Standalone Query:"
+    )
+
+    try:
+        messages = [{"role": "user", "content": prompt}]
+        standalone_query = await llm_service.generate_response(
+            messages=messages, temperature=0.0, max_tokens=50
+        )
+        return standalone_query.strip() or clean_query
+    except Exception as e:
+        logger.warning(f"Query contextualization failed: {e}")
+        return clean_query
 
 
 # --- 1. Node Definitions ---
@@ -66,7 +97,7 @@ async def greeting_node(state: AgentState, config: RunnableConfig) -> Dict[str, 
 
 
 async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
-    """Vector database retrieval node."""
+    """Vector database retrieval node with query contextualization."""
     configurable = config.get("configurable", {}) if config else {}
     db = configurable.get("db")
 
@@ -79,11 +110,20 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
         else uuid.UUID(state["session_id"])
     )
 
+    # 1. Contextualize follow-up query if it is short and ambiguous
+    raw_query = state.get("user_query", "")
+    chat_history = state.get("chat_history", [])
+    search_query = await contextualize_query(raw_query, chat_history)
+
+    if search_query != raw_query:
+        logger.info(f"🔍 Rewrote query from '{raw_query}' to '{search_query}'")
+
+    # 2. Perform vector search using contextualized query
     tool_result = await vector_search_tool(
         db=db,
         session_id=session_uuid,
-        query=state["user_query"],
-        image_data=state.get("image_data"),  # <-- PASSING IMAGE DATA FOR VISUAL SEARCH
+        query=search_query,
+        image_data=state.get("image_data"),
         top_k=4,
     )
     return {

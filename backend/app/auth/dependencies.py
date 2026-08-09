@@ -28,7 +28,8 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
     """
-    Validates token directly against Supabase Auth service.
+    Validates token directly against Supabase Auth service and returns
+    a normalized user dictionary supporting all route key lookups.
     """
     token = credentials.credentials
     supabase = get_supabase_client()
@@ -43,10 +44,14 @@ async def get_current_user(
             )
 
         user = user_response.user
+        uid_str = str(user.id)
 
+        # Normalizes id, sub, and user_id to ensure key compatibility across all endpoints
         return {
-            "user_id": str(user.id),
-            "email": user.email,
+            "user_id": uid_str,
+            "id": uid_str,
+            "sub": uid_str,
+            "email": user.email or "",
             "role": getattr(user, "role", "authenticated"),
         }
 
@@ -56,4 +61,3 @@ async def get_current_user(
             detail=f"Supabase Auth error: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
