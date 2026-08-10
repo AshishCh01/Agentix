@@ -1,7 +1,6 @@
 import base64
 import logging
 from typing import Any, Dict, List, Optional
-from openai import AsyncOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
@@ -49,14 +48,8 @@ class LLMService:
         raw_model = getattr(settings, "LLM_MODEL", "gemini-3.5-flash")
         self.default_model = str(raw_model).strip().strip("'\"")
 
-        # OpenAI-compatible base URL for image processing/vision endpoint
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-
-        # Initialize AsyncOpenAI client for multimodal vision calls
-        self.client = AsyncOpenAI(
-            api_key=self.api_key,
-            base_url=self.base_url,
-        )
+        # 3. Model Cache
+        self._models: Dict[tuple, ChatGoogleGenerativeAI] = {}
 
     def get_chat_model(
         self,
@@ -70,12 +63,17 @@ class LLMService:
         for real SSE token streaming.
         """
         target_model = model or self.default_model
-        return ChatGoogleGenerativeAI(
-            model=target_model,
-            google_api_key=self.api_key,
-            temperature=temperature,
-            streaming=streaming,
-        )
+        cache_key = (target_model, temperature, streaming)
+
+        if cache_key not in self._models:
+            self._models[cache_key] = ChatGoogleGenerativeAI(
+                model=target_model,
+                google_api_key=self.api_key,
+                temperature=temperature,
+                streaming=streaming,
+            )
+            
+        return self._models[cache_key]
 
     async def generate_response(
         self,
@@ -101,7 +99,14 @@ class LLMService:
             lc_messages = []
             for msg in messages:
                 role = msg.get("role", "user")
-                content = str(msg.get("content", ""))
+                
+                # CRITICAL FIX: Do not str() lists to preserve multimodal image dicts
+                raw_content = msg.get("content", "")
+                if isinstance(raw_content, list):
+                    content = raw_content
+                else:
+                    content = str(raw_content)
+
                 if role == "system":
                     lc_messages.append(SystemMessage(content=content))
                 elif role == "assistant":
@@ -123,9 +128,8 @@ class LLMService:
         model: Optional[str] = None,
     ) -> str:
         """
-        Sends raw image bytes to Gemini Vision endpoint and returns a comprehensive textual breakdown.
+        Sends raw image bytes to Gemini via Langchain and returns a comprehensive textual breakdown.
         """
-        target_model = model or self.default_model
         base64_image = base64.b64encode(file_bytes).decode("utf-8")
 
         default_prompt = (
@@ -152,13 +156,12 @@ class LLMService:
         ]
 
         try:
-            response = await self.client.chat.completions.create(
-                model=target_model,
-                messages=messages,  # type: ignore[arg-type]
+            return await self.generate_response(
+                messages=messages,
                 temperature=0.2,
                 max_tokens=2048,
+                model=model
             )
-            return response.choices[0].message.content or ""
         except Exception as e:
             logger.error(f"Gemini Vision API invocation failed: {str(e)}")
             raise RuntimeError(f"Vision service error: {str(e)}")

@@ -1,4 +1,3 @@
-import React from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { useChat } from "../../hooks/useChat";
 import { Bot, LogOut, User } from "lucide-react";

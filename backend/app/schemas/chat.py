@@ -12,9 +12,10 @@ class ChatRequest(BaseModel):
 class ChatSource(BaseModel):
     filename: str
     chunk_index: int
-    similarity_score: float
+    score: float
     page_number: Optional[int] = None
     url: Optional[str] = None
+    source_type: Optional[str] = None
 
 
 class ChatResponse(BaseModel):

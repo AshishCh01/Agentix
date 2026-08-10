@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Bot, Sparkles } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { MessageItem } from "./MessageItem";

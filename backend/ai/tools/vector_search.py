@@ -6,22 +6,7 @@ from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
-# Lightweight Cross-Encoder Reranker initialization
-_reranker_model = None
-
-
-def get_reranker():
-    global _reranker_model
-    if _reranker_model is None:
-        try:
-            from sentence_transformers import CrossEncoder
-            _reranker_model = CrossEncoder("BAAI/bge-reranker-base")
-            logger.info("✅ Cross-Encoder reranker loaded successfully.")
-        except Exception as e:
-            logger.warning(f"⚠️ Cross-Encoder model load failed: {e}. Falling back to RRF scores.")
-            _reranker_model = False
-    return _reranker_model
-
+# Reranker model initialization removed. We now use embedding_service for reranking.
 
 async def vector_search_tool(
     db: AsyncSession,
@@ -117,16 +102,14 @@ async def vector_search_tool(
         for r in rows
     ]
 
-    # 3. Cross-Encoder Reranking Pass
-    reranker = get_reranker()
-    if reranker and candidate_chunks:
+    # 3. Cross-Encoder Reranking Pass via Embedding Service
+    if candidate_chunks:
         try:
-            pairs = [[query, chunk["content"]] for chunk in candidate_chunks]
-            scores = reranker.predict(pairs)
-            for idx, score in enumerate(scores):
-                candidate_chunks[idx]["rerank_score"] = float(score)
-
-            candidate_chunks.sort(key=lambda x: x["rerank_score"], reverse=True)
+            # Map candidate_chunks to match embedding_service expected schema
+            candidate_chunks = embedding_service.rerank_chunks(query, candidate_chunks)
+            # Make sure keys match what the rest of the code expects if necessary
+            # embedding_service.rerank_chunks sorts and sets "score" instead of "rerank_score"
+            # It expects {"content": ...} and updates {"score": float, "source_type": "reranked"}
         except Exception as e:
             logger.warning(f"⚠️ Reranking failed, using default RRF order: {e}")
 

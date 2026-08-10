@@ -1,4 +1,3 @@
-import React from "react";
 import { Cpu, Database, Globe, Sparkles, CheckCircle, Bot } from "lucide-react";
 import { AGENT_NODES, AGENT_NODE_LABELS } from "../../utils/constants";
 

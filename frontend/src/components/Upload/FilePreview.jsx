@@ -1,4 +1,3 @@
-import React from "react";
 import { FileText, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { Spinner } from "../Common/Loader";
 

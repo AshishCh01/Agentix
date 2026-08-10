@@ -3,40 +3,38 @@ import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
-from app.routes import auth, chat, health, search, session, upload
+from app.routes import chat, health, search, session, upload
 
 if settings.HF_TOKEN:
     os.environ["HF_TOKEN"] = settings.HF_TOKEN
-# Import EmbeddingService targeting ai/services/embedding_service.py
-from ai.services.embedding_service import EmbeddingService
+# Import embedding_service singleton targeting ai/services/embedding_service.py
+from ai.services.embedding_service import embedding_service
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- STARTUP LOGIC ---
-    print("⚡ Pre-loading PyTorch and embedding model into RAM...")
+    print("[*] Pre-loading PyTorch and embedding model into RAM...")
     try:
-        service = EmbeddingService()
-        
         # Use getattr to look up methods dynamically and bypass Pylance static checks
         embed_fn = (
-            getattr(service, "embed_query", None)
-            or getattr(service, "embed_text", None)
-            or getattr(service, "generate_embedding", None)
-            or getattr(service, "get_embeddings", None)
+            getattr(embedding_service, "embed_query", None)
+            or getattr(embedding_service, "embed_text", None)
+            or getattr(embedding_service, "generate_embedding", None)
+            or getattr(embedding_service, "get_embeddings", None)
         )
         
         if callable(embed_fn):
             embed_fn("warmup")
             
-        print("✅ Embedding model weights loaded into RAM successfully.")
+        print("[OK] Embedding model weights loaded into RAM successfully.")
     except Exception as e:
-        print(f"⚠️ Warning during embedding model pre-load: {e}")
+        print(f"[WARN] Warning during embedding model pre-load: {e}")
 
     yield  # Application handles requests here
 
     # --- SHUTDOWN LOGIC ---
-    print("🛑 Shutting down application...")
+    print("[--] Shutting down application...")
 
 
 app = FastAPI(
@@ -58,7 +56,6 @@ app.add_middleware(
 
 # Register Routers
 app.include_router(health.router, prefix=settings.API_V1_STR)
-app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(session.router, prefix=settings.API_V1_STR)
 app.include_router(upload.router, prefix=settings.API_V1_STR)
 app.include_router(search.router, prefix=settings.API_V1_STR)

@@ -1,4 +1,3 @@
-import React from "react";
 import { MessageSquare, Trash2 } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { Spinner } from "../Common/Loader";

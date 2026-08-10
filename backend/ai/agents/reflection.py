@@ -1,10 +1,10 @@
-import json
 import logging
-import re
 from typing import Any, Dict
+from pydantic import BaseModel, Field
 
 from ai.agents.state import AgentState
 from ai.services.llm_service import llm_service
+from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = logging.getLogger(__name__)
 
@@ -14,30 +14,12 @@ Analyze the provided Assistant Response against the Context and User Query.
 Evaluate two criteria:
 1. Groundedness: Is the response factual and supported by the provided context or greeting?
 2. Relevance: Does the response directly address the user's query?
-
-Respond strictly in JSON format:
-{
-    "is_grounded": true or false,
-    "is_relevant": true or false,
-    "reason": "Brief explanation of evaluation result"
-}
 """
 
-
-def _clean_json_str(text: str) -> str:
-    """
-    Strips markdown code fences and isolates JSON payload boundaries.
-    """
-    text = text.strip()
-    if "```" in text:
-        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.MULTILINE)
-        text = re.sub(r"\s*```$", "", text, flags=re.MULTILINE).strip()
-    start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end != -1:
-        text = text[start : end + 1]
-    return text
-
+class ReflectionOutput(BaseModel):
+    is_grounded: bool = Field(description="True if the response is supported by the provided context.")
+    is_relevant: bool = Field(description="True if the response directly addresses the user's query.")
+    reason: str = Field(description="Brief explanation of the evaluation result.")
 
 async def evaluate_response(state: AgentState) -> Dict[str, Any]:
     """
@@ -66,55 +48,45 @@ async def evaluate_response(state: AgentState) -> Dict[str, Any]:
     """
 
     messages = [
-        {"role": "system", "content": REFLECTION_SYSTEM_PROMPT},
-        {"role": "user", "content": eval_prompt},
+        SystemMessage(content=REFLECTION_SYSTEM_PROMPT),
+        HumanMessage(content=eval_prompt),
     ]
 
     tool_outputs = state.get("tool_outputs", [])
 
     try:
-        response_text = await llm_service.generate_response(
-            messages=messages,
-            temperature=0.0,
-            max_tokens=150,
-        )
-
-        cleaned_json = _clean_json_str(response_text)
-        if cleaned_json:
-            parsed = json.loads(cleaned_json)
-            is_grounded = parsed.get("is_grounded", True)
-            is_relevant = parsed.get("is_relevant", True)
-            reason = parsed.get("reason", "Evaluation completed.")
-
-            if not is_grounded or not is_relevant:
-                logger.warning(
-                    f"⚠️ [Reflection Check Failed] Grounded: {is_grounded}, Relevant: {is_relevant}. Reason: {reason}"
-                )
-                return {
-                    "error": f"Reflection Check Failed: {reason}",
-                    "tool_outputs": tool_outputs + [
-                        {"node": "reflection", "result": parsed, "is_grounded": is_grounded, "is_relevant": is_relevant}
-                    ],
-                }
-
-            logger.info("✅ [Reflection Node] Response verified successfully (Grounded & Relevant).")
+        llm = llm_service.get_chat_model(temperature=0.0, streaming=False)
+        structured_llm = llm.with_structured_output(ReflectionOutput)
+        parsed = await structured_llm.ainvoke(messages)
+        
+        if not parsed.is_grounded or not parsed.is_relevant:
+            logger.warning(
+                f"⚠️ [Reflection Check Failed] Grounded: {parsed.is_grounded}, Relevant: {parsed.is_relevant}. Reason: {parsed.reason}"
+            )
             return {
-                "error": None,
+                "error": f"Reflection Check Failed: {parsed.reason}",
                 "tool_outputs": tool_outputs + [
-                    {"node": "reflection", "result": parsed, "is_grounded": True, "is_relevant": True}
+                    {"node": "reflection", "result": parsed.model_dump(), "is_grounded": parsed.is_grounded, "is_relevant": parsed.is_relevant}
                 ],
             }
 
+        logger.info("✅ [Reflection Node] Response verified successfully (Grounded & Relevant).")
+        return {
+            "error": None,
+            "tool_outputs": tool_outputs + [
+                {"node": "reflection", "result": parsed.model_dump(), "is_grounded": True, "is_relevant": True}
+            ],
+        }
+
     except Exception as e:
         logger.error(f"❌ [Reflection Node Error]: {str(e)}")
-
-    # Default fallback acceptance if reflection JSON parsing fails
-    return {
-        "error": None,
-        "tool_outputs": tool_outputs + [
-            {"node": "reflection", "result": {"is_grounded": True, "is_relevant": True, "reason": "Acceptance fallback applied."}}
-        ],
-    }
+        # Strict fail state if evaluation crashes (don't default to True)
+        return {
+            "error": f"Evaluator Error: {str(e)}",
+            "tool_outputs": tool_outputs + [
+                {"node": "reflection", "result": {"is_grounded": False, "is_relevant": False, "reason": "Evaluator failed."}}
+            ],
+        }
 
 
 async def run_reflection_agent(state: AgentState) -> Dict[str, Any]:

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { Spinner } from "../Common/Loader";

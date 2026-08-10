@@ -1,4 +1,3 @@
-import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "../components/Common/ProtectedRoute";
 import { AuthLayout } from "../layouts/AuthLayout";

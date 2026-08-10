@@ -52,8 +52,11 @@ async def parse_document(file_bytes: bytes, filename: str) -> List[Dict[str, Any
                         )
                         if ocr_description:
                             page_text_clean = ocr_description
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"OCR Extraction failed for page {page_num} of {filename}: {str(e)}")
+                        page_text_clean = "[OCR Extraction Failed]"
 
             pages.append({"page_number": page_num, "text": page_text_clean})
 
@@ -81,4 +84,9 @@ async def parse_document(file_bytes: bytes, filename: str) -> List[Dict[str, Any
         return [{"page_number": 1, "text": description}]
 
     else:
-        raise ValueError(f"Unsupported file format: .{ext}")
+        # Fallback for unrecognized extensions (try as utf-8 text)
+        try:
+            full_text = file_bytes.decode("utf-8")
+            return [{"page_number": 1, "text": full_text}]
+        except UnicodeDecodeError:
+            raise ValueError(f"Unsupported binary file format: .{ext}")

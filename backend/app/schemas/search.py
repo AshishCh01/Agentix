@@ -22,9 +22,11 @@ class ChunkResult(BaseModel):
     chunk_id: str
     document_id: str
     filename: str
+    page_number: int | None = None
     chunk_index: int
     content: str
-    similarity_score: float
+    score: float
+    source_type: str
 
 
 class SearchResponse(BaseModel):

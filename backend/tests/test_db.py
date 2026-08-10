@@ -1,6 +1,6 @@
 import asyncio
 from sqlalchemy import text
-from app.config.database import AsyncSessionLocal, engine
+from app.database.connection import AsyncSessionLocal, engine
 from app.models import Base
 
 
