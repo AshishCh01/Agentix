@@ -4,6 +4,7 @@ import { useChat } from "../../hooks/useChat";
 import { MessageItem } from "./MessageItem";
 import { NodeIndicator } from "./NodeIndicator";
 import { Spinner } from "../Common/Loader";
+import ErrorBoundary from "../Common/ErrorBoundary"; // 1. Added import
 
 export const MessageList = () => {
   const { messages, loadingMessages, isStreaming, activeNode } = useChat();
@@ -43,7 +44,10 @@ export const MessageList = () => {
   return (
     <div className="space-y-4 p-4 max-w-4xl mx-auto">
       {messages.map((msg) => (
-        <MessageItem key={msg.id} message={msg} />
+        /* 2. Wrapped MessageItem inside ErrorBoundary */
+        <ErrorBoundary key={msg.id}>
+          <MessageItem message={msg} />
+        </ErrorBoundary>
       ))}
 
       {/* Dynamic Agent Streaming Indicator */}

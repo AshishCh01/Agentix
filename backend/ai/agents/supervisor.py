@@ -37,28 +37,23 @@ CAPABILITY_PHRASES = {
     "whats up",
 }
 
+# Strictly explicit web search triggers (removed "what is", "who is", "python", etc.)
 FAST_WEB_KEYWORDS = {
     "search the web",
     "web search",
     "latest news",
     "search online",
-    "google",
+    "google search",
     "browse the web",
     "latest updates",
-    "who is",
-    "what is",
-    "where is",
-    "latest",
-    "python",
-    "news",
-    "current",
+    "today's news",
+    "current events",
 }
 
 
 def is_simple_greeting(query: str) -> bool:
     cleaned = query.strip().lower()
     words = cleaned.split()
-
 
     # 1. Exact phrase matches
     if cleaned in CAPABILITY_PHRASES:
@@ -147,9 +142,10 @@ async def classify_intent(state: AgentState) -> str:
         return "RAG_QUERY"
 
     q_lower = user_query.lower()
-    if any(k in q_lower for k in ["search", "latest", "news", "who is", "what is", "python", "http", "www"]):
+    if any(k in q_lower for k in ["search online", "latest news", "google", "http://", "https://", "www."]):
         return "WEB_SEARCH"
     elif any(k in q_lower for k in ["hi", "hello", "hey"]):
         return "GREETING"
 
+    # Default to RAG_QUERY for all general document questions
     return "RAG_QUERY"

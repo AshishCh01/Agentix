@@ -8,16 +8,16 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # Ingestion & File Storage Settings
-    UPLOAD_DIR: str = "uploads"
+    SUPABASE_STORAGE_BUCKET: str = "documents"  # Name of your Supabase storage bucket
     MAX_UPLOAD_SIZE_MB: int = 10
 
     # Optimization Controls
-    SKIP_REFLECTION: bool = True  # Set to True to bypass reflection and save tokens/API calls
+    SKIP_REFLECTION: bool = True
 
     # Supabase Credentials
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
-    SUPABASE_JWT_SECRET: str = ""  # Found in Supabase Dashboard -> Project Settings -> API -> JWT Secret
+    SUPABASE_JWT_SECRET: str = ""
 
     # Database Settings
     DATABASE_URL: str = ""
