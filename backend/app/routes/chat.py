@@ -100,6 +100,8 @@ async def chat_endpoint(
             filename=chunk.get("filename", ""),
             chunk_index=chunk.get("chunk_index", 0),
             similarity_score=chunk.get("similarity_score", 0.0),
+            page_number=chunk.get("page_number"),  # Added for PDF page mapping
+            url=chunk.get("url")                   # Added for Web search mapping
         )
         for chunk in final_state.get("retrieved_chunks", [])
     ]
@@ -200,6 +202,8 @@ async def chat_stream_endpoint(
                     "filename": chunk.get("filename", ""),
                     "chunk_index": chunk.get("chunk_index", 0),
                     "similarity_score": chunk.get("similarity_score", 0.0),
+                    "page_number": chunk.get("page_number"),  # Added for PDF page mapping
+                    "url": chunk.get("url"),                  # Added for Web search mapping
                 }
                 for chunk in retrieved_chunks
             ]

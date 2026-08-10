@@ -13,11 +13,19 @@ export const UploadButton = () => {
   const { activeSessionId, createNewSession } = useChat();
   const { uploadFile, isUploading, progress, error, success, resetUploadState } = useUpload();
 
+  // Helper to validate file types supported by the backend
+  const isValidFile = (file) => {
+    const validExtensions = ['pdf', 'docx', 'csv', 'xlsx', 'txt', 'md', 'json'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isImage = file.type.startsWith('image/');
+    return isImage || validExtensions.includes(ext);
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.type !== "application/pdf") {
-        alert("Please select a PDF document.");
+      if (!isValidFile(file)) {
+        alert("Unsupported file type. Please upload a PDF, Word Doc, CSV, Excel, TXT, or Image.");
         return;
       }
       setSelectedFile(file);
@@ -30,8 +38,8 @@ export const UploadButton = () => {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      if (file.type !== "application/pdf") {
-        alert("Please drop a valid PDF document.");
+      if (!isValidFile(file)) {
+        alert("Unsupported file type. Please drop a valid document or image.");
         return;
       }
       setSelectedFile(file);
@@ -69,7 +77,7 @@ export const UploadButton = () => {
         className="flex items-center space-x-2 px-3 py-2 bg-slate-800 hover:bg-slate-700/80 border border-slate-700/50 text-slate-200 text-xs font-medium rounded-lg transition-colors"
       >
         <Upload className="w-3.5 h-3.5 text-blue-400" />
-        <span>Upload PDF</span>
+        <span>Upload Document</span>
       </button>
 
       {/* Modal Dialog */}
@@ -110,15 +118,15 @@ export const UploadButton = () => {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept=".pdf,application/pdf"
+                  accept=".pdf,.docx,.csv,.xlsx,.txt,.md,.json,image/*"
                   className="hidden"
                 />
                 <FileUp className="w-8 h-8 text-slate-500 mx-auto mb-2" />
                 <p className="text-xs font-medium text-slate-300">
-                  Click to upload or drag & drop PDF
+                  Click to upload or drag & drop a file
                 </p>
                 <p className="text-[10px] text-slate-500 mt-1">
-                  Supported formats: .pdf (Max size 15MB)
+                  Supported: PDF, DOCX, CSV, Excel, TXT, Images (Max 15MB)
                 </p>
               </div>
             )}
@@ -154,7 +162,7 @@ export const UploadButton = () => {
                   disabled={isUploading}
                   className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg transition-colors flex items-center space-x-1.5"
                 >
-                  <span>{isUploading ? "Processing..." : "Start Ingestion"}</span>
+                  <span>{isUploading ? "Uploading..." : "Start Upload"}</span>
                 </button>
               )}
             </div>

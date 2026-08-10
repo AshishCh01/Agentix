@@ -13,7 +13,12 @@ export const sessionApi = {
 
   getSessionMessages: async (sessionId) => {
     const response = await apiClient.get(`/sessions/${sessionId}/messages`);
-    return response.data;
+    
+    // Normalize 'sender' to 'role' to fix chat history display alignment
+    return response.data.map(msg => ({
+      ...msg,
+      role: msg.sender || msg.role
+    }));
   },
 
   deleteSession: async (sessionId) => {

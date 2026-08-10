@@ -16,7 +16,6 @@ export const ChatProvider = ({ children }) => {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
-  // Fetch sessions for current user
   const fetchSessions = useCallback(async () => {
     setLoadingSessions(true);
     try {
@@ -39,7 +38,6 @@ export const ChatProvider = ({ children }) => {
     }
   }, []);
 
-  // Handle user login/logout/account switching cleanly
   useEffect(() => {
     let isMounted = true;
 
@@ -81,7 +79,6 @@ export const ChatProvider = ({ children }) => {
     };
   }, [user]);
 
-  // Fetch messages whenever activeSessionId changes
   useEffect(() => {
     if (!activeSessionId) return;
 
@@ -112,7 +109,6 @@ export const ChatProvider = ({ children }) => {
     };
   }, [activeSessionId]);
 
-  // Create new session
   const createNewSession = async (title = "New Chat Session") => {
     try {
       const newSession = await sessionApi.createSession(title);
@@ -126,7 +122,6 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // Delete session
   const deleteSession = async (sessionId) => {
     try {
       await sessionApi.deleteSession(sessionId);
@@ -143,13 +138,15 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // Send message and handle SSE response stream
-  const sendMessage = async (userPrompt) => {
-    if (!userPrompt.trim() || isStreaming) return;
+  const sendMessage = async (userPrompt, imageData = null) => {
+    if ((!userPrompt.trim() && !imageData) || isStreaming) return;
 
     let targetSessionId = activeSessionId;
     if (!targetSessionId) {
-      const created = await createNewSession(userPrompt.slice(0, 30));
+      const sessionTitle = userPrompt.trim()
+        ? userPrompt.slice(0, 30)
+        : "Image Query";
+      const created = await createNewSession(sessionTitle);
       targetSessionId = created.id;
     }
 
@@ -157,6 +154,7 @@ export const ChatProvider = ({ children }) => {
       id: Date.now().toString(),
       role: "user",
       content: userPrompt,
+      image_data: imageData,
       created_at: new Date().toISOString(),
     };
 
@@ -177,11 +175,11 @@ export const ChatProvider = ({ children }) => {
       await chatApi.streamMessage({
         sessionId: targetSessionId,
         message: userPrompt,
+        imageData,
         onEvent: (event) => {
           if (event.type === "node_start") {
             setActiveNode(event.node);
           } else if (event.type === "token") {
-            // Append token incrementally to streaming assistant message
             setMessages((prev) => {
               const updated = [...prev];
               const lastMsg = updated[updated.length - 1];
@@ -197,7 +195,6 @@ export const ChatProvider = ({ children }) => {
               return updated;
             });
           } else if (event.type === "completion") {
-            // Finalize streaming assistant message
             setMessages((prev) => {
               const updated = [...prev];
               const lastMsg = updated[updated.length - 1];

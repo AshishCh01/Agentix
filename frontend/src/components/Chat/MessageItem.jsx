@@ -32,7 +32,19 @@ export const MessageItem = ({ message }) => {
           <span>{formatDate(message.created_at)}</span>
         </div>
 
-        <div className="whitespace-pre-wrap break-words">{message.content}</div>
+        {message.image_data && (
+          <div className="mb-2.5">
+            <img
+              src={message.image_data}
+              alt="User attachment"
+              className="max-w-full max-h-60 rounded-xl border border-white/20 object-cover shadow"
+            />
+          </div>
+        )}
+
+        {message.content && (
+          <div className="whitespace-pre-wrap break-words">{message.content}</div>
+        )}
 
         {!isUser && message.sources && message.sources.length > 0 && (
           <SourceBadge sources={message.sources} />

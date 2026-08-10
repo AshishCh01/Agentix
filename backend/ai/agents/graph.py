@@ -89,8 +89,8 @@ def route_after_answer(state: AgentState) -> str:
 
 def route_after_reflection(state: AgentState) -> str:
     """
-    Self-correction loop: If reflection node flagged an ungrounded or irrelevant response,
-    route back to answer_node to retry synthesis up to a max retry count.
+    Self-correction loop: Routes back to SUPERVISOR instead of answer
+    so the system can re-attempt retrieval or web search with fresh context.
     """
     error = state.get("error")
     retry_count = state.get("retry_count", 0)
@@ -99,9 +99,9 @@ def route_after_reflection(state: AgentState) -> str:
     if error and retry_count < max_retries:
         logger.info(
             f"🔄 [Reflection Self-Correction] Check failed ({error}). "
-            f"Retrying answer generation (Attempt {retry_count + 1}/{max_retries})..."
+            f"Retrying from supervisor (Attempt {retry_count + 1}/{max_retries})..."
         )
-        return "answer"
+        return "supervisor"
 
     return END
 
@@ -151,6 +151,8 @@ async def web_search_node(state: AgentState, config: RunnableConfig) -> Dict[str
     tool_result = await web_search_tool(query=state["user_query"], max_results=4)
     return {
         "formatted_context": tool_result.get("formatted_context", ""),
+        # This mapping is crucial: it passes the web URLs to your frontend citations
+        "retrieved_chunks": tool_result.get("sources", []),
         "tool_outputs": state.get("tool_outputs", []) + [{"tool": "web_search", "result": tool_result}],
     }
 
@@ -216,12 +218,12 @@ def build_graph():
         },
     )
 
-    # Self-Correction Edge from Reflection
+    # Self-Correction Edge routing to Supervisor instead of Answer
     workflow.add_conditional_edges(
         "reflection",
         route_after_reflection,
         {
-            "answer": "answer",
+            "supervisor": "supervisor",
             END: END,
         },
     )

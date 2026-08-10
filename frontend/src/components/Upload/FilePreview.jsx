@@ -35,13 +35,13 @@ export const FilePreview = ({ file, progress, isUploading, error, success, onCle
         </button>
       </div>
 
-      {/* Uploading & Embedding Progress */}
+      {/* Uploading Progress */}
       {isUploading && (
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">
               <Spinner size="sm" />
-              {progress < 100 ? "Uploading file..." : "Generating vector embeddings..."}
+              Transferring file to server...
             </span>
             <span>{progress}%</span>
           </div>
@@ -54,11 +54,11 @@ export const FilePreview = ({ file, progress, isUploading, error, success, onCle
         </div>
       )}
 
-      {/* Success Badge */}
+      {/* Success Badge - Updated to reflect 202 Accepted status accurately */}
       {success && (
         <div className="flex items-center space-x-1.5 text-emerald-400 font-medium pt-1">
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          <span>Ingested & indexed in vector store!</span>
+          <span>Upload complete! Processing in background.</span>
         </div>
       )}
 

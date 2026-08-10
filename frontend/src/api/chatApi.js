@@ -4,19 +4,17 @@ import { parseSSEStream } from "../utils/streamParser";
 import { supabase } from "./supabaseClient";
 
 export const chatApi = {
-  // Standard REST Fallback
-  sendMessageSync: async (sessionId, message) => {
+  sendMessageSync: async (sessionId, message, imageData = null) => {
     const response = await apiClient.post("/chat", {
       session_id: sessionId,
       message,
+      image_data: imageData,
     });
     return response.data;
   },
 
-  // SSE Stream Handler with Token Refresh
-  streamMessage: async ({ sessionId, message, onEvent, onError }) => {
+  streamMessage: async ({ sessionId, message, imageData = null, onEvent, onError }) => {
     try {
-      // Get session and auto-refresh if missing/expired
       let { data } = await supabase.auth.getSession();
       let token = data?.session?.access_token;
 
@@ -38,6 +36,7 @@ export const chatApi = {
         body: JSON.stringify({
           session_id: sessionId,
           message,
+          image_data: imageData,
         }),
       });
 
