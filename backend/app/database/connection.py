@@ -16,6 +16,10 @@ engine = create_async_engine(
     pool_recycle=1800,   # Recycles stale connections older than 30 minutes
     pool_size=10,        # Maximum persistent pool connections
     max_overflow=20,     # Maximum additional bursting connections
+    connect_args={
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    },
 )
 
 AsyncSessionLocal = async_sessionmaker(

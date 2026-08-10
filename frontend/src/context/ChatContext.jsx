@@ -1,4 +1,5 @@
-import { createContext, useState, useEffect, useCallback, useContext } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useState, useEffect, useCallback, useContext, useRef } from "react";
 import { sessionApi } from "../api/sessionApi";
 import { chatApi } from "../api/chatApi";
 import { AuthContext } from "./AuthContext";
@@ -15,6 +16,8 @@ export const ChatProvider = ({ children }) => {
   const [activeNode, setActiveNode] = useState(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+
+  const skipNextFetch = useRef(null);
 
   const fetchSessions = useCallback(async () => {
     setLoadingSessions(true);
@@ -42,9 +45,11 @@ export const ChatProvider = ({ children }) => {
     let isMounted = true;
 
     if (!user) {
-      setSessions([]);
-      setMessages([]);
-      setActiveSessionId(null);
+      setTimeout(() => {
+        setSessions([]);
+        setMessages([]);
+        setActiveSessionId(null);
+      }, 0);
       return;
     }
 
@@ -84,6 +89,11 @@ export const ChatProvider = ({ children }) => {
 
     let isMounted = true;
 
+    if (skipNextFetch.current === activeSessionId) {
+      skipNextFetch.current = null;
+      return;
+    }
+
     const loadMessages = async () => {
       setLoadingMessages(true);
       try {
@@ -113,6 +123,7 @@ export const ChatProvider = ({ children }) => {
     try {
       const newSession = await sessionApi.createSession(title);
       setSessions((prev) => [newSession, ...prev]);
+      skipNextFetch.current = newSession.id;
       setActiveSessionId(newSession.id);
       setMessages([]);
       return newSession;

@@ -1,4 +1,3 @@
-import React from "react";
 import { Bot, User } from "lucide-react";
 import { SourceBadge } from "./SourceBadge";
 import { formatDate } from "../../utils/helpers";

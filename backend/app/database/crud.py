@@ -6,6 +6,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.agent_logs import AgentLog
 from app.models.session import ChatSession
 from app.models.message import Message
+from app.models.user import User
+from sqlalchemy.dialects.postgresql import insert
+
+# --- User Operations ---
+async def sync_user(
+    db: AsyncSession,
+    user_id: uuid.UUID | str,
+    email: str,
+    full_name: Optional[str] = None,
+    avatar_url: Optional[str] = None,
+) -> None:
+    """
+    Synchronizes a user from external auth into the local database using an upsert.
+    """
+    if isinstance(user_id, str):
+        user_id = uuid.UUID(user_id)
+
+    stmt = insert(User).values(
+        id=user_id,
+        email=email,
+        full_name=full_name,
+        avatar_url=avatar_url
+    ).on_conflict_do_update(
+        index_elements=['id'],
+        set_={
+            'email': email,
+            'full_name': full_name,
+            'avatar_url': avatar_url
+        }
+    )
+    await db.execute(stmt)
+    await db.commit()
+
 
 
 # --- Agent Execution Telemetry ---

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Upload, FileUp, X } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { useUpload } from "../../hooks/useUpload";

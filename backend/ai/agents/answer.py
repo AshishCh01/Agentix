@@ -20,10 +20,8 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
     session conversation history, and optional user image input.
     Uses ChatOpenAI via llm_service to enable streaming callback events in LangGraph.
     """
-    final_response = state.get("final_response", "")
-    if final_response:
-        return {"final_response": final_response}
-
+    # Remove the caching block that was returning the old answer on retry!
+    
     formatted_context = state.get("formatted_context", "").strip()
     intent = state.get("intent", "RAG_QUERY")
     image_data = state.get("image_data")
@@ -52,6 +50,11 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
         system_instruction = ANSWER_SYSTEM_PROMPT.format(
             context=formatted_context if formatted_context else "No document chunks retrieved."
         )
+        
+    error_feedback = state.get("error")
+    if error_feedback:
+        logger.info(f"🔄 Injecting reflection feedback into answer generation: {error_feedback}")
+        system_instruction += f"\n\nCRITICAL FEEDBACK ON PREVIOUS ATTEMPT:\n{error_feedback}\nPlease correct your response based on this feedback."
 
     messages: List[Dict[str, Any]] = [{"role": "system", "content": system_instruction}]
 

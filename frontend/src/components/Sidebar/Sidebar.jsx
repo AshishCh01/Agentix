@@ -1,4 +1,3 @@
-import React from "react";
 import { Bot, X, LogOut, User } from "lucide-react";
 import { NewChatButton } from "./NewChatButton";
 import { ChatList } from "./ChatList";

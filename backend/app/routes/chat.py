@@ -5,13 +5,14 @@ from typing import AsyncGenerator, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.agents.graph import rag_graph
 from ai.agents.state import AgentState
 from ai.services.llm_service import extract_text_from_content
 from app.auth.dependencies import get_current_user
-from app.config.database import get_db
+from app.database.connection import get_db
 from app.database.crud import log_agent_execution
 from app.models.message import Message
 from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
@@ -32,16 +33,36 @@ async def _setup_chat_state(
     session_id = str(request.session_id)
     user_query_text = request.message or ""
 
+    from app.database import crud
+    try:
+        session = await crud.get_chat_session(db, session_id=session_id, user_id=user_id)
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat session not found or access denied.",
+            )
+    except SQLAlchemyError as db_err:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error while verifying session.",
+        )
+
     # Fetch recent history
-    stmt = (
-        select(Message)
-        .where(Message.session_id == uuid.UUID(session_id))
-        .order_by(Message.created_at.desc())
-        .limit(6)
-    )
-    result = await db.execute(stmt)
-    history_records = list(reversed(result.scalars().all()))
-    chat_history = [{"role": msg.sender, "content": msg.content} for msg in history_records]
+    try:
+        stmt = (
+            select(Message)
+            .where(Message.session_id == uuid.UUID(session_id))
+            .order_by(Message.created_at.desc())
+            .limit(6)
+        )
+        result = await db.execute(stmt)
+        history_records = list(reversed(result.scalars().all()))
+        chat_history = [{"role": msg.sender, "content": msg.content} for msg in history_records]
+    except SQLAlchemyError as db_err:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error while fetching chat history.",
+        )
 
     initial_state: AgentState = {
         "session_id": session_id,
@@ -88,10 +109,22 @@ async def chat_endpoint(
             initial_state,
             config={"configurable": {"db": db}},
         )
-    except Exception as e:
+    except SQLAlchemyError as db_err:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error during LangGraph execution.",
+        )
+    except Exception as e:
+        await db.rollback()
+        error_msg = str(e).lower()
+        if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="LLM rate limit exceeded. Please try again later.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"LangGraph execution error: {str(e)}",
         )
 
@@ -99,9 +132,10 @@ async def chat_endpoint(
         ChatSource(
             filename=chunk.get("filename", ""),
             chunk_index=chunk.get("chunk_index", 0),
-            similarity_score=chunk.get("similarity_score", 0.0),
+            score=chunk.get("score", 0.0),
             page_number=chunk.get("page_number"),  # Added for PDF page mapping
-            url=chunk.get("url")                   # Added for Web search mapping
+            url=chunk.get("url"),                  # Added for Web search mapping
+            source_type=chunk.get("source_type")
         )
         for chunk in final_state.get("retrieved_chunks", [])
     ]
@@ -201,9 +235,10 @@ async def chat_stream_endpoint(
                 {
                     "filename": chunk.get("filename", ""),
                     "chunk_index": chunk.get("chunk_index", 0),
-                    "similarity_score": chunk.get("similarity_score", 0.0),
+                    "score": chunk.get("score", 0.0),
                     "page_number": chunk.get("page_number"),  # Added for PDF page mapping
                     "url": chunk.get("url"),                  # Added for Web search mapping
+                    "source_type": chunk.get("source_type")
                 }
                 for chunk in retrieved_chunks
             ]
@@ -253,9 +288,17 @@ async def chat_stream_endpoint(
             })
             yield f"data: {completion_payload}\n\n"
 
+        except SQLAlchemyError as db_err:
+            await db.rollback()
+            error_payload = json.dumps({"type": "error", "error_type": "database_error", "detail": "A database error occurred."})
+            yield f"data: {error_payload}\n\n"
         except Exception as e:
             await db.rollback()
-            error_payload = json.dumps({"type": "error", "detail": str(e)})
+            error_msg = str(e).lower()
+            error_type = "execution_error"
+            if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg:
+                error_type = "rate_limit_error"
+            error_payload = json.dumps({"type": "error", "error_type": error_type, "detail": str(e)})
             yield f"data: {error_payload}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

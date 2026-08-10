@@ -6,6 +6,7 @@ from langchain_core.runnables import RunnableConfig
 
 from ai.agents.answer import run_answer_agent
 from ai.agents.greeting import run_greeting_agent
+from ai.agents.direct_answer import run_direct_answer_agent
 from ai.agents.reflection import evaluate_response
 from ai.agents.state import AgentState
 from ai.agents.supervisor import classify_intent
@@ -18,40 +19,18 @@ logger = logging.getLogger(__name__)
 
 
 # --- Helper Functions ---
+# (contextualize_query removed as supervisor handles it now)
 
-async def contextualize_query(query: str, chat_history: list) -> str:
-    """Rewrites short or ambiguous follow-up queries into standalone search queries using chat history."""
-    clean_query = query.strip()
-
-    if len(clean_query.split()) > 5 or not chat_history:
-        return clean_query
-
-    prompt = (
-        "Given the following conversation history and a short follow-up user query, "
-        "rephrase the follow-up query to be a complete, standalone search query. "
-        "Do NOT answer the query—only output the rewritten standalone query string.\n\n"
-        f"Chat History:\n{chat_history[-2:]}\n\n"
-        f"Follow-up Query: {clean_query}\n"
-        "Standalone Query:"
-    )
-
-    try:
-        messages = [{"role": "user", "content": prompt}]
-        standalone_query = await llm_service.generate_response(
-            messages=messages, temperature=0.0, max_tokens=50
-        )
-        return standalone_query.strip() or clean_query
-    except Exception as e:
-        logger.warning(f"Query contextualization failed: {e}")
-        return clean_query
 
 
 # --- 1. Node Definitions & Edge Functions ---
 
 async def supervisor_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
-    """Classifies user intent (GREETING, RAG_QUERY, or WEB_SEARCH)."""
-    intent = await classify_intent(state)
-    return {"intent": intent}
+    """Classifies user intent (GREETING, RAG_QUERY, WEB_SEARCH, DIRECT_ANSWER)."""
+    result = await classify_intent(state)
+    # classify_intent returns {"intent": "...", "standalone_query": "..."}
+    # Return it directly so both keys are merged into graph state
+    return result
 
 
 def route_intent(state: AgentState) -> str:
@@ -61,6 +40,8 @@ def route_intent(state: AgentState) -> str:
         return "greeting"
     elif intent == "WEB_SEARCH":
         return "web_search"
+    elif intent == "DIRECT_ANSWER":
+        return "direct_answer"
     return "vector_search"
 
 
@@ -80,7 +61,7 @@ def route_after_answer(state: AgentState) -> str:
         return END
 
     intent = state.get("intent")
-    if intent in ["WEB_SEARCH", "GREETING"]:
+    if intent in ["WEB_SEARCH", "GREETING", "DIRECT_ANSWER"]:
         logger.info(f"⏩ Skipping reflection node for intent: {intent}.")
         return END
 
@@ -111,6 +92,11 @@ async def greeting_node(state: AgentState, config: RunnableConfig) -> Dict[str, 
     return await run_greeting_agent(state)
 
 
+async def direct_answer_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
+    """Direct answer agent node for general knowledge/coding queries."""
+    return await run_direct_answer_agent(state)
+
+
 async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Vector database retrieval node with query contextualization."""
     configurable = config.get("configurable", {}) if config else {}
@@ -126,11 +112,10 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
     )
 
     raw_query = state.get("user_query", "")
-    chat_history = state.get("chat_history", [])
-    search_query = await contextualize_query(raw_query, chat_history)
+    search_query = state.get("standalone_query") or raw_query
 
     if search_query != raw_query:
-        logger.info(f"🔍 Rewrote query from '{raw_query}' to '{search_query}'")
+        logger.info(f"🔍 Using standalone query from supervisor: '{search_query}'")
 
     tool_result = await vector_search_tool(
         db=db,
@@ -148,8 +133,10 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
 
 async def web_search_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Web search engine retrieval node."""
-    tool_result = await web_search_tool(query=state["user_query"], max_results=4)
+    search_query = state.get("standalone_query") or state.get("user_query", "")
+    tool_result = await web_search_tool(query=search_query, max_results=4)
     return {
+        "intent": "WEB_SEARCH",  # Override intent to skip reflection for fallback paths
         "formatted_context": tool_result.get("formatted_context", ""),
         # This mapping is crucial: it passes the web URLs to your frontend citations
         "retrieved_chunks": tool_result.get("sources", []),
@@ -181,6 +168,7 @@ def build_graph():
     # Add Nodes
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("greeting", greeting_node)
+    workflow.add_node("direct_answer", direct_answer_node)
     workflow.add_node("vector_search", vector_search_node)
     workflow.add_node("web_search", web_search_node)
     workflow.add_node("answer", answer_node)
@@ -195,6 +183,7 @@ def build_graph():
         route_intent,
         {
             "greeting": "greeting",
+            "direct_answer": "direct_answer",
             "vector_search": "vector_search",
             "web_search": "web_search",
         },
@@ -230,6 +219,7 @@ def build_graph():
 
     # Direct Node Edges
     workflow.add_edge("greeting", END)
+    workflow.add_edge("direct_answer", END)
     workflow.add_edge("web_search", "answer")
 
     return workflow.compile()

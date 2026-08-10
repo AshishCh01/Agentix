@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 
 from ai.services.retrieval_service import search_similar_chunks
 from app.auth.dependencies import get_current_user
-from app.config.database import get_db
+from app.database.connection import get_db
 from app.schemas.search import ChunkResult, SearchRequest, SearchResponse
 
 router = APIRouter(prefix="/search", tags=["Vector Search"])
@@ -19,6 +20,22 @@ async def perform_vector_search(
     Performs cosine similarity vector search against stored document chunks
     for a given session_id.
     """
+    user_id = str(current_user.get("id") or current_user.get("sub", ""))
+    
+    from app.database import crud
+    try:
+        session = await crud.get_chat_session(db, session_id=request.session_id, user_id=user_id)
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat session not found or access denied.",
+            )
+    except SQLAlchemyError as db_err:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error while verifying session.",
+        )
+
     try:
         raw_chunks = await search_similar_chunks(
             db=db,
@@ -36,8 +53,19 @@ async def perform_vector_search(
             results_count=len(chunk_models),
             chunks=chunk_models,
         )
-    except Exception as e:
+    except SQLAlchemyError as db_err:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error during vector similarity search.",
+        )
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "429" in error_msg or "quota" in error_msg or "rate limit" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Embedding API rate limit exceeded.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Vector similarity search failed: {str(e)}",
         )

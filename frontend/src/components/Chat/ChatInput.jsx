@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, ImagePlus, X } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 

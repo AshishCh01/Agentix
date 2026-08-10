@@ -8,9 +8,10 @@ class AgentState(TypedDict):
     session_id: str
     user_id: str
     user_query: str
+    standalone_query: Optional[str]  # <-- ADDED: Rewritten query with conversation context
     image_data: Optional[str]  # <-- ADDED: Base64 image payload
     intent: Optional[str]
-    chat_history: List[Dict[str, str]]
+    chat_history: List[Dict[str, Any]]
     retrieved_chunks: List[Dict[str, Any]]
     formatted_context: str
     tool_outputs: List[Dict[str, Any]]
