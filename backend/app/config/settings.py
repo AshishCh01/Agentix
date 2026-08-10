@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 10
 
     # Optimization Controls
-    SKIP_REFLECTION: bool = True
+    SKIP_REFLECTION: bool = False  # Skip reflection for faster responses
 
     # Supabase Credentials
     SUPABASE_URL: str = ""
@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     # LLM Settings
     GEMINI_API_KEY: str = ""
+    LLM_MODEL: str = "gemini-1.5-flash"  # Default LLM model for responses
 
     # CORS Configurations
     CORS_ORIGINS: List[str] = [

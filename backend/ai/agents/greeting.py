@@ -11,6 +11,7 @@ async def run_greeting_agent(state: AgentState) -> Dict[str, Any]:
     """
     Fast-path agent for handling user greetings and pleasantries.
     Generates a friendly reply without triggering vector database or web search tools.
+    Uses ChatOpenAI via llm_service to enable streaming callback events in LangGraph.
     """
     user_query = state.get("user_query", "")
     chat_history = state.get("chat_history", [])
@@ -23,10 +24,11 @@ async def run_greeting_agent(state: AgentState) -> Dict[str, Any]:
 
     messages.append({"role": "user", "content": user_query})
 
-    # Generate response via LLM service
     try:
         response = await llm_service.generate_response(
-            messages=messages, temperature=0.7, max_tokens=200
+            messages=messages,
+            temperature=0.7,
+            max_tokens=200,
         )
         return {
             "intent": "GREETING",

@@ -1,14 +1,54 @@
 import uuid
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+
+from app.models.agent_logs import AgentLog
 from app.models.session import ChatSession
-from app.models.message import Message  # <-- Adjust import path if Message is located in app.models.session
+from app.models.message import Message
 
 
+# --- Agent Execution Telemetry ---
+async def log_agent_execution(
+    db: AsyncSession,
+    session_id: uuid.UUID | str,
+    node_name: str,
+    input_data: Dict[str, Any],
+    output_data: Dict[str, Any],
+    execution_time_ms: float,
+    model_used: Optional[str] = "gemini-1.5-flash",
+) -> AgentLog:
+    """
+    Logs agent execution metrics, latency, and inputs/outputs to the agent_logs table.
+    """
+    if isinstance(session_id, str):
+        session_id = uuid.UUID(session_id)
+
+    log_entry = AgentLog(
+        session_id=session_id,
+        agent_name=node_name,
+        input_data=input_data,
+        output_data=output_data,
+        execution_time_ms=execution_time_ms,
+    )
+    db.add(log_entry)
+    await db.commit()
+    await db.refresh(log_entry)
+    return log_entry
+
+
+# --- Chat Session Operations ---
 async def create_chat_session(
-    db: AsyncSession, user_id: uuid.UUID, title: str = "New Conversation"
+    db: AsyncSession,
+    user_id: uuid.UUID | str,
+    title: str = "New Conversation",
 ) -> ChatSession:
+    """
+    Creates and persists a new chat session for a user.
+    """
+    if isinstance(user_id, str):
+        user_id = uuid.UUID(user_id)
+
     session = ChatSession(user_id=user_id, title=title)
     db.add(session)
     await db.commit()
@@ -17,31 +57,59 @@ async def create_chat_session(
 
 
 async def get_user_chat_sessions(
-    db: AsyncSession, user_id: uuid.UUID
+    db: AsyncSession,
+    user_id: uuid.UUID | str,
 ) -> List[ChatSession]:
-    result = await db.execute(
+    """
+    Fetches all chat sessions belonging to a specific user, ordered by most recent.
+    """
+    if isinstance(user_id, str):
+        user_id = uuid.UUID(user_id)
+
+    stmt = (
         select(ChatSession)
         .where(ChatSession.user_id == user_id)
         .order_by(ChatSession.updated_at.desc())
     )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def get_chat_session_by_id(
-    db: AsyncSession, session_id: uuid.UUID, user_id: uuid.UUID
+async def get_chat_session(
+    db: AsyncSession,
+    session_id: uuid.UUID | str,
+    user_id: Optional[uuid.UUID | str] = None,
 ) -> Optional[ChatSession]:
-    result = await db.execute(
-        select(ChatSession).where(
-            ChatSession.id == session_id, ChatSession.user_id == user_id
-        )
-    )
+    """
+    Retrieves a single chat session by session_id and optional user_id.
+    """
+    if isinstance(session_id, str):
+        session_id = uuid.UUID(session_id)
+
+    stmt = select(ChatSession).where(ChatSession.id == session_id)
+    if user_id:
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
+        stmt = stmt.where(ChatSession.user_id == user_id)
+
+    result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
+# Alias for backwards compatibility
+get_chat_session_by_id = get_chat_session
+
+
 async def update_chat_session_title(
-    db: AsyncSession, session_id: uuid.UUID, user_id: uuid.UUID, title: str
+    db: AsyncSession,
+    session_id: uuid.UUID | str,
+    user_id: uuid.UUID | str,
+    title: str,
 ) -> Optional[ChatSession]:
-    session = await get_chat_session_by_id(db, session_id, user_id)
+    """
+    Updates the title of an existing chat session.
+    """
+    session = await get_chat_session(db, session_id, user_id)
     if session:
         session.title = title
         await db.commit()
@@ -50,23 +118,45 @@ async def update_chat_session_title(
 
 
 async def delete_chat_session(
-    db: AsyncSession, session_id: uuid.UUID, user_id: uuid.UUID
+    db: AsyncSession,
+    session_id: uuid.UUID | str,
+    user_id: uuid.UUID | str,
 ) -> bool:
-    session = await get_chat_session_by_id(db, session_id, user_id)
-    if session:
-        await db.delete(session)
-        await db.commit()
-        return True
-    return False
+    """
+    Deletes a chat session belonging to a user.
+    """
+    if isinstance(session_id, str):
+        session_id = uuid.UUID(session_id)
+    if isinstance(user_id, str):
+        user_id = uuid.UUID(user_id)
+
+    stmt = delete(ChatSession).where(
+        ChatSession.id == session_id, ChatSession.user_id == user_id
+    )
+    result = await db.execute(stmt)
+    await db.commit()
+    return result.rowcount > 0
 
 
-# --- ADDED: Retrieve chat history for a given session ---
-async def get_messages_by_session(
-    db: AsyncSession, session_id: uuid.UUID
+# --- Message Operations ---
+async def get_session_messages(
+    db: AsyncSession,
+    session_id: uuid.UUID | str,
 ) -> List[Message]:
-    result = await db.execute(
+    """
+    Retrieves conversation history messages for a chat session in chronological order.
+    """
+    if isinstance(session_id, str):
+        session_id = uuid.UUID(session_id)
+
+    stmt = (
         select(Message)
         .where(Message.session_id == session_id)
         .order_by(Message.created_at.asc())
     )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+# Alias for backwards compatibility
+get_messages_by_session = get_session_messages

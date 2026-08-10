@@ -160,7 +160,16 @@ export const ChatProvider = ({ children }) => {
       created_at: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const assistantPlaceholder = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: "",
+      sources: [],
+      isStreaming: true,
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMsg, assistantPlaceholder]);
     setIsStreaming(true);
     setActiveNode("supervisor");
 
@@ -171,28 +180,62 @@ export const ChatProvider = ({ children }) => {
         onEvent: (event) => {
           if (event.type === "node_start") {
             setActiveNode(event.node);
+          } else if (event.type === "token") {
+            // Append token incrementally to streaming assistant message
+            setMessages((prev) => {
+              const updated = [...prev];
+              const lastMsg = updated[updated.length - 1];
+              if (lastMsg && lastMsg.role === "assistant") {
+                return [
+                  ...updated.slice(0, -1),
+                  {
+                    ...lastMsg,
+                    content: (lastMsg.content || "") + (event.content || ""),
+                  },
+                ];
+              }
+              return updated;
+            });
           } else if (event.type === "completion") {
-            const assistantMsg = {
-              id: (Date.now() + 1).toString(),
-              role: "assistant",
-              content: event.assistant_message,
-              sources: event.sources || [],
-              intent: event.intent,
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, assistantMsg]);
+            // Finalize streaming assistant message
+            setMessages((prev) => {
+              const updated = [...prev];
+              const lastMsg = updated[updated.length - 1];
+              if (lastMsg && lastMsg.role === "assistant") {
+                return [
+                  ...updated.slice(0, -1),
+                  {
+                    ...lastMsg,
+                    content: event.assistant_message || lastMsg.content,
+                    sources: event.sources || [],
+                    intent: event.intent,
+                    reflection: event.reflection || null,
+                    isStreaming: false,
+                  },
+                ];
+              }
+              return updated;
+            });
             setActiveNode(null);
           }
         },
         onError: (err) => {
           console.error("Stream error:", err);
-          const errorMsg = {
-            id: (Date.now() + 1).toString(),
-            role: "assistant",
-            content: `Error: ${err.message || "Failed to stream response. Please re-authenticate."}`,
-            created_at: new Date().toISOString(),
-          };
-          setMessages((prev) => [...prev, errorMsg]);
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastMsg = updated[updated.length - 1];
+            if (lastMsg && lastMsg.role === "assistant") {
+              return [
+                ...updated.slice(0, -1),
+                {
+                  ...lastMsg,
+                  content: `Error: ${err.message || "Failed to stream response. Please re-authenticate."}`,
+                  isStreaming: false,
+                },
+              ];
+            }
+            return updated;
+          });
           setActiveNode(null);
         },
       });

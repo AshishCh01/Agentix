@@ -25,7 +25,7 @@ def get_reranker():
 
 async def vector_search_tool(
     db: AsyncSession,
-    session_id: uuid.UUID,
+    session_id: uuid.UUID | str,
     query: str,
     image_data: Optional[str] = None,
     top_k: int = 4,
@@ -36,11 +36,18 @@ async def vector_search_tool(
     """
     from ai.services.embedding_service import embedding_service
 
+    # Ensure session_id is a valid string for SQL bindings
+    session_id_str = str(session_id)
+
     # 1. Generate Query Vector
-    query_vector = embedding_service.generate_embedding(query)
+    if hasattr(embedding_service, "get_embedding"):
+        query_vector = await embedding_service.get_embedding(query)
+    else:
+        query_vector = embedding_service.generate_embedding(query)
+
     vector_str = "[" + ",".join(map(str, query_vector)) + "]"
 
-    # 2. Hybrid Search SQL (Dense Cosine Similarity + Sparse TSVector Full-Text Search)
+    # 2. Hybrid Search SQL using explicit CAST(:vector_str AS vector)
     hybrid_query = text("""
         WITH dense_search AS (
             SELECT 
@@ -49,8 +56,8 @@ async def vector_search_tool(
                 dc.page_number,
                 dc.chunk_index,
                 d.filename,
-                1 - (dc.embedding <=> :vector_str::vector) AS dense_score,
-                ROW_NUMBER() OVER (ORDER BY dc.embedding <=> :vector_str::vector ASC) AS dense_rank
+                1 - (dc.embedding <=> CAST(:vector_str AS vector)) AS dense_score,
+                ROW_NUMBER() OVER (ORDER BY dc.embedding <=> CAST(:vector_str AS vector) ASC) AS dense_rank
             FROM document_chunks dc
             JOIN documents d ON dc.document_id = d.id
             WHERE d.session_id = :session_id
@@ -88,7 +95,7 @@ async def vector_search_tool(
     try:
         result = await db.execute(
             hybrid_query,
-            {"session_id": session_id, "vector_str": vector_str, "query": query},
+            {"session_id": session_id_str, "vector_str": vector_str, "query": query},
         )
         rows = result.fetchall()
     except Exception as e:

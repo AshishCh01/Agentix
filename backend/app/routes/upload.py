@@ -130,7 +130,9 @@ async def upload_document(
         )
 
     filename = file.filename or "document.txt"
-    storage_path = f"{session_id}/{uuid.uuid4().hex}_{filename}"
+
+    #storage_path = f"{session_id}/{uuid.uuid4().hex}_{filename}"
+    storage_path = f"{user_id}/{session_id}/{uuid.uuid4().hex}_{filename}"
 
     # 3. Upload file bytes to Supabase Storage Bucket
     supabase = get_supabase_client()

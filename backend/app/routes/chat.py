@@ -1,4 +1,5 @@
 import json
+import time
 import uuid
 from typing import AsyncGenerator, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,6 +11,7 @@ from ai.agents.graph import rag_graph
 from ai.agents.state import AgentState
 from app.auth.dependencies import get_current_user
 from app.config.database import get_db
+from app.database.crud import log_agent_execution
 from app.models.message import Message
 from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
 
@@ -75,6 +77,7 @@ async def chat_endpoint(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    start_time = time.perf_counter()
     session_id, user_query_text, initial_state = await _setup_chat_state(
         request, current_user, db
     )
@@ -110,6 +113,22 @@ async def chat_endpoint(
     )
     await db.commit()
 
+    elapsed_ms = (time.perf_counter() - start_time) * 1000
+
+    # Log Execution Telemetry to agent_logs table
+    await log_agent_execution(
+        db=db,
+        session_id=uuid.UUID(session_id),
+        node_name=final_state.get("intent") or "supervisor",
+        input_data={"user_query": user_query_text},
+        output_data={
+            "final_response": final_state.get("final_response", ""),
+            "sources": [s.model_dump() for s in sources],
+        },
+        execution_time_ms=elapsed_ms,
+        model_used="gemini-1.5-flash",
+    )
+
     return ChatResponse(
         session_id=session_id,
         user_message=user_query_text,
@@ -127,11 +146,12 @@ async def chat_stream_endpoint(
 ):
     """
     Server-Sent Events (SSE) endpoint that streams node updates, real-time LLM token deltas,
-    and the final completion payload.
+    and the final completion payload with reflection metrics.
     """
-    session_id, _, initial_state = await _setup_chat_state(request, current_user, db)
+    session_id, user_query_text, initial_state = await _setup_chat_state(request, current_user, db)
 
     async def event_generator() -> AsyncGenerator[str, None]:
+        start_time = time.perf_counter()
         final_state: dict = {}
         try:
             async for event in rag_graph.astream_events(
@@ -142,18 +162,19 @@ async def chat_stream_endpoint(
                 kind = event.get("event")
                 node_name = event.get("name", "")
 
-                # Node transitions
+                # 1. Active Node transitions
                 if kind == "on_chain_start" and node_name in [
                     "supervisor",
                     "vector_search",
                     "web_search",
                     "answer",
+                    "greeting",
                     "reflection",
                 ]:
                     payload = json.dumps({"type": "node_start", "node": node_name})
                     yield f"data: {payload}\n\n"
 
-                # Real-time token streaming
+                # 2. Real-time token streaming from LLM calls
                 elif kind == "on_chat_model_stream":
                     chunk = event.get("data", {}).get("chunk")
                     token_content = getattr(chunk, "content", "") if chunk else ""
@@ -161,7 +182,8 @@ async def chat_stream_endpoint(
                         token_payload = json.dumps({"type": "token", "content": token_content})
                         yield f"data: {token_payload}\n\n"
 
-                elif kind == "on_chain_end" and node_name == "LangGraph":
+                # 3. Capture State Output on Graph Completion
+                elif kind == "on_chain_end" and node_name in ["LangGraph", "rag_graph"]:
                     final_state = event.get("data", {}).get("output", {})
 
             final_response_text = final_state.get("final_response", "")
@@ -177,7 +199,14 @@ async def chat_stream_endpoint(
                 for chunk in retrieved_chunks
             ]
 
-            # Save assistant message to DB
+            # Extract reflection metrics if present
+            tool_outputs = final_state.get("tool_outputs", [])
+            reflection_data = next(
+                (t for t in tool_outputs if isinstance(t, dict) and t.get("node") == "reflection"),
+                None,
+            )
+
+            # Persist Assistant Message to DB
             db.add(
                 Message(
                     session_id=uuid.UUID(session_id),
@@ -188,12 +217,30 @@ async def chat_stream_endpoint(
             )
             await db.commit()
 
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+
+            # Log Agent Execution to agent_logs
+            await log_agent_execution(
+                db=db,
+                session_id=uuid.UUID(session_id),
+                node_name=intent or "supervisor",
+                input_data={"user_query": user_query_text},
+                output_data={
+                    "final_response": final_response_text,
+                    "sources": sources,
+                },
+                execution_time_ms=elapsed_ms,
+                model_used="gemini-1.5-flash",
+            )
+
+            # 4. Stream Final Completion Payload with Reflection
             completion_payload = json.dumps({
                 "type": "completion",
                 "session_id": session_id,
                 "intent": intent,
                 "assistant_message": final_response_text,
                 "sources": sources,
+                "reflection": reflection_data,
             })
             yield f"data: {completion_payload}\n\n"
 

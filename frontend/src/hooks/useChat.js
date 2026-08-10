@@ -10,12 +10,12 @@ export const useChat = () => {
   return context;
 };
 
-// Streaming hook with AbortController for stream cancellation
+// Streaming hook with AbortController and SSE buffer handling
 export const useChatStream = () => {
   const abortControllerRef = useRef(null);
 
   const sendMessageStream = async (sessionId, query, onToken) => {
-    // Cancel any active stream before starting a new request
+    // Cancel active stream before starting a new request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -29,18 +29,40 @@ export const useChatStream = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ session_id: sessionId, user_query: query }),
+        // Updated field name to 'message' to match ChatRequest schema
+        body: JSON.stringify({ session_id: sessionId, message: query }),
         signal: abortControllerRef.current.signal,
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        onToken(chunk);
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || ""; // Keep incomplete tail in buffer
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("data:")) {
+            const rawJson = trimmed.replace(/^data:\s*/, "");
+            try {
+              const parsed = JSON.parse(rawJson);
+              onToken(parsed);
+            } catch (e) {
+              // Plain string token fallback
+              onToken(rawJson);
+            }
+          }
+        }
       }
     } catch (err) {
       if (err.name === "AbortError") {
@@ -53,7 +75,6 @@ export const useChatStream = () => {
 
   useEffect(() => {
     return () => {
-      // Abort active streams when component unmounts
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }

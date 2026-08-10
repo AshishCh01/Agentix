@@ -18,6 +18,7 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
     """
     Synthesizes a final grounded response using retrieved context (RAG or Web),
     session conversation history, and optional user image input.
+    Uses ChatOpenAI via llm_service to enable streaming callback events in LangGraph.
     """
     final_response = state.get("final_response", "")
     if final_response:
@@ -44,7 +45,7 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
             )
         }
 
-    # Use web prompt for WEB_SEARCH, document prompt for RAG_QUERY
+    # Select prompt template based on intent
     if intent == "WEB_SEARCH":
         system_instruction = WEB_ANSWER_SYSTEM_PROMPT.format(context=formatted_context)
     else:
@@ -54,7 +55,7 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
 
     messages: List[Dict[str, Any]] = [{"role": "system", "content": system_instruction}]
 
-    # Append chat history
+    # Append recent chat history
     chat_history = state.get("chat_history", [])
     for msg in chat_history[-4:]:
         messages.append({"role": msg["role"], "content": msg["content"]})

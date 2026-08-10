@@ -2,6 +2,8 @@ import base64
 import logging
 from typing import Any, Dict, List, Optional
 from openai import AsyncOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.config.settings import settings
 
@@ -10,33 +12,50 @@ logger = logging.getLogger(__name__)
 
 class LLMService:
     """
-    Unified client service for LLM completions using Google Gemini's
-    OpenAI-compatible API endpoint.
+    Unified client service for LLM completions and streaming using Google Gemini
+    via native LangChain integrations.
     """
 
     def __init__(self):
-        # 1. Resolve Gemini API Key from settings or environment
-        self.api_key = (
+        # 1. Resolve and sanitize Gemini API Key from settings or environment
+        raw_key = (
             getattr(settings, "GEMINI_API_KEY", None)
             or getattr(settings, "LLM_API_KEY", None)
             or getattr(settings, "OPENAI_API_KEY", None)
             or ""
         )
+        self.api_key = str(raw_key).strip().strip("'\"")
 
-        # 2. Google Gemini OpenAI-compatible base URL
-        self.base_url = getattr(
-            settings,
-            "LLM_BASE_URL",
-            "https://generativelanguage.googleapis.com/v1beta/openai/",
-        )
+        # 2. Resolve default model
+        raw_model = getattr(settings, "LLM_MODEL", "gemini-1.5-flash")
+        self.default_model = str(raw_model).strip().strip("'\"")
 
-        # 3. Default model
-        self.default_model = getattr(settings, "LLM_MODEL", "gemini-3.5-flash")
+        # OpenAI-compatible base URL for image processing/vision endpoint
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
-        # Initialize AsyncOpenAI client pointing to Google's Gemini endpoint
+        # Initialize AsyncOpenAI client for multimodal vision calls
         self.client = AsyncOpenAI(
             api_key=self.api_key,
             base_url=self.base_url,
+        )
+
+    def get_chat_model(
+        self,
+        model: Optional[str] = None,
+        temperature: float = 0.3,
+        streaming: bool = True,
+    ) -> ChatGoogleGenerativeAI:
+        """
+        Returns a LangChain ChatGoogleGenerativeAI instance configured for Gemini.
+        This enables LangGraph's astream_events to intercept on_chat_model_stream 
+        for real SSE token streaming.
+        """
+        target_model = model or self.default_model
+        return ChatGoogleGenerativeAI(
+            model=target_model,
+            google_api_key=self.api_key,
+            temperature=temperature,
+            streaming=streaming,
         )
 
     async def generate_response(
@@ -48,17 +67,31 @@ class LLMService:
     ) -> str:
         """
         Sends formatted conversation messages to Gemini and returns the completion string.
+        Uses ChatGoogleGenerativeAI to ensure compatibility with LangChain event systems.
         """
         target_model = model or self.default_model
 
         try:
-            response = await self.client.chat.completions.create(
+            llm = self.get_chat_model(
                 model=target_model,
-                messages=messages,  # type: ignore[arg-type]
                 temperature=temperature,
-                max_tokens=max_tokens,
+                streaming=False,
             )
-            return response.choices[0].message.content or ""
+
+            # Convert dictionary messages to LangChain BaseMessage objects
+            lc_messages = []
+            for msg in messages:
+                role = msg.get("role", "user")
+                content = str(msg.get("content", ""))
+                if role == "system":
+                    lc_messages.append(SystemMessage(content=content))
+                elif role == "assistant":
+                    lc_messages.append(AIMessage(content=content))
+                else:
+                    lc_messages.append(HumanMessage(content=content))
+
+            response = await llm.ainvoke(lc_messages)
+            return str(response.content) if response and response.content else ""
         except Exception as e:
             logger.error(f"Gemini LLM API invocation failed: {str(e)}")
             raise RuntimeError(f"LLM service error: {str(e)}")
@@ -112,5 +145,5 @@ class LLMService:
             raise RuntimeError(f"Vision service error: {str(e)}")
 
 
-# Global singleton instance
+# MUST BE AT THE BOTTOM: Global singleton instance exported for agents
 llm_service = LLMService()
