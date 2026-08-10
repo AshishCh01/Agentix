@@ -1,9 +1,12 @@
 from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.routes import auth, chat, health, search, session, upload
 
+if settings.HF_TOKEN:
+    os.environ["HF_TOKEN"] = settings.HF_TOKEN
 # Import EmbeddingService targeting ai/services/embedding_service.py
 from ai.services.embedding_service import EmbeddingService
 

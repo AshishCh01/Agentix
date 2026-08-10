@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.agents.graph import rag_graph
 from ai.agents.state import AgentState
+from ai.services.llm_service import extract_text_from_content
 from app.auth.dependencies import get_current_user
 from app.config.database import get_db
 from app.database.crud import log_agent_execution
@@ -103,11 +104,13 @@ async def chat_endpoint(
         for chunk in final_state.get("retrieved_chunks", [])
     ]
 
+    clean_answer = extract_text_from_content(final_state.get("final_response", ""))
+
     db.add(
         Message(
             session_id=uuid.UUID(session_id),
             sender="assistant",
-            content=final_state.get("final_response", ""),
+            content=clean_answer,
             citations=[s.model_dump() for s in sources],
         )
     )
@@ -122,17 +125,17 @@ async def chat_endpoint(
         node_name=final_state.get("intent") or "supervisor",
         input_data={"user_query": user_query_text},
         output_data={
-            "final_response": final_state.get("final_response", ""),
+            "final_response": clean_answer,
             "sources": [s.model_dump() for s in sources],
         },
         execution_time_ms=elapsed_ms,
-        model_used="gemini-1.5-flash",
+        model_used="gemini-3.5-flash",
     )
 
     return ChatResponse(
         session_id=session_id,
         user_message=user_query_text,
-        assistant_message=final_state.get("final_response", ""),
+        assistant_message=clean_answer,
         intent=final_state.get("intent"),
         sources=sources,
     )
@@ -177,7 +180,9 @@ async def chat_stream_endpoint(
                 # 2. Real-time token streaming from LLM calls
                 elif kind == "on_chat_model_stream":
                     chunk = event.get("data", {}).get("chunk")
-                    token_content = getattr(chunk, "content", "") if chunk else ""
+                    raw_content = getattr(chunk, "content", "") if chunk else ""
+                    token_content = extract_text_from_content(raw_content)
+
                     if token_content:
                         token_payload = json.dumps({"type": "token", "content": token_content})
                         yield f"data: {token_payload}\n\n"
@@ -186,7 +191,7 @@ async def chat_stream_endpoint(
                 elif kind == "on_chain_end" and node_name in ["LangGraph", "rag_graph"]:
                     final_state = event.get("data", {}).get("output", {})
 
-            final_response_text = final_state.get("final_response", "")
+            clean_final_response = extract_text_from_content(final_state.get("final_response", ""))
             intent = final_state.get("intent", "RAG_QUERY")
             retrieved_chunks = final_state.get("retrieved_chunks", [])
 
@@ -211,7 +216,7 @@ async def chat_stream_endpoint(
                 Message(
                     session_id=uuid.UUID(session_id),
                     sender="assistant",
-                    content=final_response_text,
+                    content=clean_final_response,
                     citations=sources,
                 )
             )
@@ -226,11 +231,11 @@ async def chat_stream_endpoint(
                 node_name=intent or "supervisor",
                 input_data={"user_query": user_query_text},
                 output_data={
-                    "final_response": final_response_text,
+                    "final_response": clean_final_response,
                     "sources": sources,
                 },
                 execution_time_ms=elapsed_ms,
-                model_used="gemini-1.5-flash",
+                model_used="gemini-3.5-flash",
             )
 
             # 4. Stream Final Completion Payload with Reflection
@@ -238,7 +243,7 @@ async def chat_stream_endpoint(
                 "type": "completion",
                 "session_id": session_id,
                 "intent": intent,
-                "assistant_message": final_response_text,
+                "assistant_message": clean_final_response,
                 "sources": sources,
                 "reflection": reflection_data,
             })

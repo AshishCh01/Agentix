@@ -10,6 +10,25 @@ from app.config.settings import settings
 logger = logging.getLogger(__name__)
 
 
+def extract_text_from_content(content: Any) -> str:
+    """
+    Extracts clean text string from LangChain content outputs,
+    handling plain strings, lists of text blocks, and metadata dicts.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                if item.get("type") == "text" or "text" in item:
+                    parts.append(item.get("text", ""))
+        return "".join(parts)
+    return str(content) if content else ""
+
+
 class LLMService:
     """
     Unified client service for LLM completions and streaming using Google Gemini
@@ -27,7 +46,7 @@ class LLMService:
         self.api_key = str(raw_key).strip().strip("'\"")
 
         # 2. Resolve default model
-        raw_model = getattr(settings, "LLM_MODEL", "gemini-1.5-flash")
+        raw_model = getattr(settings, "LLM_MODEL", "gemini-3.5-flash")
         self.default_model = str(raw_model).strip().strip("'\"")
 
         # OpenAI-compatible base URL for image processing/vision endpoint
@@ -91,7 +110,7 @@ class LLMService:
                     lc_messages.append(HumanMessage(content=content))
 
             response = await llm.ainvoke(lc_messages)
-            return str(response.content) if response and response.content else ""
+            return extract_text_from_content(response.content)
         except Exception as e:
             logger.error(f"Gemini LLM API invocation failed: {str(e)}")
             raise RuntimeError(f"LLM service error: {str(e)}")

@@ -37,7 +37,6 @@ CAPABILITY_PHRASES = {
     "whats up",
 }
 
-# Strictly explicit web search triggers (removed "what is", "who is", "python", etc.)
 FAST_WEB_KEYWORDS = {
     "search the web",
     "web search",
@@ -51,19 +50,31 @@ FAST_WEB_KEYWORDS = {
 }
 
 
+def _clean_json_str(text: str) -> str:
+    """
+    Strips markdown code fences, trailing quotes, and extracts raw JSON object string.
+    """
+    text = text.strip()
+    if "```" in text:
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.MULTILINE)
+        text = re.sub(r"\s*```$", "", text, flags=re.MULTILINE).strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1:
+        text = text[start : end + 1]
+    return text
+
+
 def is_simple_greeting(query: str) -> bool:
     cleaned = query.strip().lower()
     words = cleaned.split()
 
-    # 1. Exact phrase matches
     if cleaned in CAPABILITY_PHRASES:
         return True
-    
-    # 2. Short greetings (3 words or fewer)
+
     if len(words) <= 3 and any(w.strip("!,.") in SHORT_GREETINGS for w in words):
         return True
 
-    # 3. Identity or capability questions
     if any(phrase in cleaned for phrase in CAPABILITY_PHRASES):
         return True
 
@@ -92,7 +103,7 @@ async def classify_intent(state: AgentState) -> str:
 
     # 2. Build Multimodal Content for LLM Classification
     user_content: List[Dict[str, Any]] = []
-    
+
     if user_query.strip():
         user_content.append({"type": "text", "text": f"User Query: {user_query}"})
     else:
@@ -112,18 +123,15 @@ async def classify_intent(state: AgentState) -> str:
             messages=messages, temperature=0.0, max_tokens=150
         )
 
-        # Clean markdown wrappers if present
-        cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", response_text.strip(), flags=re.MULTILINE).strip()
-
-        # Extract JSON object using regex
-        json_match = re.search(r"\{.*\}", cleaned, re.DOTALL)
-        if json_match:
-            parsed = json.loads(json_match.group(0))
+        # Sanitize JSON string before parsing
+        cleaned = _clean_json_str(response_text)
+        if cleaned:
+            parsed = json.loads(cleaned)
             intent = str(parsed.get("intent", "")).upper()
             if intent in ["GREETING", "RAG_QUERY", "WEB_SEARCH"]:
                 return intent
 
-        # Fallback string matching on LLM response text
+        # String matching fallback
         upper_resp = response_text.upper()
         if "WEB_SEARCH" in upper_resp:
             return "WEB_SEARCH"
@@ -147,5 +155,12 @@ async def classify_intent(state: AgentState) -> str:
     elif any(k in q_lower for k in ["hi", "hello", "hey"]):
         return "GREETING"
 
-    # Default to RAG_QUERY for all general document questions
     return "RAG_QUERY"
+
+
+async def run_supervisor_agent(state: AgentState) -> Dict[str, Any]:
+    """
+    LangGraph entry node wrapper for supervisor routing.
+    """
+    intent = await classify_intent(state)
+    return {"intent": intent}

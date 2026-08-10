@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
 
+    HF_TOKEN: str = ""
+
     # Ingestion & File Storage Settings
     SUPABASE_STORAGE_BUCKET: str = "documents"  # Name of your Supabase storage bucket
     MAX_UPLOAD_SIZE_MB: int = 10
@@ -24,7 +26,7 @@ class Settings(BaseSettings):
 
     # LLM Settings
     GEMINI_API_KEY: str = ""
-    LLM_MODEL: str = "gemini-1.5-flash"  # Default LLM model for responses
+    LLM_MODEL: str = "gemini-3.5-flash"  # Default LLM model for responses
 
     # CORS Configurations
     CORS_ORIGINS: List[str] = [
