@@ -12,12 +12,12 @@ if settings.HF_TOKEN:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- STARTUP LOGIC ---
-    if not settings.SUPABASE_JWT_SECRET:
+    if not settings.SUPABASE_URL:
         print(
-            "[WARN] SUPABASE_JWT_SECRET is not set. Every authenticated request will "
+            "[WARN] SUPABASE_URL is not set. Every authenticated request will "
             "fall back to a remote Supabase Auth network call instead of fast local "
-            "JWT verification, adding latency to every request. Set SUPABASE_JWT_SECRET "
-            "in the environment to enable local verification."
+            "JWT verification via Supabase's JWKS endpoint, adding latency to every "
+            "request."
         )
 
     # No embedding model warmup: embeddings are generated via Gemini's async

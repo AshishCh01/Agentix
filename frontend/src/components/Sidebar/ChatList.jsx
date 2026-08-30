@@ -33,7 +33,7 @@ export const ChatList = ({ onSelectSession }) => {
 
   if (loadingSessions) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-slate-500">
+      <div className="flex flex-col items-center justify-center py-8 text-slate-400 dark:text-slate-500">
         <Spinner size="sm" />
         <span className="mt-2 text-xs">Loading sessions...</span>
       </div>
@@ -42,7 +42,7 @@ export const ChatList = ({ onSelectSession }) => {
 
   if (!sessions || sessions.length === 0) {
     return (
-      <div className="text-center py-8 px-4 text-slate-500 text-xs">
+      <div className="text-center py-8 px-4 text-slate-400 dark:text-slate-500 text-xs">
         No active chat sessions. Click "New Chat" above to start.
       </div>
     );
@@ -58,14 +58,14 @@ export const ChatList = ({ onSelectSession }) => {
             onClick={() => handleSelect(session.id)}
             className={`group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors text-xs font-medium ${
               isActive
-                ? "bg-slate-800 text-slate-100"
-                : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                ? "bg-blue-50 text-slate-900 dark:bg-slate-800 dark:text-slate-100"
+                : "text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200"
             }`}
           >
             <div className="flex items-center space-x-2.5 truncate min-w-0 pr-2">
               <MessageSquare
                 className={`w-4 h-4 flex-shrink-0 ${
-                  isActive ? "text-blue-400" : "text-slate-500"
+                  isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
                 }`}
               />
               <span className="truncate">{truncateText(session.title, 26)}</span>
@@ -74,7 +74,7 @@ export const ChatList = ({ onSelectSession }) => {
             <button
               onClick={(e) => handleDelete(e, session.id)}
               title="Delete session"
-              className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 hover:bg-slate-700/50 rounded transition-all flex-shrink-0"
+              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 hover:bg-slate-300/50 dark:text-slate-500 dark:hover:text-red-400 dark:hover:bg-slate-700/50 rounded transition-all flex-shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>

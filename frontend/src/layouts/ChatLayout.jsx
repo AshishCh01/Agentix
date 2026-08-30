@@ -7,7 +7,7 @@ export const ChatLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-900 text-slate-100 overflow-hidden">
+    <div className="flex h-screen bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 overflow-hidden">
       {/* Sidebar Component */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -18,7 +18,7 @@ export const ChatLayout = () => {
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-slate-950/80 z-20 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 z-20 lg:hidden"
         />
       )}
 

@@ -4,10 +4,27 @@ from collections import OrderedDict
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jwt import PyJWKClient
 from supabase import Client, create_client
 from app.config.settings import settings
 
 _supabase_client: Optional[Client] = None
+_jwks_client: Optional[PyJWKClient] = None
+
+
+def get_jwks_client() -> PyJWKClient:
+    """
+    Supabase now signs access tokens with rotating asymmetric ES256 keys
+    (JWT Signing Keys) rather than a static HS256 secret. PyJWKClient
+    fetches/caches the current public key set from Supabase's JWKS endpoint
+    and re-fetches automatically when it sees an unfamiliar key id, so key
+    rotation (e.g. standby key promotion) needs no code/config change.
+    """
+    global _jwks_client
+    if _jwks_client is None:
+        jwks_url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+        _jwks_client = PyJWKClient(jwks_url, cache_keys=True)
+    return _jwks_client
 
 
 def get_supabase_client() -> Client:
@@ -60,19 +77,21 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
-    Validates tokens locally via PyJWT when SUPABASE_JWT_SECRET is set to eliminate network latency,
-    falling back to remote Supabase Auth network calls if secret is absent or decoding fails.
+    Validates tokens locally via PyJWT + Supabase's JWKS endpoint (ES256) to
+    eliminate network latency on the common path, falling back to remote
+    Supabase Auth network calls if SUPABASE_URL is absent or decoding fails.
     """
     token = credentials.credentials
     user_dict = None
 
-    # 1. Local JWT Verification (Instant, zero network overhead)
-    if settings.SUPABASE_JWT_SECRET:
+    # 1. Local JWT Verification (Instant, zero network overhead once the JWKS is cached)
+    if settings.SUPABASE_URL:
         try:
+            signing_key = get_jwks_client().get_signing_key_from_jwt(token)
             payload = jwt.decode(
                 token,
-                settings.SUPABASE_JWT_SECRET,
-                algorithms=["HS256"],
+                signing_key.key,
+                algorithms=["ES256"],
                 options={"verify_aud": False},
             )
             uid_str = str(payload.get("sub") or payload.get("id"))

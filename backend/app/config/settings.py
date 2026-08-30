@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     # Supabase Credentials
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
-    SUPABASE_JWT_SECRET: str = ""
 
     # Database Settings
     DATABASE_URL: str = ""
