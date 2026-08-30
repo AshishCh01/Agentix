@@ -1,41 +1,40 @@
 import asyncio
+
+import pytest
 from sqlalchemy import text
+
 from app.database.connection import AsyncSessionLocal, engine
 from app.models import Base
 
 
+@pytest.mark.asyncio
 async def test_connection():
-    print("⏳ Testing Async Database Connection...")
+    """
+    Live connectivity smoke test for the configured database.
+
+    Previously this caught every exception, printed it, and returned
+    normally -- so a broken connection string, a missing pgvector
+    extension, or a failed model sync all still reported PASSED. Each step
+    now asserts on the actual result instead.
+    """
     try:
-        # 1. Test basic raw SQL execution
         async with AsyncSessionLocal() as session:
             result = await session.execute(text("SELECT 1;"))
-            val = result.scalar()
-            print(f"✅ Database Connection Successful! Query output: {val}")
+            assert result.scalar() == 1, "Basic 'SELECT 1' round-trip failed."
 
-        # 2. Check if pgvector extension is enabled
         async with AsyncSessionLocal() as session:
             vector_check = await session.execute(
-                text(
-                    "SELECT extname FROM pg_extension WHERE extname = 'vector';"
-                )
+                text("SELECT extname FROM pg_extension WHERE extname = 'vector';")
             )
-            ext = vector_check.scalar()
-            if ext == "vector":
-                print("✅ pgvector extension is active in Supabase!")
-            else:
-                print(
-                    "⚠️  pgvector extension NOT found. Make sure to run 'CREATE EXTENSION vector;' in Supabase."
-                )
+            assert vector_check.scalar() == "vector", (
+                "pgvector extension is not enabled -- run 'CREATE EXTENSION vector;' "
+                "in the database."
+            )
 
-        # 3. Verify Table Creation / Model Registration
         async with engine.begin() as conn:
-            # Creates tables in Supabase if they don't exist yet
+            # Creates tables in the database if they don't exist yet; also
+            # verifies the SQLAlchemy models are valid against the live schema.
             await conn.run_sync(Base.metadata.create_all)
-            print("✅ SQLAlchemy Models synchronized with database tables!")
-
-    except Exception as e:
-        print(f"❌ Connection Failed! Error: {e}")
     finally:
         await engine.dispose()
 
