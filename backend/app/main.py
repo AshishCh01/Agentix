@@ -7,8 +7,6 @@ from app.routes import chat, health, search, session, upload
 
 if settings.HF_TOKEN:
     os.environ["HF_TOKEN"] = settings.HF_TOKEN
-# Import embedding_service singleton targeting ai/services/embedding_service.py
-from ai.services.embedding_service import embedding_service
 
 
 @asynccontextmanager
@@ -22,22 +20,10 @@ async def lifespan(app: FastAPI):
             "in the environment to enable local verification."
         )
 
-    print("[*] Pre-loading PyTorch and embedding model into RAM...")
-    try:
-        # Use getattr to look up methods dynamically and bypass Pylance static checks
-        embed_fn = (
-            getattr(embedding_service, "embed_query", None)
-            or getattr(embedding_service, "embed_text", None)
-            or getattr(embedding_service, "generate_embedding", None)
-            or getattr(embedding_service, "get_embeddings", None)
-        )
-        
-        if callable(embed_fn):
-            await embed_fn("warmup")
-            
-        print("[OK] Embedding model weights loaded into RAM successfully.")
-    except Exception as e:
-        print(f"[WARN] Warning during embedding model pre-load: {e}")
+    # No embedding model warmup: embeddings are generated via Gemini's async
+    # API (ai/services/embedding_service.py), not a locally-loaded model, so
+    # there are no weights to pre-load into RAM at startup.
+    print("[OK] Startup checks complete.")
 
     yield  # Application handles requests here
 

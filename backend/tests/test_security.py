@@ -63,3 +63,101 @@ async def test_idor_security():
         chat_payload = {"session_id": session_id_a, "message": "Hello"}
         chat_res_b = await client.post("/api/v1/chat", json=chat_payload)
         assert chat_res_b.status_code == 404, f"IDOR Vulnerability: {chat_res_b.status_code}"
+
+
+@pytest.mark.asyncio
+async def test_idor_get_session_by_id():
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        app.dependency_overrides[get_current_user] = override_get_current_user_a
+        res = await client.post("/api/v1/sessions", json={"title": "User A's Session"})
+        assert res.status_code == 201
+        session_id_a = res.json()["id"]
+
+        # Owner can fetch it.
+        own_res = await client.get(f"/api/v1/sessions/{session_id_a}")
+        assert own_res.status_code == 200
+
+        # A different authenticated user must not be able to.
+        app.dependency_overrides[get_current_user] = override_get_current_user_b
+        other_res = await client.get(f"/api/v1/sessions/{session_id_a}")
+        assert other_res.status_code == 404, f"IDOR Vulnerability: {other_res.status_code}"
+
+
+@pytest.mark.asyncio
+async def test_idor_patch_session_title():
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        app.dependency_overrides[get_current_user] = override_get_current_user_a
+        res = await client.post("/api/v1/sessions", json={"title": "Original Title"})
+        assert res.status_code == 201
+        session_id_a = res.json()["id"]
+
+        # User B attempts to rename User A's session.
+        app.dependency_overrides[get_current_user] = override_get_current_user_b
+        patch_res = await client.patch(
+            f"/api/v1/sessions/{session_id_a}", json={"title": "Hijacked Title"}
+        )
+        assert patch_res.status_code == 404, f"IDOR Vulnerability: {patch_res.status_code}"
+
+        # The title must be untouched.
+        app.dependency_overrides[get_current_user] = override_get_current_user_a
+        check_res = await client.get(f"/api/v1/sessions/{session_id_a}")
+        assert check_res.status_code == 200
+        assert check_res.json()["title"] == "Original Title"
+
+
+@pytest.mark.asyncio
+async def test_idor_delete_session():
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        app.dependency_overrides[get_current_user] = override_get_current_user_a
+        res = await client.post("/api/v1/sessions", json={"title": "Do Not Delete Me"})
+        assert res.status_code == 201
+        session_id_a = res.json()["id"]
+
+        # User B attempts to delete User A's session.
+        app.dependency_overrides[get_current_user] = override_get_current_user_b
+        delete_res = await client.delete(f"/api/v1/sessions/{session_id_a}")
+        assert delete_res.status_code == 404, f"IDOR Vulnerability: {delete_res.status_code}"
+
+        # It must still exist for the owner.
+        app.dependency_overrides[get_current_user] = override_get_current_user_a
+        check_res = await client.get(f"/api/v1/sessions/{session_id_a}")
+        assert check_res.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_idor_get_session_messages():
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        app.dependency_overrides[get_current_user] = override_get_current_user_a
+        res = await client.post("/api/v1/sessions", json={"title": "Session With Messages"})
+        assert res.status_code == 201
+        session_id_a = res.json()["id"]
+
+        # A different authenticated user must not be able to read the
+        # conversation history of a session they don't own.
+        app.dependency_overrides[get_current_user] = override_get_current_user_b
+        messages_res = await client.get(f"/api/v1/sessions/{session_id_a}/messages")
+        assert messages_res.status_code == 404, f"IDOR Vulnerability: {messages_res.status_code}"
+
+
+@pytest.mark.asyncio
+async def test_idor_upload_document_to_foreign_session():
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        app.dependency_overrides[get_current_user] = override_get_current_user_a
+        res = await client.post("/api/v1/sessions", json={"title": "Target Session"})
+        assert res.status_code == 201
+        session_id_a = res.json()["id"]
+
+        # User B attempts to attach a document to User A's session by
+        # supplying its session_id directly.
+        app.dependency_overrides[get_current_user] = override_get_current_user_b
+        upload_res = await client.post(
+            "/api/v1/upload",
+            data={"session_id": session_id_a},
+            files={"file": ("malicious.txt", b"hello world", "text/plain")},
+        )
+        assert upload_res.status_code == 404, f"IDOR Vulnerability: {upload_res.status_code}"
