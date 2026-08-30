@@ -1,5 +1,6 @@
 import jwt
 import time
+from collections import OrderedDict
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -30,8 +31,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.connection import get_db
 from app.database import crud
 
-_last_sync_time: dict[str, float] = {}
+
+# Bounded, LRU-evicted cache of "last synced to local DB" timestamps per
+# user. Unbounded growth was the bug: a plain dict here would add one entry
+# per distinct user ID ever authenticated for the lifetime of the process.
+# Capped at _MAX_SYNC_CACHE_ENTRIES via OrderedDict LRU eviction so memory
+# stays bounded regardless of how many distinct users authenticate over the
+# process's lifetime. (This cache is still per-process/non-shared across
+# workers -- that would require an external store like Redis, which is a
+# separate infrastructure change.)
+_last_sync_time: "OrderedDict[str, float]" = OrderedDict()
+_MAX_SYNC_CACHE_ENTRIES = 10_000
 SYNC_INTERVAL = 300  # 5 minutes
+
+
+def _get_last_sync(user_id: str) -> float:
+    return _last_sync_time.get(user_id, 0.0)
+
+
+def _record_sync(user_id: str, now: float) -> None:
+    _last_sync_time[user_id] = now
+    _last_sync_time.move_to_end(user_id)
+    while len(_last_sync_time) > _MAX_SYNC_CACHE_ENTRIES:
+        _last_sync_time.popitem(last=False)  # evict least-recently-synced
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -115,7 +137,7 @@ async def get_current_user(
 
     # 3. Synchronize User to Local DB (Cached every 5 mins)
     now = time.time()
-    if now - _last_sync_time.get(user_dict["user_id"], 0) > SYNC_INTERVAL:
+    if now - _get_last_sync(user_dict["user_id"]) > SYNC_INTERVAL:
         await crud.sync_user(
             db=db,
             user_id=user_dict["user_id"],
@@ -123,6 +145,6 @@ async def get_current_user(
             full_name=user_dict.get("full_name"),
             avatar_url=user_dict.get("avatar_url"),
         )
-        _last_sync_time[user_dict["user_id"]] = now
+        _record_sync(user_dict["user_id"], now)
 
     return user_dict

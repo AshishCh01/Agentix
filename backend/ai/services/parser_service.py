@@ -62,7 +62,18 @@ async def parse_document(file_bytes: bytes, filename: str) -> List[Dict[str, Any
 
         return pages if pages else [{"page_number": 1, "text": ""}]
 
-    elif ext in ["docx", "doc"]:
+    elif ext == "doc":
+        # Legacy binary .doc (OLE2/CFBF) is a different format from OOXML
+        # .docx -- python-docx's Document() only reads .docx (a zip
+        # container) and raises an opaque zip-parsing error on real .doc
+        # files. Fail fast here with a clear, actionable message instead of
+        # accepting the upload and letting it die deep inside python-docx.
+        raise ValueError(
+            "The legacy .doc format is not supported. Please save this file as "
+            ".docx (in Word: File > Save As > Word Document) and re-upload."
+        )
+
+    elif ext == "docx":
         doc = Document(io.BytesIO(file_bytes))
         full_text = "\n\n".join([para.text for para in doc.paragraphs if para.text.strip()])
         return [{"page_number": 1, "text": full_text}]

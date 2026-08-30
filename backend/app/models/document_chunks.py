@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from sqlalchemy import DateTime, ForeignKey, Integer, Text, Index, Computed
 from sqlalchemy.dialects.postgresql import JSONB, UUID, TSVECTOR
@@ -40,7 +40,8 @@ class DocumentChunk(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
     )
 
     # Relationships
