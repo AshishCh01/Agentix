@@ -3,6 +3,9 @@ import { Upload, FileUp, X } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { useUpload } from "../../hooks/useUpload";
 import { FilePreview } from "./FilePreview";
+import { MAX_UPLOAD_BYTES } from "../../utils/constants";
+
+const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
 
 export const UploadButton = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,6 +29,12 @@ export const UploadButton = () => {
     if (file) {
       if (!isValidFile(file)) {
         alert("Unsupported file type. Please upload a PDF, Word Doc, CSV, Excel, TXT, or Image.");
+        e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+        alert(`File is too large (max ${MAX_UPLOAD_MB}MB). Please choose a smaller file.`);
+        e.target.value = "";
         return;
       }
       setSelectedFile(file);
@@ -40,6 +49,10 @@ export const UploadButton = () => {
     if (file) {
       if (!isValidFile(file)) {
         alert("Unsupported file type. Please drop a valid document or image.");
+        return;
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+        alert(`File is too large (max ${MAX_UPLOAD_MB}MB). Please choose a smaller file.`);
         return;
       }
       setSelectedFile(file);
@@ -126,7 +139,7 @@ export const UploadButton = () => {
                   Click to upload or drag & drop a file
                 </p>
                 <p className="text-[10px] text-slate-500 mt-1">
-                  Supported: PDF, DOCX, CSV, Excel, TXT, Images (Max 15MB)
+                  Supported: PDF, DOCX, CSV, Excel, TXT, Images (Max {MAX_UPLOAD_MB}MB)
                 </p>
               </div>
             )}

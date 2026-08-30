@@ -1,8 +1,14 @@
+import { memo } from "react";
 import { Bot, User } from "lucide-react";
 import { SourceBadge } from "./SourceBadge";
 import { formatDate } from "../../utils/helpers";
 
-export const MessageItem = ({ message }) => {
+// Memoized so that during token streaming -- where ChatContext rebuilds the
+// `messages` array on every token but only replaces the last message's
+// object -- every other message keeps the same `message` prop reference and
+// skips re-rendering entirely, instead of the whole list re-rendering per
+// token.
+export const MessageItem = memo(function MessageItem({ message }) {
   const isUser = message.role === "user";
 
   return (
@@ -57,4 +63,4 @@ export const MessageItem = ({ message }) => {
       )}
     </div>
   );
-};
+});
