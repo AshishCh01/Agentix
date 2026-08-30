@@ -24,9 +24,17 @@ export const SourceBadge = ({ sources }) => {
             displayTitle = `${fileName}${pageStr}`;
           }
 
+          // Sources carry no unique id from the API -- build a stable key
+          // from their own identifying fields instead of the array index,
+          // so React doesn't misattribute state/DOM across re-renders if
+          // the list is ever reordered or filtered.
+          const sourceKey = isWeb
+            ? url || displayTitle
+            : `${src.filename || "doc"}-${src.chunk_index ?? "x"}-${src.page_number ?? "x"}`;
+
           return isWeb && url ? (
             <a
-              key={idx}
+              key={sourceKey}
               href={url}
               target="_blank"
               rel="noopener noreferrer"
@@ -38,7 +46,7 @@ export const SourceBadge = ({ sources }) => {
             </a>
           ) : (
             <div
-              key={idx}
+              key={sourceKey}
               className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800/80 border border-slate-700/50 rounded-lg text-xs text-slate-300 max-w-xs truncate"
               title={src.content || displayTitle}
             >

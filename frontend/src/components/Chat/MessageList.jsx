@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Bot, Sparkles } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { MessageItem } from "./MessageItem";
@@ -13,6 +13,20 @@ export const MessageList = () => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, activeNode]);
+
+  // Recomputed only when `messages` itself changes -- not on every
+  // activeNode/isStreaming update this component also re-renders for --
+  // and MessageItem is memoized, so a token appended to the last message
+  // re-renders just that one item instead of the whole list.
+  const messageItems = useMemo(
+    () =>
+      messages.map((msg) => (
+        <ErrorBoundary key={msg.id}>
+          <MessageItem message={msg} />
+        </ErrorBoundary>
+      )),
+    [messages]
+  );
 
   if (loadingMessages) {
     return (
@@ -43,12 +57,7 @@ export const MessageList = () => {
 
   return (
     <div className="space-y-4 p-4 max-w-4xl mx-auto">
-      {messages.map((msg) => (
-        /* 2. Wrapped MessageItem inside ErrorBoundary */
-        <ErrorBoundary key={msg.id}>
-          <MessageItem message={msg} />
-        </ErrorBoundary>
-      ))}
+      {messageItems}
 
       {/* Dynamic Agent Streaming Indicator */}
       {isStreaming && (

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, ImagePlus, X } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
+import { MAX_UPLOAD_BYTES } from "../../utils/constants";
 
 export const ChatInput = () => {
   const [prompt, setPrompt] = useState("");
@@ -25,6 +26,17 @@ export const ChatInput = () => {
 
     if (!file.type.startsWith("image/")) {
       alert("Please select a valid image file.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      alert(
+        `Image is too large (max ${Math.floor(
+          MAX_UPLOAD_BYTES / (1024 * 1024)
+        )}MB). Please choose a smaller image.`
+      );
+      e.target.value = "";
       return;
     }
 

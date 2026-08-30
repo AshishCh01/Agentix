@@ -92,9 +92,12 @@ async def create_chat_session(
 async def get_user_chat_sessions(
     db: AsyncSession,
     user_id: uuid.UUID | str,
+    limit: int = 50,
+    offset: int = 0,
 ) -> List[ChatSession]:
     """
-    Fetches all chat sessions belonging to a specific user, ordered by most recent.
+    Fetches a page of chat sessions belonging to a specific user, ordered by
+    most recent.
     """
     if isinstance(user_id, str):
         user_id = uuid.UUID(user_id)
@@ -103,6 +106,8 @@ async def get_user_chat_sessions(
         select(ChatSession)
         .where(ChatSession.user_id == user_id)
         .order_by(ChatSession.updated_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -177,9 +182,12 @@ async def delete_chat_session(
 async def get_session_messages(
     db: AsyncSession,
     session_id: uuid.UUID | str,
+    limit: int = 50,
+    offset: int = 0,
 ) -> List[Message]:
     """
-    Retrieves conversation history messages for a chat session in chronological order.
+    Retrieves a page of conversation history messages for a chat session in
+    chronological order.
     """
     if isinstance(session_id, str):
         session_id = uuid.UUID(session_id)
@@ -188,6 +196,8 @@ async def get_session_messages(
         select(Message)
         .where(Message.session_id == session_id)
         .order_by(Message.created_at.asc())
+        .limit(limit)
+        .offset(offset)
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())

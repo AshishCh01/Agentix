@@ -50,8 +50,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // supabase.auth.signOut() already removes its own session entry from
+    // the configured storage (see supabaseClient.js) -- no need to (and no
+    // reason to) blow away the rest of the browser's storage along with it.
     const { error } = await supabase.auth.signOut();
-    localStorage.clear(); // Ensure all stored user data/tokens are purged
     setUser(null);
     setSession(null);
     if (error) throw error;

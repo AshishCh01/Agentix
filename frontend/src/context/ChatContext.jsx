@@ -3,8 +3,29 @@ import { createContext, useState, useEffect, useCallback, useContext, useRef } f
 import { sessionApi } from "../api/sessionApi";
 import { chatApi } from "../api/chatApi";
 import { AuthContext } from "./AuthContext";
+import { MAX_RETAINED_MESSAGE_IMAGES } from "../utils/constants";
 
 export const ChatContext = createContext(null);
+
+// Keeps only the most recent MAX_RETAINED_MESSAGE_IMAGES messages' base64
+// image_data in memory, stripping it from older ones. Without this, a long
+// chat session with many image attachments would accumulate unbounded
+// base64 payloads in React state for the lifetime of the tab.
+const pruneOldImageData = (msgs) => {
+  let seen = 0;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (!msgs[i].image_data) continue;
+    seen += 1;
+    if (seen > MAX_RETAINED_MESSAGE_IMAGES) {
+      msgs = [
+        ...msgs.slice(0, i),
+        { ...msgs[i], image_data: null },
+        ...msgs.slice(i + 1),
+      ];
+    }
+  }
+  return msgs;
+};
 
 export const ChatProvider = ({ children }) => {
   const { user } = useContext(AuthContext);
@@ -66,10 +87,18 @@ export const ChatProvider = ({ children }) => {
     };
   }, [abortController]);
 
+  // Guards against a stale request clobbering state: only the response to
+  // the most recently issued fetchSessions() call is allowed to commit.
+  // Shared by every caller (the login effect below and any manual refresh)
+  // so this race protection lives in exactly one place.
+  const fetchRequestIdRef = useRef(0);
+
   const fetchSessions = useCallback(async () => {
+    const requestId = ++fetchRequestIdRef.current;
     setLoadingSessions(true);
     try {
       const data = await sessionApi.getSessions();
+      if (fetchRequestIdRef.current !== requestId) return;
       const userSessions = data || [];
       setSessions(userSessions);
       if (userSessions.length > 0) {
@@ -79,58 +108,38 @@ export const ChatProvider = ({ children }) => {
         setMessages([]);
       }
     } catch (err) {
+      if (fetchRequestIdRef.current !== requestId) return;
       console.error("Failed to load sessions:", err);
       setSessions([]);
       setActiveSessionId(null);
       setMessages([]);
     } finally {
-      setLoadingSessions(false);
+      if (fetchRequestIdRef.current === requestId) setLoadingSessions(false);
     }
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
     if (!user) {
-      setTimeout(() => {
+      const clearTimeoutId = setTimeout(() => {
         abortActiveStream();
         setSessions([]);
         setMessages([]);
         setActiveSessionId(null);
       }, 0);
-      return;
+      // If the user logs back in before this fires (React re-runs this
+      // effect with the new `user`), cancel it -- otherwise this stale
+      // clear can land after the re-login's fetchSessions() has already
+      // populated state, wiping the newly logged-in user's data.
+      return () => clearTimeout(clearTimeoutId);
     }
 
-    const initUserData = async () => {
-      setLoadingSessions(true);
-      try {
-        const data = await sessionApi.getSessions();
-        if (!isMounted) return;
-        const userSessions = data || [];
-        setSessions(userSessions);
-        if (userSessions.length > 0) {
-          setActiveSessionId(userSessions[0].id);
-        } else {
-          setActiveSessionId(null);
-          setMessages([]);
-        }
-      } catch (err) {
-        if (!isMounted) return;
-        console.error("Failed to load user sessions:", err);
-        setSessions([]);
-        setActiveSessionId(null);
-        setMessages([]);
-      } finally {
-        if (isMounted) setLoadingSessions(false);
-      }
-    };
-
-    initUserData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user, abortActiveStream]);
+    // Wrapped so the effect body itself never synchronously calls setState
+    // (fetchSessions does, to flip on the loading flag) -- only kicks off
+    // the fetch, deferred to a microtask.
+    (async () => {
+      await fetchSessions();
+    })();
+  }, [user, abortActiveStream, fetchSessions]);
 
   useEffect(() => {
     if (!activeSessionId) return;
@@ -234,7 +243,7 @@ export const ChatProvider = ({ children }) => {
       created_at: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMsg, assistantPlaceholder]);
+    setMessages((prev) => pruneOldImageData([...prev, userMsg, assistantPlaceholder]));
     setIsStreaming(true);
     setActiveNode("supervisor");
 
