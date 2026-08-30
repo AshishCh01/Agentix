@@ -44,9 +44,8 @@ class LLMService:
         )
         self.api_key = str(raw_key).strip().strip("'\"")
 
-        # 2. Resolve default model
-        raw_model = getattr(settings, "LLM_MODEL", "gemini-3.5-flash")
-        self.default_model = str(raw_model).strip().strip("'\"")
+        # 2. Resolve default model (settings.py is the single source of truth)
+        self.default_model = str(settings.LLM_MODEL).strip().strip("'\"")
 
         # 3. Model Cache
         self._models: Dict[tuple, ChatGoogleGenerativeAI] = {}

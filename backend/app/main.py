@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
         )
         
         if callable(embed_fn):
-            embed_fn("warmup")
+            await embed_fn("warmup")
             
         print("[OK] Embedding model weights loaded into RAM successfully.")
     except Exception as e:

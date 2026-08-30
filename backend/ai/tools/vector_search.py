@@ -19,16 +19,13 @@ async def vector_search_tool(
     Performs Hybrid Search (Dense pgvector + Sparse TSVector full-text) with
     Reciprocal Rank Fusion (RRF) and Cross-Encoder reranking.
     """
-    from ai.services.embedding_service import embedding_service
+    from ai.services.embedding_service import embedding_service, EmbeddingTask
 
     # Ensure session_id is a valid string for SQL bindings
     session_id_str = str(session_id)
 
     # 1. Generate Query Vector
-    if hasattr(embedding_service, "get_embedding"):
-        query_vector = await embedding_service.get_embedding(query)
-    else:
-        query_vector = embedding_service.generate_embedding(query)
+    query_vector = await embedding_service.generate_embedding(query, mode=EmbeddingTask.QUERY)
 
     vector_str = "[" + ",".join(map(str, query_vector)) + "]"
 
@@ -106,7 +103,7 @@ async def vector_search_tool(
     if candidate_chunks:
         try:
             # Map candidate_chunks to match embedding_service expected schema
-            candidate_chunks = embedding_service.rerank_chunks(query, candidate_chunks)
+            candidate_chunks = await embedding_service.rerank_chunks(query, candidate_chunks)
             # Make sure keys match what the rest of the code expects if necessary
             # embedding_service.rerank_chunks sorts and sets "score" instead of "rerank_score"
             # It expects {"content": ...} and updates {"score": float, "source_type": "reranked"}

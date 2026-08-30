@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
 
+from app.config.settings import settings
 from app.models.base import Base
 
 
@@ -29,7 +30,7 @@ class DocumentChunk(Base):
     chunk_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         "metadata", JSONB, nullable=True, default=dict
     )
-    embedding: Mapped[Any] = mapped_column(Vector(768), nullable=False)
+    embedding: Mapped[Any] = mapped_column(Vector(settings.EMBEDDING_DIMENSIONS), nullable=False)
     
     # ADDED: Auto-generated Full-Text Search column for Hybrid RAG
     fts_tokens: Mapped[Optional[Any]] = mapped_column(
