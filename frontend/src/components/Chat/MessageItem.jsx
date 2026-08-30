@@ -18,16 +18,16 @@ export const MessageItem = memo(function MessageItem({ message }) {
       }`}
     >
       {!isUser && (
-        <div className="w-8 h-8 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
           <Bot className="w-4 h-4" />
         </div>
       )}
 
       <div
-        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 text-xs sm:text-sm shadow-md leading-relaxed ${
+        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 text-xs sm:text-sm shadow-sm dark:shadow-md leading-relaxed ${
           isUser
             ? "bg-blue-600 text-white rounded-tr-none"
-            : "bg-slate-950 border border-slate-800 text-slate-100 rounded-tl-none"
+            : "bg-slate-50 border border-slate-200 text-slate-700 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100 rounded-tl-none"
         }`}
       >
         <div className="flex items-center justify-between space-x-4 mb-1.5 text-[10px] opacity-70">
@@ -42,7 +42,7 @@ export const MessageItem = memo(function MessageItem({ message }) {
             <img
               src={message.image_data}
               alt="User attachment"
-              className="max-w-full max-h-60 rounded-xl border border-white/20 object-cover shadow"
+              className="max-w-full max-h-60 rounded-xl border border-black/10 dark:border-white/20 object-cover shadow"
             />
           </div>
         )}
@@ -57,7 +57,7 @@ export const MessageItem = memo(function MessageItem({ message }) {
       </div>
 
       {isUser && (
-        <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex items-center justify-center flex-shrink-0 mt-0.5">
           <User className="w-4 h-4" />
         </div>
       )}

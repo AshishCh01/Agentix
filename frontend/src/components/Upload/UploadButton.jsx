@@ -87,25 +87,25 @@ export const UploadButton = () => {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center space-x-2 px-3 py-2 bg-slate-800 hover:bg-slate-700/80 border border-slate-700/50 text-slate-200 text-xs font-medium rounded-lg transition-colors"
+        className="flex items-center space-x-2 px-3 py-2 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700/80 dark:border-slate-700/50 dark:text-slate-200 text-xs font-medium rounded-lg transition-colors"
       >
-        <Upload className="w-3.5 h-3.5 text-blue-400" />
+        <Upload className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
         <span>Upload Document</span>
       </button>
 
       {/* Modal Dialog */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-md my-auto max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
-                <FileUp className="w-5 h-5 text-blue-400" />
-                <h3 className="font-semibold text-sm text-slate-100">Upload Document</h3>
+                <FileUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100">Upload Document</h3>
               </div>
               <button
                 onClick={handleClose}
                 disabled={isUploading}
-                className="p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 disabled:opacity-50"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -123,8 +123,8 @@ export const UploadButton = () => {
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
                   isDragging
-                    ? "border-blue-500 bg-blue-500/10"
-                    : "border-slate-800 hover:border-slate-700 bg-slate-950/50"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
+                    : "border-slate-300 hover:border-slate-400 bg-slate-50/50 dark:border-slate-800 dark:hover:border-slate-700 dark:bg-slate-950/50"
                 }`}
               >
                 <input
@@ -134,11 +134,11 @@ export const UploadButton = () => {
                   accept=".pdf,.docx,.csv,.xlsx,.txt,.md,.json,image/*"
                   className="hidden"
                 />
-                <FileUp className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                <p className="text-xs font-medium text-slate-300">
+                <FileUp className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2" />
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                   Click to upload or drag & drop a file
                 </p>
-                <p className="text-[10px] text-slate-500 mt-1">
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
                   Supported: PDF, DOCX, CSV, Excel, TXT, Images (Max {MAX_UPLOAD_MB}MB)
                 </p>
               </div>
@@ -164,7 +164,7 @@ export const UploadButton = () => {
               <button
                 onClick={handleClose}
                 disabled={isUploading}
-                className="px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                className="px-3.5 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors"
               >
                 {success ? "Close" : "Cancel"}
               </button>

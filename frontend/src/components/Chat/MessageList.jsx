@@ -30,7 +30,7 @@ export const MessageList = () => {
 
   if (loadingMessages) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
+      <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 space-y-2">
         <Spinner size="lg" />
         <span className="text-xs">Loading message history...</span>
       </div>
@@ -40,14 +40,14 @@ export const MessageList = () => {
   if (!messages || messages.length === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4 max-w-md mx-auto">
-        <div className="p-3 bg-blue-600/10 border border-blue-500/20 text-blue-400 rounded-2xl">
+        <div className="p-3 bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 rounded-2xl">
           <Bot className="w-10 h-10" />
         </div>
         <div className="space-y-1">
-          <h3 className="text-base font-semibold text-slate-200">
+          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">
             How can I help you today?
           </h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             Ask questions about your uploaded PDF documents, requested general information, or initiate a live web search.
           </p>
         </div>
@@ -62,7 +62,7 @@ export const MessageList = () => {
       {/* Dynamic Agent Streaming Indicator */}
       {isStreaming && (
         <div className="flex space-x-3 max-w-4xl mx-auto">
-          <div className="w-8 h-8 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
             <Sparkles className="w-4 h-4 animate-spin" />
           </div>
           <div className="flex-1">

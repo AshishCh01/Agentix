@@ -10,17 +10,17 @@ export const Spinner = ({ size = "md", className = "" }) => {
 
   return (
     <Loader2
-      className={`animate-spin text-blue-500 ${sizeClasses[size] || sizeClasses.md} ${className}`}
+      className={`animate-spin text-blue-600 dark:text-blue-500 ${sizeClasses[size] || sizeClasses.md} ${className}`}
     />
   );
 };
 
 export const FullPageLoader = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-slate-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
       <Spinner size="xl" />
-      <p className="mt-4 text-sm text-slate-400 font-medium animate-pulse">
-        Initializing Agentic RAG Platform...
+      <p className="mt-4 text-sm text-slate-500 dark:text-slate-400 font-medium animate-pulse">
+        Initializing Agentix Platform...
       </p>
     </div>
   );
