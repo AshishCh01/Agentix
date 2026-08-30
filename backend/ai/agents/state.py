@@ -14,6 +14,7 @@ class AgentState(TypedDict):
     chat_history: List[Dict[str, Any]]
     retrieved_chunks: List[Dict[str, Any]]
     formatted_context: str
+    context_source: Optional[str]  # "document" | "web" — where formatted_context came from this pass
     tool_outputs: List[Dict[str, Any]]
     final_response: str
     error: Optional[str]

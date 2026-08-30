@@ -13,7 +13,7 @@ export const chatApi = {
     return response.data;
   },
 
-  streamMessage: async ({ sessionId, message, imageData = null, onEvent, onError }) => {
+  streamMessage: async ({ sessionId, message, imageData = null, onEvent, onError, signal }) => {
     try {
       let { data } = await supabase.auth.getSession();
       let token = data?.session?.access_token;
@@ -38,6 +38,7 @@ export const chatApi = {
           message,
           image_data: imageData,
         }),
+        signal,
       });
 
       if (!response.ok) {
