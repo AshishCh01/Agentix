@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
@@ -6,6 +8,8 @@ from ai.services.retrieval_service import search_similar_chunks
 from app.auth.dependencies import get_current_user
 from app.database.connection import get_db
 from app.schemas.search import ChunkResult, SearchRequest, SearchResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/search", tags=["Vector Search"])
 
@@ -59,6 +63,7 @@ async def perform_vector_search(
             detail="Database error during vector similarity search.",
         )
     except Exception as e:
+        logger.error("Vector similarity search failed: %s", e, exc_info=True)
         error_msg = str(e).lower()
         if "429" in error_msg or "quota" in error_msg or "rate limit" in error_msg:
             raise HTTPException(
@@ -67,5 +72,5 @@ async def perform_vector_search(
             )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Vector similarity search failed: {str(e)}",
+            detail="Vector similarity search failed. Please try again later.",
         )

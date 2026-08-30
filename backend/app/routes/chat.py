@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import uuid
 from typing import AsyncGenerator, Tuple
@@ -16,6 +17,8 @@ from app.database.connection import get_db
 from app.database.crud import log_agent_execution
 from app.models.message import Message
 from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["Multi-Agent Chat"])
 
@@ -118,6 +121,7 @@ async def chat_endpoint(
         )
     except Exception as e:
         await db.rollback()
+        logger.error("LangGraph execution error in /chat: %s", e, exc_info=True)
         error_msg = str(e).lower()
         if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg:
             raise HTTPException(
@@ -126,7 +130,7 @@ async def chat_endpoint(
             )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"LangGraph execution error: {str(e)}",
+            detail="Failed to process your request. Please try again later.",
         )
 
     sources = [
@@ -295,11 +299,15 @@ async def chat_stream_endpoint(
             yield f"data: {error_payload}\n\n"
         except Exception as e:
             await db.rollback()
+            logger.error("LangGraph execution error in /chat/stream: %s", e, exc_info=True)
             error_msg = str(e).lower()
-            error_type = "execution_error"
             if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg:
                 error_type = "rate_limit_error"
-            error_payload = json.dumps({"type": "error", "error_type": error_type, "detail": str(e)})
+                detail = "LLM rate limit exceeded. Please try again later."
+            else:
+                error_type = "execution_error"
+                detail = "Failed to process your request. Please try again later."
+            error_payload = json.dumps({"type": "error", "error_type": error_type, "detail": detail})
             yield f"data: {error_payload}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

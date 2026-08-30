@@ -14,6 +14,14 @@ from ai.services.embedding_service import embedding_service
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- STARTUP LOGIC ---
+    if not settings.SUPABASE_JWT_SECRET:
+        print(
+            "[WARN] SUPABASE_JWT_SECRET is not set. Every authenticated request will "
+            "fall back to a remote Supabase Auth network call instead of fast local "
+            "JWT verification, adding latency to every request. Set SUPABASE_JWT_SECRET "
+            "in the environment to enable local verification."
+        )
+
     print("[*] Pre-loading PyTorch and embedding model into RAM...")
     try:
         # Use getattr to look up methods dynamically and bypass Pylance static checks

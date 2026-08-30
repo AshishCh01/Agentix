@@ -111,20 +111,22 @@ async def get_user_chat_sessions(
 async def get_chat_session(
     db: AsyncSession,
     session_id: uuid.UUID | str,
-    user_id: Optional[uuid.UUID | str] = None,
+    user_id: uuid.UUID | str,
 ) -> Optional[ChatSession]:
     """
-    Retrieves a single chat session by session_id and optional user_id.
+    Retrieves a single chat session by session_id, scoped to its owning
+    user_id. Returns None if the session doesn't exist or belongs to a
+    different user -- user_id is required (not optional) so this can never
+    silently skip the ownership check and return another user's session.
     """
     if isinstance(session_id, str):
         session_id = uuid.UUID(session_id)
+    if isinstance(user_id, str):
+        user_id = uuid.UUID(user_id)
 
-    stmt = select(ChatSession).where(ChatSession.id == session_id)
-    if user_id:
-        if isinstance(user_id, str):
-            user_id = uuid.UUID(user_id)
-        stmt = stmt.where(ChatSession.user_id == user_id)
-
+    stmt = select(ChatSession).where(
+        ChatSession.id == session_id, ChatSession.user_id == user_id
+    )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
