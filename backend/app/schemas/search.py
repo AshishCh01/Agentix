@@ -8,7 +8,7 @@ class SearchRequest(BaseModel):
         ..., description="UUID of the chat session to search within"
     )
     query: str = Field(
-        ..., min_length=1, description="Natural language search query string"
+        ..., min_length=1, max_length=1000, description="Natural language search query string"
     )
     top_k: int = Field(
         default=4,
