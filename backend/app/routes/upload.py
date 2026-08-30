@@ -14,7 +14,7 @@ from app.models.document import Document
 from app.models.document_chunks import DocumentChunk
 from ai.services.parser_service import parse_document
 from ai.services.chunking_service import chunk_text
-from ai.services.embedding_service import embedding_service
+from ai.services.embedding_service import embedding_service, EmbeddingTask
 from app.schemas.upload import DocumentUploadResponse
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,9 @@ async def process_document_background(
             for i in range(0, len(all_chunks), batch_size):
                 batch = all_chunks[i:i + batch_size]
                 texts = [c["content"] for c in batch]
-                embeddings = embedding_service.generate_batch_embeddings(texts)
+                embeddings = await embedding_service.generate_batch_embeddings(
+                    texts, mode=EmbeddingTask.DOCUMENT, title=filename
+                )
                 
                 for chunk_data, emb in zip(batch, embeddings):
                     chunk_record = DocumentChunk(

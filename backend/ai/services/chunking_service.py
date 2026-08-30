@@ -40,6 +40,20 @@ def chunk_text(
         total_len = 0
 
         for s in splits:
+            if len(s) > max_len:
+                # A single split unit alone still exceeds the cap; flush what's
+                # accumulated so far, then recursively re-split it with the next
+                # separator (falling through to per-character as the last resort)
+                # so no oversized chunk ever survives.
+                if current_doc:
+                    doc_text = separator.join(current_doc).strip()
+                    if doc_text:
+                        final_chunks.append(doc_text)
+                    current_doc = []
+                    total_len = 0
+                final_chunks.extend(_split_text(s, max_len))
+                continue
+
             s_len = len(s) + (len(separator) if current_doc else 0)
             if total_len + s_len > max_len:
                 if current_doc:
@@ -52,11 +66,12 @@ def chunk_text(
                         removed = current_doc.pop(0)
                         total_len -= len(removed) + len(separator)
 
-                current_doc = [s]
-                total_len = len(s)
-            else:
-                current_doc.append(s)
-                total_len += s_len
+                    # current_doc may now be trimmed or emptied; recompute
+                    # whether s needs a leading separator before it's appended.
+                    s_len = len(s) + (len(separator) if current_doc else 0)
+
+            current_doc.append(s)
+            total_len += s_len
 
         if current_doc:
             doc_text = separator.join(current_doc).strip()

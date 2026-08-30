@@ -49,7 +49,7 @@ async def log_agent_execution(
     input_data: Dict[str, Any],
     output_data: Dict[str, Any],
     execution_time_ms: float,
-    model_used: Optional[str] = "gemini-1.5-flash",
+    model_used: Optional[str],
 ) -> AgentLog:
     """
     Logs agent execution metrics, latency, and inputs/outputs to the agent_logs table.

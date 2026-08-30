@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     LLM_MODEL: str = "gemini-3.5-flash"  # Default LLM model for responses
 
+    # Embedding Settings
+    # gemini-embedding-2's native output is 3072 dims, but pgvector's HNSW
+    # index has a hard cap of 2000 dims -- truncated here via
+    # output_dimensionality so the HNSW index stays usable.
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
+    EMBEDDING_DIMENSIONS: int = 2000
+
     # CORS Configurations
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",

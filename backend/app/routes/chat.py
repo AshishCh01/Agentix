@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.agents.graph import rag_graph
 from ai.agents.state import AgentState
-from ai.services.llm_service import extract_text_from_content
+from ai.services.llm_service import extract_text_from_content, llm_service
 from app.auth.dependencies import get_current_user
 from app.database.connection import get_db
 from app.database.crud import log_agent_execution
@@ -165,7 +165,7 @@ async def chat_endpoint(
             "sources": [s.model_dump() for s in sources],
         },
         execution_time_ms=elapsed_ms,
-        model_used="gemini-3.5-flash",
+        model_used=llm_service.default_model,
     )
 
     return ChatResponse(
@@ -274,7 +274,7 @@ async def chat_stream_endpoint(
                     "sources": sources,
                 },
                 execution_time_ms=elapsed_ms,
-                model_used="gemini-3.5-flash",
+                model_used=llm_service.default_model,
             )
 
             # 4. Stream Final Completion Payload with Reflection

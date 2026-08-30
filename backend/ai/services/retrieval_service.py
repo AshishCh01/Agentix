@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai.services.embedding_service import embedding_service
+from ai.services.embedding_service import embedding_service, EmbeddingTask
 from app.models.document import Document
 from app.models.document_chunks import DocumentChunk
 
@@ -20,8 +20,8 @@ async def search_similar_chunks(
     """
     from sqlalchemy import text
 
-    # 1. Generate 768-d embedding vector for the search query
-    query_vector = embedding_service.generate_embedding(query_text)
+    # 1. Generate embedding vector for the search query
+    query_vector = await embedding_service.generate_embedding(query_text, mode=EmbeddingTask.QUERY)
     query_vector_str = "[" + ",".join(map(str, query_vector)) + "]"
 
     # 2. Hybrid SQL Query with RRF
@@ -91,7 +91,7 @@ async def search_similar_chunks(
 
     # 5. Rerank using CrossEncoder
     if retrieved_chunks:
-        retrieved_chunks = embedding_service.rerank_chunks(query_text, retrieved_chunks)
+        retrieved_chunks = await embedding_service.rerank_chunks(query_text, retrieved_chunks)
 
     # 6. Return Top K
     return retrieved_chunks[:top_k]
