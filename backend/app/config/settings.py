@@ -1,3 +1,4 @@
+import re
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -23,6 +24,34 @@ class Settings(BaseSettings):
 
     # Database Settings
     DATABASE_URL: str = ""
+
+    def _database_url_with_driver(self, driver: str) -> str:
+        """
+        DATABASE_URL rewritten to use the given driver, regardless of which
+        scheme/driver (postgres://, postgresql://, postgresql+psycopg2://,
+        postgresql+asyncpg://, etc.) is actually configured in the
+        environment. This is the single place DATABASE_URL is parsed, so the
+        app runtime and Alembic can each get the driver they need without
+        DATABASE_URL itself being touched.
+        """
+        return re.sub(r"^postgres(ql)?(\+\w+)?://", f"postgresql+{driver}://", self.DATABASE_URL or "")
+
+    @property
+    def ASYNC_DATABASE_URL(self) -> str:
+        """
+        DATABASE_URL normalized to the asyncpg driver, for the FastAPI/
+        SQLAlchemy async engine (app/database/connection.py). asyncpg is the
+        only driver that works with SQLAlchemy's async engine API.
+        """
+        return self._database_url_with_driver("asyncpg")
+
+    @property
+    def SYNC_DATABASE_URL(self) -> str:
+        """
+        DATABASE_URL normalized to the psycopg2 driver, for Alembic
+        (alembic/env.py), which runs migrations synchronously.
+        """
+        return self._database_url_with_driver("psycopg2")
 
     # LLM Settings
     GEMINI_API_KEY: str = ""

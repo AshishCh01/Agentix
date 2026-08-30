@@ -23,12 +23,12 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
     # Remove the caching block that was returning the old answer on retry!
     
     formatted_context = state.get("formatted_context", "").strip()
-    intent = state.get("intent", "RAG_QUERY")
+    context_source = state.get("context_source")  # "document" | "web" | None
     image_data = state.get("image_data")
 
     # Fallback when no context is retrieved AND no image is provided
     if not formatted_context and not image_data:
-        if intent == "WEB_SEARCH":
+        if context_source == "web":
             return {
                 "final_response": (
                     "I searched the web but could not retrieve live results "
@@ -43,8 +43,10 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
             )
         }
 
-    # Select prompt template based on intent
-    if intent == "WEB_SEARCH":
+    # Select prompt template based on where the context actually came from
+    # this pass (not the original intent — a RAG_QUERY that fell back to web
+    # search still needs the web-grounded prompt here).
+    if context_source == "web":
         system_instruction = WEB_ANSWER_SYSTEM_PROMPT.format(context=formatted_context)
     else:
         system_instruction = ANSWER_SYSTEM_PROMPT.format(

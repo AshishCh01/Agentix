@@ -19,6 +19,53 @@ export const ChatProvider = ({ children }) => {
 
   const skipNextFetch = useRef(null);
 
+  // Tracks the in-flight SSE stream so its effects can be isolated from
+  // whatever session is actually active by the time each event arrives, and
+  // so it can be cancelled outright on session switch, deletion, logout, or
+  // unmount instead of silently writing into the wrong session's messages.
+  const streamControllerRef = useRef(null);
+  const streamSessionIdRef = useRef(null);
+  const activeSessionIdRef = useRef(activeSessionId);
+
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+  }, [activeSessionId]);
+
+  // Aborts the underlying fetch only — no state updates, safe to call from
+  // an unmount cleanup.
+  const abortController = useCallback(() => {
+    if (streamControllerRef.current) {
+      streamControllerRef.current.abort();
+      streamControllerRef.current = null;
+    }
+    streamSessionIdRef.current = null;
+  }, []);
+
+  // Aborts the stream and resets the streaming UI state. Use this from any
+  // live interaction path (session switch, deletion, logout) — never from
+  // an unmount cleanup, where setting state is unsafe.
+  const abortActiveStream = useCallback(() => {
+    abortController();
+    setIsStreaming(false);
+    setActiveNode(null);
+  }, [abortController]);
+
+  // Defense in depth: if the active session ever changes out from under an
+  // in-flight stream through a path other than sendMessage's own bookkeeping
+  // (e.g. a future navigation feature), abandon that stream immediately.
+  useEffect(() => {
+    if (streamSessionIdRef.current && streamSessionIdRef.current !== activeSessionId) {
+      setTimeout(() => abortActiveStream(), 0);
+    }
+  }, [activeSessionId, abortActiveStream]);
+
+  // Cancel any in-flight stream if the provider itself unmounts.
+  useEffect(() => {
+    return () => {
+      abortController();
+    };
+  }, [abortController]);
+
   const fetchSessions = useCallback(async () => {
     setLoadingSessions(true);
     try {
@@ -46,6 +93,7 @@ export const ChatProvider = ({ children }) => {
 
     if (!user) {
       setTimeout(() => {
+        abortActiveStream();
         setSessions([]);
         setMessages([]);
         setActiveSessionId(null);
@@ -82,7 +130,7 @@ export const ChatProvider = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [user, abortActiveStream]);
 
   useEffect(() => {
     if (!activeSessionId) return;
@@ -136,6 +184,9 @@ export const ChatProvider = ({ children }) => {
   const deleteSession = async (sessionId) => {
     try {
       await sessionApi.deleteSession(sessionId);
+      if (streamSessionIdRef.current === sessionId) {
+        abortActiveStream();
+      }
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       if (activeSessionId === sessionId) {
         const remaining = sessions.filter((s) => s.id !== sessionId);
@@ -159,6 +210,11 @@ export const ChatProvider = ({ children }) => {
         : "Image Query";
       const created = await createNewSession(sessionTitle);
       targetSessionId = created.id;
+      // Set synchronously rather than waiting on the activeSessionId sync
+      // effect to commit — otherwise a fast SSE event for a brand-new
+      // session could arrive before that effect runs and get dropped by
+      // isStillActive() below.
+      activeSessionIdRef.current = targetSessionId;
     }
 
     const userMsg = {
@@ -182,12 +238,29 @@ export const ChatProvider = ({ children }) => {
     setIsStreaming(true);
     setActiveNode("supervisor");
 
+    // Cancel any stray previous stream (should already be idle given the
+    // isStreaming guard above, but this keeps a superseded stream from ever
+    // writing into this new one's messages) and start tracking this one.
+    abortController();
+    const controller = new AbortController();
+    streamControllerRef.current = controller;
+    streamSessionIdRef.current = targetSessionId;
+
+    // Only true while the user is still looking at the session this stream
+    // was started for — false the moment they switch away, delete it, or
+    // log out. Every state update below is gated on this so a late-arriving
+    // token/completion/error for an abandoned stream can never land in a
+    // different session's message list.
+    const isStillActive = () => activeSessionIdRef.current === targetSessionId;
+
     try {
       await chatApi.streamMessage({
         sessionId: targetSessionId,
         message: userPrompt,
         imageData,
+        signal: controller.signal,
         onEvent: (event) => {
+          if (!isStillActive()) return;
           if (event.type === "node_start") {
             setActiveNode(event.node);
           } else if (event.type === "token") {
@@ -228,6 +301,12 @@ export const ChatProvider = ({ children }) => {
           }
         },
         onError: (err) => {
+          if (err?.name === "AbortError") {
+            // Intentional cancellation (session switch/deletion/logout/
+            // unmount) — not a real error, nothing to surface.
+            return;
+          }
+          if (!isStillActive()) return;
           console.error("Stream error:", err);
           setMessages((prev) => {
             const updated = [...prev];
@@ -248,10 +327,20 @@ export const ChatProvider = ({ children }) => {
         },
       });
     } catch (err) {
-      console.error("Failed to stream response:", err);
+      if (err?.name !== "AbortError") {
+        console.error("Failed to stream response:", err);
+      }
     } finally {
-      setIsStreaming(false);
-      setActiveNode(null);
+      // Only clear state if nothing has superseded this stream (e.g. a new
+      // sendMessage call already replaced streamControllerRef with its own
+      // controller) — otherwise this stale finally would clobber the newer
+      // stream's in-progress state.
+      if (streamControllerRef.current === controller) {
+        streamControllerRef.current = null;
+        streamSessionIdRef.current = null;
+        setIsStreaming(false);
+        setActiveNode(null);
+      }
     }
   };
 
@@ -270,6 +359,7 @@ export const ChatProvider = ({ children }) => {
         createNewSession,
         deleteSession,
         sendMessage,
+        cancelStream: abortActiveStream,
       }}
     >
       {children}

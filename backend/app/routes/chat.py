@@ -73,6 +73,7 @@ async def _setup_chat_state(
         "chat_history": chat_history,
         "retrieved_chunks": [],
         "formatted_context": "",
+        "context_source": None,
         "tool_outputs": [],
         "final_response": "",
         "error": None,

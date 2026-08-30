@@ -55,7 +55,15 @@ def route_after_vector_search(state: AgentState) -> str:
 
 
 def route_after_answer(state: AgentState) -> str:
-    """Conditional router: skips reflection if set in settings or for non-RAG queries."""
+    """
+    Conditional router: skips reflection if set in settings or for non-RAG queries.
+
+    `intent` here reflects the supervisor's original classification, not
+    whether web_search happened to run — web_search_node no longer overwrites
+    it. So a deliberate WEB_SEARCH query still skips reflection, but a
+    RAG_QUERY that fell back to web search (empty vector retrieval) keeps its
+    RAG_QUERY intent and correctly falls through to reflection below.
+    """
     if getattr(settings, "SKIP_REFLECTION", False):
         logger.info("⏩ Skipping reflection node (SKIP_REFLECTION=True).")
         return END
@@ -127,6 +135,9 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
     return {
         "retrieved_chunks": tool_result.get("chunks", []),
         "formatted_context": tool_result.get("context_text", ""),
+        # Reset every RAG pass so a stale "web" value from an earlier
+        # reflection-retry iteration can't leak into this one.
+        "context_source": "document",
         "tool_outputs": state.get("tool_outputs", []) + [{"tool": "vector_search", "result": tool_result}],
     }
 
@@ -136,7 +147,14 @@ async def web_search_node(state: AgentState, config: RunnableConfig) -> Dict[str
     search_query = state.get("standalone_query") or state.get("user_query", "")
     tool_result = await web_search_tool(query=search_query, max_results=4)
     return {
-        "intent": "WEB_SEARCH",  # Override intent to skip reflection for fallback paths
+        # NOTE: intent is deliberately NOT overwritten here. Leaving the
+        # original classification intact means a genuine WEB_SEARCH intent
+        # (set by the supervisor) still skips reflection in route_after_answer,
+        # while a RAG_QUERY that fell back to web search here keeps its
+        # original intent and still goes through reflection/groundedness
+        # checking downstream — context_source is what tells answer_node
+        # this content came from the web rather than retrieved documents.
+        "context_source": "web",
         "formatted_context": tool_result.get("formatted_context", ""),
         # This mapping is crucial: it passes the web URLs to your frontend citations
         "retrieved_chunks": tool_result.get("sources", []),
