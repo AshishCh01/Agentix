@@ -14,7 +14,8 @@ class DocumentUploadResponse(BaseModel):
 class DocumentResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
-    session_id: uuid.UUID
+    session_id: Optional[uuid.UUID] = None
+    knowledge_base_id: Optional[uuid.UUID] = None
     filename: str
     file_type: str
     file_path: str

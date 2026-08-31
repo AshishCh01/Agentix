@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 class SessionCreate(BaseModel):
     title: Optional[str] = "New Conversation"
+    knowledge_base_id: Optional[uuid.UUID] = None
 
 
 class SessionUpdate(BaseModel):
@@ -15,6 +16,7 @@ class SessionUpdate(BaseModel):
 class SessionResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
+    knowledge_base_id: Optional[uuid.UUID] = None
     title: str
     created_at: datetime
     updated_at: datetime

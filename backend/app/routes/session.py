@@ -20,8 +20,20 @@ async def create_session(
 ):
     user_id = uuid.UUID(current_user["user_id"])
     try:
+        if session_in.knowledge_base_id is not None:
+            kb = await crud.get_knowledge_base(
+                db, knowledge_base_id=session_in.knowledge_base_id, user_id=user_id
+            )
+            if not kb:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Knowledge base not found",
+                )
         return await crud.create_chat_session(
-            db, user_id=user_id, title=session_in.title or "New Conversation"
+            db,
+            user_id=user_id,
+            title=session_in.title or "New Conversation",
+            knowledge_base_id=session_in.knowledge_base_id,
         )
     except SQLAlchemyError as e:
         raise HTTPException(

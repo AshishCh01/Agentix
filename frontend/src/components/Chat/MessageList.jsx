@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { Bot, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { MessageItem } from "./MessageItem";
 import { NodeIndicator } from "./NodeIndicator";
@@ -40,8 +40,8 @@ export const MessageList = () => {
   if (!messages || messages.length === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4 max-w-md mx-auto">
-        <div className="p-3 bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 rounded-2xl">
-          <Bot className="w-10 h-10" />
+        <div className="p-3 bg-blue-50 border border-blue-100 dark:bg-blue-600/10 dark:border-blue-500/20 rounded-2xl">
+          <img src="/Agentix_logo_mark.png" alt="Agentix" className="w-10 h-10 object-contain" />
         </div>
         <div className="space-y-1">
           <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">

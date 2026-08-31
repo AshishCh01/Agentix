@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Upload, FileUp, X } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { useUpload } from "../../hooks/useUpload";
@@ -93,8 +94,10 @@ export const UploadButton = () => {
         <span>Upload Document</span>
       </button>
 
-      {/* Modal Dialog */}
-      {isOpen && (
+      {/* Modal Dialog — portaled to <body> so it escapes the Navbar's
+          backdrop-blur, which otherwise becomes the containing block for
+          this fixed-position overlay and confines it to the navbar's box */}
+      {isOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
           <div className="w-full max-w-md my-auto max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -180,7 +183,8 @@ export const UploadButton = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

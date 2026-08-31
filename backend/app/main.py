@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
-from app.routes import chat, health, search, session, upload
+from app.routes import chat, health, knowledge_base, search, session, upload
 
 if settings.HF_TOKEN:
     os.environ["HF_TOKEN"] = settings.HF_TOKEN
@@ -51,6 +51,7 @@ app.add_middleware(
 # Register Routers
 app.include_router(health.router, prefix=settings.API_V1_STR)
 app.include_router(session.router, prefix=settings.API_V1_STR)
+app.include_router(knowledge_base.router, prefix=settings.API_V1_STR)
 app.include_router(upload.router, prefix=settings.API_V1_STR)
 app.include_router(search.router, prefix=settings.API_V1_STR)
 app.include_router(chat.router, prefix=settings.API_V1_STR)

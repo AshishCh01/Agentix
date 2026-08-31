@@ -70,6 +70,7 @@ async def _setup_chat_state(
     initial_state: AgentState = {
         "session_id": session_id,
         "user_id": user_id,
+        "knowledge_base_id": str(session.knowledge_base_id) if session.knowledge_base_id else None,
         "user_query": user_query_text,
         "image_data": request.image_data,
         "intent": None,

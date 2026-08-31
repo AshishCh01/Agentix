@@ -1,14 +1,19 @@
 import { useAuth } from "../../hooks/useAuth";
 import { useChat } from "../../hooks/useChat";
-import { Menu, LogOut, User } from "lucide-react";
+import { useKnowledgeBase } from "../../hooks/useKnowledgeBase";
+import { Menu, LogOut, User, BookMarked } from "lucide-react";
 import { UploadButton } from "../Upload/UploadButton";
 import { ThemeToggle } from "./ThemeToggle";
 
 export const Navbar = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
   const { sessions, activeSessionId } = useChat();
+  const { knowledgeBases } = useKnowledgeBase();
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
+  const scopedKnowledgeBase = knowledgeBases.find(
+    (kb) => kb.id === activeSession?.knowledge_base_id
+  );
 
   return (
     <header className="h-16 border-b border-slate-200 bg-white/80 dark:border-slate-800 dark:bg-slate-900/80 backdrop-blur px-4 flex items-center justify-between sticky top-0 z-10">
@@ -25,7 +30,14 @@ export const Navbar = ({ onToggleSidebar }) => {
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Multi-Agent Active
+            {scopedKnowledgeBase ? (
+              <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                <BookMarked className="w-3 h-3" />
+                {scopedKnowledgeBase.name}
+              </span>
+            ) : (
+              "Multi-Agent Active"
+            )}
           </p>
         </div>
       </div>

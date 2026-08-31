@@ -1,4 +1,5 @@
-import { X, LogOut, User } from "lucide-react";
+import { X, LogOut, User, BookMarked } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { NewChatButton } from "./NewChatButton";
 import { ChatList } from "./ChatList";
 import { useAuth } from "../../hooks/useAuth";
@@ -34,9 +35,27 @@ export const Sidebar = ({ isOpen, onClose }) => {
         <NewChatButton />
       </div>
 
+      {/* Knowledge Bases Nav Link */}
+      <div className="px-3 pb-2">
+        <NavLink
+          to="/knowledge-bases"
+          onClick={onClose}
+          className={({ isActive }) =>
+            `flex items-center space-x-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+              isActive
+                ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                : "text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200"
+            }`
+          }
+        >
+          <BookMarked className="w-4 h-4 flex-shrink-0" />
+          <span>Knowledge Bases</span>
+        </NavLink>
+      </div>
+
       {/* Scrollable Session List */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
-        <div className="px-4 pb-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+      <div className="flex-1 overflow-y-auto custom-scrollbar py-2 border-t border-slate-200 dark:border-slate-800">
+        <div className="px-4 pt-3 pb-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
           Chat History
         </div>
         <ChatList onSelectSession={onClose} />

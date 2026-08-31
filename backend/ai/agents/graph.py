@@ -125,12 +125,14 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
     if search_query != raw_query:
         logger.info(f"🔍 Using standalone query from supervisor: '{search_query}'")
 
+    kb_id = state.get("knowledge_base_id")
     tool_result = await vector_search_tool(
         db=db,
         session_id=session_uuid,
         query=search_query,
         image_data=state.get("image_data"),
         top_k=4,
+        knowledge_base_id=uuid.UUID(kb_id) if kb_id else None,
     )
     return {
         "retrieved_chunks": tool_result.get("chunks", []),
