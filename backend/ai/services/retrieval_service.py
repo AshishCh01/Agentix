@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,10 +13,18 @@ async def search_similar_chunks(
     query_text: str,
     session_id: uuid.UUID,
     top_k: int = 4,
+    knowledge_base_id: Optional[uuid.UUID] = None,
 ) -> List[Dict[str, Any]]:
     """
     Performs hybrid search (Dense pgvector + Sparse FTS) with Reciprocal Rank Fusion (RRF),
     then reranks the top results using a cross-encoder.
+
+    Scoping: when `knowledge_base_id` is provided, retrieval is restricted to
+    documents belonging to that knowledge base (d.knowledge_base_id) rather
+    than the chat session -- this is how a chat started against a selected
+    Knowledge Base only ever retrieves that KB's documents. When it is
+    omitted (the existing/default behavior for sessions with no KB
+    attached), retrieval is scoped to `session_id` exactly as before.
     """
     from sqlalchemy import text
 
@@ -24,25 +32,32 @@ async def search_similar_chunks(
     query_vector = await embedding_service.generate_embedding(query_text, mode=EmbeddingTask.QUERY)
     query_vector_str = "[" + ",".join(map(str, query_vector)) + "]"
 
+    if knowledge_base_id is not None:
+        scope_filter = "d.knowledge_base_id = :scope_id"
+        scope_id = str(knowledge_base_id)
+    else:
+        scope_filter = "d.session_id = :scope_id"
+        scope_id = str(session_id)
+
     # 2. Hybrid SQL Query with RRF
     hybrid_sql = f"""
     WITH sparse AS (
-        SELECT 
-            dc.id, 
+        SELECT
+            dc.id,
             RANK() OVER (ORDER BY ts_rank_cd(dc.fts_tokens, websearch_to_tsquery('english', :query)) DESC) as rank
         FROM document_chunks dc
         JOIN documents d ON dc.document_id = d.id
-        WHERE d.session_id = :session_id 
+        WHERE {scope_filter}
           AND dc.fts_tokens @@ websearch_to_tsquery('english', :query)
         LIMIT 20
     ),
     dense AS (
-        SELECT 
-            dc.id, 
+        SELECT
+            dc.id,
             RANK() OVER (ORDER BY dc.embedding <=> CAST(:query_vector AS vector)) as rank
         FROM document_chunks dc
         JOIN documents d ON dc.document_id = d.id
-        WHERE d.session_id = :session_id
+        WHERE {scope_filter}
         LIMIT 20
     )
     SELECT 
@@ -70,7 +85,7 @@ async def search_similar_chunks(
     # 3. Execute the hybrid query
     result = await db.execute(text(hybrid_sql), {
         "query": query_text,
-        "session_id": str(session_id),
+        "scope_id": scope_id,
         "query_vector": query_vector_str,
         "rerank_top_k": top_k * 2
     })

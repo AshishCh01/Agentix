@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Bot, User } from "lucide-react";
+import { User } from "lucide-react";
 import { SourceBadge } from "./SourceBadge";
 import { formatDate } from "../../utils/helpers";
 
@@ -18,8 +18,8 @@ export const MessageItem = memo(function MessageItem({ message }) {
       }`}
     >
       {!isUser && (
-        <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <Bot className="w-4 h-4" />
+        <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 dark:bg-blue-600/10 dark:border-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <img src="/Agentix_logo_mark.png" alt="Agentix" className="w-4 h-4 object-contain" />
         </div>
       )}
 

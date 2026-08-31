@@ -7,6 +7,7 @@ class AgentState(TypedDict):
     """
     session_id: str
     user_id: str
+    knowledge_base_id: Optional[str]  # Scopes vector_search to a KB instead of the session
     user_query: str
     standalone_query: Optional[str]  # <-- ADDED: Rewritten query with conversation context
     image_data: Optional[str]  # <-- ADDED: Base64 image payload

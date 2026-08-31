@@ -33,6 +33,10 @@ export const ChatProvider = ({ children }) => {
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
+  // Knowledge base pre-selected (e.g. via the sidebar's "New Chat" scope
+  // picker) to scope the *next* auto-created or explicitly created session's
+  // retrieval to -- null means "no knowledge base" (existing behavior).
+  const [defaultKnowledgeBaseId, setDefaultKnowledgeBaseId] = useState(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeNode, setActiveNode] = useState(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
@@ -176,9 +180,10 @@ export const ChatProvider = ({ children }) => {
     };
   }, [activeSessionId]);
 
-  const createNewSession = async (title = "New Chat Session") => {
+  const createNewSession = async (title = "New Chat Session", knowledgeBaseId = undefined) => {
     try {
-      const newSession = await sessionApi.createSession(title);
+      const kbId = knowledgeBaseId === undefined ? defaultKnowledgeBaseId : knowledgeBaseId;
+      const newSession = await sessionApi.createSession(title, kbId);
       setSessions((prev) => [newSession, ...prev]);
       skipNextFetch.current = newSession.id;
       setActiveSessionId(newSession.id);
@@ -359,6 +364,8 @@ export const ChatProvider = ({ children }) => {
         sessions,
         activeSessionId,
         setActiveSessionId,
+        defaultKnowledgeBaseId,
+        setDefaultKnowledgeBaseId,
         messages,
         isStreaming,
         activeNode,

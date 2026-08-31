@@ -6,8 +6,10 @@ export const sessionApi = {
     return response.data;
   },
 
-  createSession: async (title = "New Chat Session") => {
-    const response = await apiClient.post("/sessions", { title });
+  createSession: async (title = "New Chat Session", knowledgeBaseId = null) => {
+    const payload = { title };
+    if (knowledgeBaseId) payload.knowledge_base_id = knowledgeBaseId;
+    const response = await apiClient.post("/sessions", payload);
     return response.data;
   },
 

@@ -20,10 +20,16 @@ class Document(Base):
         nullable=False,
         index=True,
     )
-    session_id: Mapped[uuid.UUID] = mapped_column(
+    session_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("chat_sessions.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
+        index=True,
+    )
+    knowledge_base_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("knowledge_bases.id", ondelete="CASCADE"),
+        nullable=True,
         index=True,
     )
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -46,3 +52,4 @@ class Document(Base):
         cascade="all, delete-orphan",
     )
     session = relationship("ChatSession", back_populates="documents")
+    knowledge_base = relationship("KnowledgeBase", back_populates="documents")

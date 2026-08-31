@@ -5,6 +5,8 @@ import { ChatLayout } from "../layouts/ChatLayout";
 import { Login } from "../pages/Login";
 import { Register } from "../pages/Register";
 import { ChatPage } from "../pages/ChatPage";
+import { KnowledgeBaseListPage } from "../pages/KnowledgeBaseListPage";
+import { KnowledgeBaseDetailPage } from "../pages/KnowledgeBaseDetailPage";
 import { NotFound } from "../pages/NotFound";
 
 export const AppRoutes = () => {
@@ -20,6 +22,8 @@ export const AppRoutes = () => {
       <Route element={<ProtectedRoute />}>
         <Route element={<ChatLayout />}>
           <Route path="/" element={<ChatPage />} />
+          <Route path="/knowledge-bases" element={<KnowledgeBaseListPage />} />
+          <Route path="/knowledge-bases/:id" element={<KnowledgeBaseDetailPage />} />
         </Route>
       </Route>
 

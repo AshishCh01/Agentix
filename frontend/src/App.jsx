@@ -2,6 +2,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
+import { KnowledgeBaseProvider } from "./context/KnowledgeBaseContext";
 import { AppRoutes } from "./routes/AppRoutes";
 
 export default function App() {
@@ -9,9 +10,11 @@ export default function App() {
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
-          <ChatProvider>
-            <AppRoutes />
-          </ChatProvider>
+          <KnowledgeBaseProvider>
+            <ChatProvider>
+              <AppRoutes />
+            </ChatProvider>
+          </KnowledgeBaseProvider>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

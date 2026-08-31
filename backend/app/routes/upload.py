@@ -1,6 +1,7 @@
 import uuid
 import logging
 import asyncio
+from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, status, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -128,36 +129,25 @@ async def process_document_background(
                 logger.error(f"❌ Failed to write error status for document {doc_id}: {commit_err}")
 
 
-@router.post("", response_model=DocumentUploadResponse, status_code=status.HTTP_202_ACCEPTED)
-async def upload_document(
+async def ingest_uploaded_file(
     background_tasks: BackgroundTasks,
-    session_id: uuid.UUID = Form(...),
-    file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    user_id = uuid.UUID(current_user["user_id"])
-
-    # 1. Verify session exists
-    try:
-        result = await db.execute(
-            select(ChatSession).where(
-                ChatSession.id == session_id,
-                ChatSession.user_id == user_id,
-            )
-        )
-        if not result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Chat session not found.",
-            )
-    except SQLAlchemyError as db_err:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Database error while verifying session.",
-        )
-
-    # 2. Read bytes and check size
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    file: UploadFile,
+    *,
+    session_id: Optional[uuid.UUID] = None,
+    knowledge_base_id: Optional[uuid.UUID] = None,
+) -> DocumentUploadResponse:
+    """
+    Shared ingestion path for both the session-scoped (/upload) and
+    knowledge-base-scoped (/knowledge-bases/{id}/documents) upload
+    endpoints: validates size, uploads bytes to Supabase Storage, creates
+    the `processing` Document record (tagged with whichever of
+    session_id/knowledge_base_id was provided), then offloads parsing +
+    chunking + embedding to the same background worker either way.
+    Caller is responsible for verifying ownership of session_id /
+    knowledge_base_id before calling this.
+    """
     file_bytes = await file.read()
     if not file_bytes:
         raise HTTPException(
@@ -173,10 +163,10 @@ async def upload_document(
 
     filename = file.filename or "document.txt"
 
-    #storage_path = f"{session_id}/{uuid.uuid4().hex}_{filename}"
-    storage_path = f"{user_id}/{session_id}/{uuid.uuid4().hex}_{filename}"
+    scope_segment = str(knowledge_base_id) if knowledge_base_id else str(session_id)
+    storage_path = f"{user_id}/{scope_segment}/{uuid.uuid4().hex}_{filename}"
 
-    # 3. Upload file bytes to Supabase Storage Bucket
+    # Upload file bytes to Supabase Storage Bucket
     supabase = get_supabase_client()
     try:
         bucket_name = getattr(settings, "SUPABASE_STORAGE_BUCKET", "documents")
@@ -195,11 +185,12 @@ async def upload_document(
             detail=f"Failed to upload file to external storage.",
         )
 
-    # 4. Save initial document record in 'processing' status
+    # Save initial document record in 'processing' status
     try:
         doc_record = Document(
             user_id=user_id,
             session_id=session_id,
+            knowledge_base_id=knowledge_base_id,
             filename=filename,
             file_type=file.content_type or "text/plain",
             file_path=storage_path,
@@ -216,7 +207,7 @@ async def upload_document(
             detail="Database error while saving document record.",
         )
 
-    # 5. Offload processing to background task
+    # Offload processing to background task
     background_tasks.add_task(
         process_document_background,
         doc_id=doc_record.id,
@@ -230,4 +221,38 @@ async def upload_document(
         document_id=doc_record.id,
         status="processing",
         filename=doc_record.filename,
+    )
+
+
+@router.post("", response_model=DocumentUploadResponse, status_code=status.HTTP_202_ACCEPTED)
+async def upload_document(
+    background_tasks: BackgroundTasks,
+    session_id: uuid.UUID = Form(...),
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    user_id = uuid.UUID(current_user["user_id"])
+
+    # Verify session exists and is owned by the caller
+    try:
+        result = await db.execute(
+            select(ChatSession).where(
+                ChatSession.id == session_id,
+                ChatSession.user_id == user_id,
+            )
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat session not found.",
+            )
+    except SQLAlchemyError as db_err:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error while verifying session.",
+        )
+
+    return await ingest_uploaded_file(
+        background_tasks, db, user_id, file, session_id=session_id
     )

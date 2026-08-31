@@ -14,16 +14,22 @@ async def vector_search_tool(
     query: str,
     image_data: Optional[str] = None,
     top_k: int = 4,
+    knowledge_base_id: Optional[uuid.UUID | str] = None,
 ) -> Dict[str, Any]:
     """
     Performs Hybrid Search (Dense pgvector + Sparse TSVector full-text) with
     Reciprocal Rank Fusion (RRF) and Cross-Encoder reranking via
     ai.services.retrieval_service.search_similar_chunks, then formats the
-    result as LLM-ready context.
+    result as LLM-ready context. When knowledge_base_id is set, retrieval is
+    scoped to that knowledge base instead of the chat session.
     """
     try:
         chunks = await search_similar_chunks(
-            db=db, query_text=query, session_id=session_id, top_k=top_k
+            db=db,
+            query_text=query,
+            session_id=session_id,
+            top_k=top_k,
+            knowledge_base_id=knowledge_base_id,
         )
     except Exception as e:
         logger.error(f"❌ Hybrid Search execution error: {str(e)}")
