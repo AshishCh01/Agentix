@@ -2,6 +2,17 @@ import pytest
 import httpx
 from unittest.mock import patch, AsyncMock
 from app.main import app
+from ai.services.retrieval_service import build_sparse_query
+
+def test_build_sparse_query():
+    assert build_sparse_query("hello world") == "hello or world"
+    assert build_sparse_query("hello OR world") == "hello or world"
+    assert build_sparse_query("Hello WORLD") == "hello or world"
+    assert build_sparse_query("a, b, c!") == "a or b or c"
+    assert build_sparse_query("or or or") == ""
+    assert build_sparse_query("!?") == ""
+    assert build_sparse_query("hello hello world") == "hello or world"
+    assert build_sparse_query("こんにちは world") == "こんにちは or world"
 
 @pytest.mark.asyncio
 async def test_search_endpoint_empty_session():
