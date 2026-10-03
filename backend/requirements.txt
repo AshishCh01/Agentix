@@ -13,6 +13,7 @@ pydantic-settings>=2.3.0
 
 # --- Database ---
 sqlalchemy>=2.0.0
+greenlet>=3.0.0             # Required by SQLAlchemy asyncio
 asyncpg>=0.29.0              # Async PostgreSQL driver (FastAPI runtime)
 psycopg2-binary>=2.9.0       # Sync PostgreSQL driver (Alembic migrations)
 alembic>=1.13.0              # DB migrations
@@ -44,6 +45,7 @@ sentence-transformers>=6.0.1
 
 # --- HTTP Client ---
 httpx>=0.27.0
+python-multipart>=0.0.9      # Required for FastAPI form/file uploads
 
 # --- Data ---
 pandas>=2.2.0
