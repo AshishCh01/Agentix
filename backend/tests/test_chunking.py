@@ -1,4 +1,7 @@
 from ai.services.chunking_service import chunk_text
+import random
+import string
+import logging
 
 
 def test_consecutive_chunks_share_overlap():
@@ -65,3 +68,72 @@ def test_short_text_returns_single_chunk():
 def test_empty_and_whitespace_input():
     assert chunk_text("") == []
     assert chunk_text("   \n\t  ") == []
+
+
+def test_chunking_synthetic_paragraphs():
+    # Regression test for 300-450 char paragraphs with 600/120 settings
+    random.seed(42)
+    paras = []
+    for _ in range(30):
+        length = random.randint(300, 450)
+        words = []
+        for _ in range(length // 5):
+            word = "".join(random.choices(string.ascii_lowercase, k=random.randint(2, 7)))
+            words.append(word)
+        para = " ".join(words).replace(" ", ". ", 5)
+        paras.append(para)
+    text = "\n\n".join(paras)
+
+    chunks = chunk_text(text, chunk_size=600, chunk_overlap=120)
+    
+    assert len(chunks) > 0
+    for i, c in enumerate(chunks):
+        assert c["length"] <= 600
+        # check overlap
+        if i > 0:
+            prev = chunks[i-1]["content"]
+            curr = c["content"]
+            
+            overlap_found = False
+            for k in range(min(len(prev), len(curr), 120), 0, -1):
+                if prev[-k:] == curr[:k]:
+                    overlap_found = True
+                    break
+            assert overlap_found, f"No overlap found between chunk {i-1} and chunk {i}"
+
+
+def test_chunking_deterministic():
+    text = "A simple deterministic test string. " * 100
+    chunks1 = chunk_text(text, 200, 50)
+    chunks2 = chunk_text(text, 200, 50)
+    assert chunks1 == chunks2
+
+
+def test_chunking_clamp_warning(caplog):
+    text = "A simple test string."
+    with caplog.at_level(logging.WARNING):
+        chunks = chunk_text(text, chunk_size=100, chunk_overlap=150)
+    assert any("clamped" in record.message.lower() for record in caplog.records)
+    assert len(chunks) > 0
+
+
+def test_chunking_hindi_emoji_and_mix():
+    text = "नमस्ते दुनिया 🌍 " * 100 + "\n\n" + "A short paragraph." + "\n\n" + "A very long single word: " + "a"*1000 + "\n\n" + "ID,Name\n1,Test\n2,Test2\n" * 20
+    chunks = chunk_text(text, chunk_size=300, chunk_overlap=50)
+    assert len(chunks) > 0
+    for c in chunks:
+        assert c["length"] <= 300
+
+
+def test_chunking_preserves_all_words():
+    text = "One two three four five six seven eight nine ten."
+    chunks = chunk_text(text, chunk_size=20, chunk_overlap=5)
+    for word in ["One", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten."]:
+        assert any(word in c["content"] for c in chunks)
+
+
+def test_chunking_never_starts_mid_word():
+    text = "This is a sentence. And another sentence. With words."
+    chunks = chunk_text(text, chunk_size=25, chunk_overlap=10)
+    for i in range(1, len(chunks)):
+        assert not chunks[i]["content"].startswith(" ")
