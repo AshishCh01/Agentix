@@ -63,6 +63,13 @@ class Settings(BaseSettings):
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
     EMBEDDING_DIMENSIONS: int = 2000
 
+    # Retrieval Settings
+    RETRIEVAL_LIST_SIZE: int = 30
+    RERANK_CANDIDATES: int = 20
+    RRF_K: int = 60
+    HNSW_EF_SEARCH: int = 100
+    HNSW_ITERATIVE_SCAN: str = "relaxed_order"
+
     # Reranker Settings
     RERANK_PROVIDER: str = "local" # 'local' or 'none'
     RERANK_MODEL_NAME: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
