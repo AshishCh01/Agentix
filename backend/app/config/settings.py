@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     # output_dimensionality so the HNSW index stays usable.
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
     EMBEDDING_DIMENSIONS: int = 2000
+    EMBED_CONCURRENCY: int = 15
+    EMBED_MAX_RETRIES: int = 3
 
     # Retrieval Settings
     RETRIEVAL_LIST_SIZE: int = 30
