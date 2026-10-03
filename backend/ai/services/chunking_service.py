@@ -1,5 +1,8 @@
 import re
+import logging
 from typing import Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 
 def chunk_text(
@@ -11,75 +14,98 @@ def chunk_text(
     Recursively splits text on semantic boundaries (\n\n, \n, . , space)
     to preserve document structure, context, and table readability.
     """
+    if chunk_overlap >= chunk_size:
+        logger.warning(
+            "chunk_overlap (%d) >= chunk_size (%d). Clamped to %d.",
+            chunk_overlap, chunk_size, chunk_size // 2
+        )
+        chunk_overlap = chunk_size // 2
+
     if not text or not text.strip():
         return []
 
     separators = ["\n\n", "\n", ". ", "? ", "! ", " ", ""]
 
-    def _split_text(content: str, max_len: int) -> List[str]:
-        if len(content) <= max_len:
+    def _split_recursively(content: str) -> List[str]:
+        if len(content) <= chunk_size:
             return [content]
 
-        # Select the highest priority separator present in content
-        separator = ""
+        sep = ""
         for s in separators:
             if s == "":
-                separator = ""
+                sep = ""
                 break
             if s in content:
-                separator = s
+                sep = s
                 break
 
-        if separator != "":
-            splits = content.split(separator)
-        else:
-            splits = list(content)
+        if sep == "":
+            return list(content)
 
-        final_chunks = []
-        current_doc = []
-        total_len = 0
+        parts = content.split(sep)
+        result = []
+        for i, part in enumerate(parts):
+            if len(part) > chunk_size:
+                result.extend(_split_recursively(part))
+            else:
+                result.append(part)
 
-        for s in splits:
-            if len(s) > max_len:
-                # A single split unit alone still exceeds the cap; flush what's
-                # accumulated so far, then recursively re-split it with the next
-                # separator (falling through to per-character as the last resort)
-                # so no oversized chunk ever survives.
-                if current_doc:
-                    doc_text = separator.join(current_doc).strip()
-                    if doc_text:
-                        final_chunks.append(doc_text)
-                    current_doc = []
-                    total_len = 0
-                final_chunks.extend(_split_text(s, max_len))
-                continue
+            if i < len(parts) - 1:
+                if len(sep) > chunk_size:
+                    result.extend(list(sep))
+                else:
+                    result.append(sep)
 
-            s_len = len(s) + (len(separator) if current_doc else 0)
-            if total_len + s_len > max_len:
-                if current_doc:
-                    doc_text = separator.join(current_doc).strip()
-                    if doc_text:
-                        final_chunks.append(doc_text)
+        return result
 
-                    # Retain overlap from ending of previous chunk
-                    while total_len > chunk_overlap and current_doc:
-                        removed = current_doc.pop(0)
-                        total_len -= len(removed) + len(separator)
+    units = _split_recursively(text)
 
-                    # current_doc may now be trimmed or emptied; recompute
-                    # whether s needs a leading separator before it's appended.
-                    s_len = len(s) + (len(separator) if current_doc else 0)
+    final_chunks = []
+    current_chunk = ""
 
-            current_doc.append(s)
-            total_len += s_len
-
-        if current_doc:
-            doc_text = separator.join(current_doc).strip()
+    for unit in units:
+        if current_chunk and len(current_chunk) + len(unit) > chunk_size:
+            doc_text = current_chunk.strip()
             if doc_text:
                 final_chunks.append(doc_text)
 
-        return final_chunks
+            if chunk_overlap > 0 and doc_text:
+                overlap_str = (
+                    doc_text[-chunk_overlap:]
+                    if len(doc_text) > chunk_overlap
+                    else doc_text
+                )
+                if len(doc_text) > chunk_overlap:
+                    match = re.search(r'([.?!]\s+|\n+)', overlap_str)
+                    if match:
+                        overlap_str = overlap_str[match.end():]
+                    else:
+                        match = re.search(r'\s+', overlap_str)
+                        if match:
+                            overlap_str = overlap_str[match.end():]
+                        else:
+                            overlap_str = ""
+            else:
+                overlap_str = ""
 
-    raw_chunks = _split_text(text, chunk_size)
+            while overlap_str and len(overlap_str) + len(unit) > chunk_size:
+                match = re.search(r'([.?!]\s+|\n+)', overlap_str)
+                if match:
+                    overlap_str = overlap_str[match.end():]
+                else:
+                    match = re.search(r'\s+', overlap_str)
+                    if match:
+                        overlap_str = overlap_str[match.end():]
+                    else:
+                        overlap_str = ""
 
-    return [{"content": c, "length": len(c)} for c in raw_chunks if c.strip()]
+            current_chunk = overlap_str + unit
+        else:
+            current_chunk += unit
+
+    if current_chunk:
+        doc_text = current_chunk.strip()
+        if doc_text:
+            final_chunks.append(doc_text)
+
+    return [{"content": c, "length": len(c)} for c in final_chunks]
