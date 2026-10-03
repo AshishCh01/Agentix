@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
     EMBEDDING_DIMENSIONS: int = 2000
 
+    # Reranker Settings
+    RERANK_PROVIDER: str = "local" # 'local' or 'none'
+    RERANK_MODEL_NAME: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    RERANK_MAX_LENGTH: int = 256
+    RERANK_BATCH_SIZE: int = 8
+    RERANK_NUM_THREADS: int = 0
+    RERANK_QUANTIZE: bool = False
+    RERANK_PRELOAD: bool = True
+
     # CORS Configurations
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",

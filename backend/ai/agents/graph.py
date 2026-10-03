@@ -47,6 +47,10 @@ def route_intent(state: AgentState) -> str:
 
 def route_after_vector_search(state: AgentState) -> str:
     """Routes to web_search if vector database returned zero chunks."""
+    if state.get("retrieval_error"):
+        logger.info("⚠️ Retrieval error occurred. Routing to answer to handle error gracefully.")
+        return "answer"
+    
     retrieved_chunks = state.get("retrieved_chunks", [])
     if not retrieved_chunks or len(retrieved_chunks) == 0:
         logger.info("⚠️ Vector store returned 0 chunks. Rerouting to web_search fallback...")
@@ -134,7 +138,12 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
         top_k=4,
         knowledge_base_id=uuid.UUID(kb_id) if kb_id else None,
     )
+    
+    retrieval_error = tool_result.get("retrieval_error")
+    
     return {
+        "retrieval_error": bool(retrieval_error),
+        "retrieval_error_message": retrieval_error if isinstance(retrieval_error, str) else None,
         "retrieved_chunks": tool_result.get("chunks", []),
         "formatted_context": tool_result.get("context_text", ""),
         # Reset every RAG pass so a stale "web" value from an earlier
