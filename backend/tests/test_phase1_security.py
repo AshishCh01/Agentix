@@ -31,6 +31,15 @@ USER_B = {
 def override_get_current_user_a():
     return USER_A
 
+async def setup_test_data():
+    async with AsyncSessionLocal() as db:
+        await crud.sync_user(db, USER_A["user_id"], USER_A["email"])
+
+@pytest.fixture(autouse=True)
+async def setup_test_users():
+    await setup_test_data()
+    yield
+
 
 @pytest.mark.asyncio
 async def test_raw_exception_text_not_leaked_to_client():

@@ -29,7 +29,8 @@ async def setup_test_users():
 async def test_ingestion_endpoints():
     transport = httpx.ASGITransport(app=app)
     
-    with patch("fastapi.BackgroundTasks.add_task") as mock_bg:
+    with patch("fastapi.BackgroundTasks.add_task") as mock_bg, \
+         patch("app.routes.upload.get_supabase_client"):
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             app.dependency_overrides[get_current_user] = override_get_current_user_a
             

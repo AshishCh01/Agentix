@@ -129,8 +129,9 @@ async def test_knowledge_base_ownership_is_enforced():
         res = await client.get(f"/api/v1/knowledge-bases/{kb_id}/documents")
         assert res.status_code == 404
 
-        files = {"file": ("doc.txt", b"some content", "text/plain")}
-        res = await client.post(f"/api/v1/knowledge-bases/{kb_id}/documents", files=files)
+        with patch("app.routes.upload.get_supabase_client"):
+            files = {"file": ("doc.txt", b"some content", "text/plain")}
+            res = await client.post(f"/api/v1/knowledge-bases/{kb_id}/documents", files=files)
         assert res.status_code == 404
 
         res = await client.delete(f"/api/v1/knowledge-bases/{kb_id}")
@@ -172,7 +173,8 @@ async def test_document_upload_associates_with_knowledge_base():
     up in the KB's document list with a 'processing' status.
     """
     transport = httpx.ASGITransport(app=app)
-    with patch("fastapi.BackgroundTasks.add_task") as mock_bg:
+    with patch("fastapi.BackgroundTasks.add_task") as mock_bg, \
+         patch("app.routes.upload.get_supabase_client"):
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             app.dependency_overrides[get_current_user] = override_get_current_user_a
 
