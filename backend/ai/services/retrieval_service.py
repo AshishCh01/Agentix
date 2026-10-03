@@ -70,7 +70,7 @@ async def search_similar_chunks(
     sparse_query = build_sparse_query(query_text)
     
     if sparse_query:
-        sparse_cte = """
+        sparse_cte = f"""
         sparse_inner AS (
             SELECT
                 dc.id,
@@ -92,7 +92,7 @@ async def search_similar_chunks(
             SELECT CAST(NULL AS uuid) as id, CAST(NULL AS bigint) as rank WHERE false
         )"""
 
-    dense_cte = """
+    dense_cte = f"""
     dense_inner AS (
         SELECT
             dc.id,

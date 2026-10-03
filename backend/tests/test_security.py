@@ -50,19 +50,35 @@ async def test_idor_security():
         assert res.status_code == 201
         session_id_a = res.json()["id"]
 
+        print("Starting test_idor_security")
         search_payload = {"session_id": session_id_a, "query": "test query", "top_k": 2}
-        search_res = await client.post("/api/v1/search", json=search_payload)
-        assert search_res.status_code == 200, f"Got {search_res.status_code}"
-
-        # Switch to User B
-        app.dependency_overrides[get_current_user] = override_get_current_user_b
         
-        search_res_b = await client.post("/api/v1/search", json=search_payload)
-        assert search_res_b.status_code == 404, f"IDOR Vulnerability: {search_res_b.status_code}"
+        from unittest.mock import patch, AsyncMock
+        with patch("app.routes.search.search_similar_chunks", new_callable=AsyncMock) as mock_search, \
+             patch("app.routes.chat.rag_graph.ainvoke", new_callable=AsyncMock) as mock_chat:
+             
+            mock_search.return_value = []
+            mock_chat.return_value = {"final_response": "Mocked response", "intent": "greeting", "retrieved_chunks": []}
+            
+            print("Sending POST /api/v1/search (User A)")
+            search_res = await client.post("/api/v1/search", json=search_payload)
+            print("Received response from /api/v1/search")
+            assert search_res.status_code == 200, f"Got {search_res.status_code}"
 
-        chat_payload = {"session_id": session_id_a, "message": "Hello"}
-        chat_res_b = await client.post("/api/v1/chat", json=chat_payload)
-        assert chat_res_b.status_code == 404, f"IDOR Vulnerability: {chat_res_b.status_code}"
+            # Switch to User B
+            app.dependency_overrides[get_current_user] = override_get_current_user_b
+            
+            print("Sending POST /api/v1/search (User B)")
+            search_res_b = await client.post("/api/v1/search", json=search_payload)
+            print("Received response from /api/v1/search (User B)")
+            assert search_res_b.status_code == 404, f"IDOR Vulnerability: {search_res_b.status_code}"
+
+            print("Sending POST /api/v1/chat (User B)")
+            chat_payload = {"session_id": session_id_a, "message": "Hello"}
+            chat_res_b = await client.post("/api/v1/chat", json=chat_payload)
+            print("Received response from /api/v1/chat (User B)")
+            assert chat_res_b.status_code == 404, f"IDOR Vulnerability: {chat_res_b.status_code}"
+            print("Done")
 
 
 @pytest.mark.asyncio
