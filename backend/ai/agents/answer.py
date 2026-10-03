@@ -28,6 +28,13 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
     """
     # Remove the caching block that was returning the old answer on retry!
     
+    if state.get("retrieval_error"):
+        error_msg = state.get("retrieval_error_message") or "Unknown error."
+        logger.warning(f"Returning early due to retrieval error: {error_msg}")
+        return {
+            "final_response": "I couldn't search your documents right now. Please try again."
+        }
+    
     formatted_context = state.get("formatted_context", "").strip()
     context_source = state.get("context_source")  # "document" | "web" | None
     image_data = state.get("image_data")
