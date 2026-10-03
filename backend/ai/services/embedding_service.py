@@ -1,4 +1,5 @@
 import asyncio
+import random
 import logging
 import threading
 from enum import Enum
@@ -132,6 +133,34 @@ class EmbeddingService:
         )
         return response.embeddings[0].values
 
+    async def _embed_with_retry(
+        self,
+        text: str,
+        mode: EmbeddingTask,
+        title: Optional[str],
+        semaphore: asyncio.Semaphore
+    ) -> List[float]:
+        max_retries = getattr(settings, "EMBED_MAX_RETRIES", 3)
+        base_delay = 1.0
+
+        async with semaphore:
+            for attempt in range(max_retries):
+                try:
+                    return await self.generate_embedding(text, mode=mode, title=title)
+                except Exception as e:
+                    # Retry on 429 ResourceExhausted or other transient errors
+                    # According to docs, genai SDK wraps HTTP errors
+                    err_str = str(e).lower()
+                    if "429" not in err_str and "resource exhausted" not in err_str and "timeout" not in err_str and "50" not in err_str:
+                        raise e
+                        
+                    if attempt == max_retries - 1:
+                        raise e
+                    
+                    delay = (base_delay * (2 ** attempt)) + random.uniform(0, 0.5)
+                    logger.warning(f"Embedding failed (attempt {attempt + 1}/{max_retries}), retrying in {delay:.2f}s: {e}")
+                    await asyncio.sleep(delay)
+
     async def generate_batch_embeddings(
         self,
         texts: List[str],
@@ -141,18 +170,26 @@ class EmbeddingService:
         """
         Generates gemini-embedding-2 vectors for a list of text strings,
         all sharing the same task `mode` (and, for document mode, the same
-        source `title`).
+        source `title`), using concurrent API calls with a semaphore and retries.
+        Ensures len(result) == len(texts).
         """
         if not texts:
             return []
 
-        prefixed_texts = [self._build_prefixed_text(t, mode, title) for t in texts]
-        response = await self.client.aio.models.embed_content(
-            model=settings.GEMINI_EMBEDDING_MODEL,
-            contents=prefixed_texts,
-            config={"output_dimensionality": settings.EMBEDDING_DIMENSIONS},
-        )
-        return [e.values for e in response.embeddings]
+        concurrency = getattr(settings, "EMBED_CONCURRENCY", 15)
+        semaphore = asyncio.Semaphore(concurrency)
+        
+        tasks = [
+            self._embed_with_retry(text, mode, title, semaphore)
+            for text in texts
+        ]
+        
+        results = await asyncio.gather(*tasks)
+        
+        if len(results) != len(texts):
+            raise ValueError(f"Embedding length mismatch: returned {len(results)}, expected {len(texts)}")
+            
+        return list(results)
 
     async def rerank_chunks(self, query: str, chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """

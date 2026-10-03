@@ -4,7 +4,7 @@ import asyncio
 from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, status, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.session import ChatSession
@@ -89,7 +89,9 @@ async def process_document_background(
                 embeddings = await embedding_service.generate_batch_embeddings(
                     texts, mode=EmbeddingTask.DOCUMENT, title=filename
                 )
-                
+                if len(embeddings) != len(texts):
+                    raise ValueError(f"Batch embedding returned {len(embeddings)} items, expected {len(texts)}.")
+
                 for chunk_data, emb in zip(batch, embeddings):
                     chunk_record = DocumentChunk(
                         document_id=doc_id,
@@ -100,6 +102,14 @@ async def process_document_background(
                         embedding=emb,
                     )
                     db.add(chunk_record)
+
+            await db.flush()
+            
+            # Verify chunk counts match post-ingestion
+            count_res = await db.execute(select(func.count()).where(DocumentChunk.document_id == doc_id))
+            db_chunk_count = count_res.scalar() or 0
+            if db_chunk_count != len(all_chunks):
+                raise ValueError(f"Chunk count mismatch: expected {len(all_chunks)}, found {db_chunk_count} in database")
 
             # 3. Mark document status as 'ready'
             res = await db.execute(select(Document).where(Document.id == doc_id))

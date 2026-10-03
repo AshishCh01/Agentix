@@ -175,7 +175,7 @@ async def search_similar_chunks(
         
         print(f"✅ [Reranking] Done. Top {top_k} results:")
         for i, c in enumerate(retrieved_chunks[:top_k]):
-            print(f"   Rank {i+1}: Score={c.get('score', 0):.4f} | File={c['filename']} | Chunk Index={c['chunk_index']}")
+            print(f"   Rank {i+1}: Score={c.get('rerank_score', 0):.4f} | File={c['filename']} | Chunk Index={c['chunk_index']}")
     print("-" * 50)
 
     # 7. Return Top K
