@@ -1,10 +1,15 @@
 import asyncio
+import logging
+import threading
 from enum import Enum
 from typing import Any, List, Optional, Dict
 
+import torch
 from google import genai
 
 from app.config.settings import settings
+
+logger = logging.getLogger(__name__)
 
 
 class EmbeddingTask(str, Enum):
@@ -21,6 +26,8 @@ class EmbeddingService:
     def __init__(self):
         self._client: Optional[genai.Client] = None
         self._reranker: Optional[Any] = None
+        self._reranker_lock = threading.Lock()
+        self._reranker_unavailable = False
 
     @property
     def client(self) -> genai.Client:
@@ -31,16 +38,68 @@ class EmbeddingService:
             api_key = str(settings.GEMINI_API_KEY).strip().strip("'\"")
             self._client = genai.Client(api_key=api_key)
         return self._client
+    
+    def load_reranker(self) -> None:
+        """
+        Sync, idempotent, thread-safe method to load the reranker model.
+        """
+        if settings.RERANK_PROVIDER != "local":
+            self._reranker_unavailable = True
+            return
+
+        if self._reranker is not None or self._reranker_unavailable:
+            return
+
+        with self._reranker_lock:
+            # Double checked locking
+            if self._reranker is not None or self._reranker_unavailable:
+                return
+
+            try:
+                if settings.RERANK_NUM_THREADS > 0:
+                    torch.set_num_threads(settings.RERANK_NUM_THREADS)
+                
+                logger.info(f"Loading CrossEncoder reranker ({settings.RERANK_MODEL_NAME})...")
+                from sentence_transformers import CrossEncoder
+                
+                model = CrossEncoder(
+                    settings.RERANK_MODEL_NAME, 
+                    device="cpu", 
+                    max_length=settings.RERANK_MAX_LENGTH
+                )
+                
+                if settings.RERANK_QUANTIZE:
+                    try:
+                        logger.info("Quantizing the reranker model...")
+                        model.model = torch.quantization.quantize_dynamic(
+                            model.model, {torch.nn.Linear}, dtype=torch.qint8
+                        )
+                    except Exception as e:
+                        logger.warning(f"Reranker quantization failed, continuing with unquantized model: {e}")
+                
+                self._reranker = model
+            except Exception as e:
+                logger.error(f"❌ Failed to load local reranker model: {e}")
+                self._reranker_unavailable = True
+
+    def warmup_reranker(self) -> None:
+        """
+        Loads the reranker and runs a dummy predict to warm it up.
+        """
+        self.load_reranker()
+        if self._reranker is not None:
+            logger.info("Warming up reranker with dummy predict...")
+            with torch.inference_mode():
+                self._reranker.predict([["query", "passage"]], batch_size=1, show_progress_bar=False)
+            logger.info("Reranker warmup complete.")
 
     @property
     def reranker(self) -> Any:
         """
         Lazy-loads a cross-encoder model for hybrid search reranking.
         """
-        if self._reranker is None:
-            print("Loading CrossEncoder reranker (ms-marco-MiniLM-L-6-v2)...")
-            from sentence_transformers import CrossEncoder
-            self._reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        if self._reranker is None and not self._reranker_unavailable:
+            self.load_reranker()
         return self._reranker
 
     @staticmethod
@@ -99,25 +158,43 @@ class EmbeddingService:
         """
         Reranks a list of chunks using a CrossEncoder and updates their scores.
         Sorts the chunks in descending order by the new score.
+        If the reranker is unavailable, fails open and returns the chunks in original order.
         """
         if not chunks:
             return []
 
-        # Prepare inputs: list of [query, chunk_content] pairs
+        # Fail open
+        if self.reranker is None:
+            return chunks
+
         inputs = [[query, chunk["content"]] for chunk in chunks]
 
         def _predict() -> Any:
-            return self.reranker.predict(inputs)
+            with torch.inference_mode():
+                return self.reranker.predict(
+                    inputs, 
+                    batch_size=settings.RERANK_BATCH_SIZE, 
+                    show_progress_bar=False
+                )
 
-        scores = await asyncio.to_thread(_predict)
+        try:
+            raw_logits = await asyncio.to_thread(_predict)
+            
+            # Use torch.sigmoid for consistent conversion, or mathematically equivalent
+            scores = torch.sigmoid(torch.tensor(raw_logits)).tolist()
+            logits = raw_logits.tolist() if hasattr(raw_logits, 'tolist') else list(raw_logits)
 
-        for i, chunk in enumerate(chunks):
-            chunk["score"] = float(scores[i])
-            chunk["source_type"] = "reranked"
+            for i, chunk in enumerate(chunks):
+                chunk["rerank_logit"] = float(logits[i])
+                chunk["rerank_score"] = float(scores[i])
+                # DO NOT overwrite 'score' or 'source_type'
 
-        # Sort chunks in descending order of score
-        chunks.sort(key=lambda x: x["score"], reverse=True)
-        return chunks
+            # Sort chunks in descending order of score, stable for ties
+            chunks.sort(key=lambda x: x.get("rerank_score", 0.0), reverse=True)
+            return chunks
+        except Exception as e:
+            logger.warning(f"Reranker failed during inference: {e}. Failing open.")
+            return chunks
 
 
 embedding_service = EmbeddingService()

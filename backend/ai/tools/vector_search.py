@@ -33,19 +33,22 @@ async def vector_search_tool(
         )
     except Exception as e:
         logger.error(f"❌ Hybrid Search execution error: {str(e)}")
-        chunks = []
+        return {"chunks": [], "context_text": "", "retrieval_error": str(e)}
 
     if not chunks:
         return {"chunks": [], "context_text": ""}
 
     formatted_chunks = [
         {
-            "id": c["chunk_id"],
-            "content": c["content"],
-            "page_number": c["page_number"] or 1,
-            "chunk_index": c["chunk_index"],
-            "filename": c["filename"],
-            "score": c["score"],
+            "id": c.get("chunk_id"),
+            "content": c.get("content"),
+            "page_number": c.get("page_number") or 1,
+            "chunk_index": c.get("chunk_index"),
+            "filename": c.get("filename"),
+            "score": c.get("score"),
+            "source_type": c.get("source_type"),
+            "rerank_score": c.get("rerank_score"),
+            "rerank_logit": c.get("rerank_logit"),
         }
         for c in chunks
     ]
