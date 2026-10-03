@@ -163,10 +163,20 @@ async def search_similar_chunks(
             "dense_rank": row["dense_rank"],
             "dense_similarity": float(row["dense_similarity"]) if row["dense_similarity"] is not None else None,
         })
+        
+    print(f"\n🔍 [Hybrid Search] Retrieved {len(retrieved_chunks)} candidates before reranking.")
+    for i, c in enumerate(retrieved_chunks[:3]):  # Log top 3
+        print(f"   Candidate {i+1}: RRF={c['score']:.4f} | Source={c['source_type']} | Dense Rank={c['dense_rank']} | Sparse Rank={c['sparse_rank']} | File={c['filename']}")
 
     # 6. Rerank using CrossEncoder
     if retrieved_chunks:
+        print(f"⚖️ [Reranking] Passing {len(retrieved_chunks)} candidates to Cross-Encoder...")
         retrieved_chunks = await embedding_service.rerank_chunks(query_text, retrieved_chunks)
+        
+        print(f"✅ [Reranking] Done. Top {top_k} results:")
+        for i, c in enumerate(retrieved_chunks[:top_k]):
+            print(f"   Rank {i+1}: Score={c.get('score', 0):.4f} | File={c['filename']} | Chunk Index={c['chunk_index']}")
+    print("-" * 50)
 
     # 7. Return Top K
     return retrieved_chunks[:top_k]
