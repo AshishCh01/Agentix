@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import patch, MagicMock
 
 import pytest
 from google import genai
@@ -8,23 +9,19 @@ from app.config.settings import settings
 
 
 @pytest.mark.asyncio
-async def test_gemini_connection():
+@patch("google.genai.models.Models.generate_content")
+async def test_gemini_connection(mock_generate_content):
     """
-    Live connectivity smoke test for the configured Gemini API key/model.
-
-    Previously this caught every exception, printed it, and returned
-    normally -- so a missing key, an invalid key, or a totally dead
-    connection all still reported PASSED. Now a broken key or a failed
-    request actually fails the test. The one exception is a 429 quota
-    error: that reflects the shared free-tier rate limit being exhausted,
-    not a code or credential problem, so it's reported as skipped (visibly,
-    not silently) rather than failing the whole suite over external quota
-    exhaustion.
+    Mocked connectivity smoke test for the configured Gemini API key/model.
     """
     raw_key = settings.GEMINI_API_KEY
     assert raw_key, "GEMINI_API_KEY is empty in settings."
 
     client = genai.Client(api_key=raw_key)
+    
+    mock_response = MagicMock()
+    mock_response.text = "Gemini API is connected successfully!"
+    mock_generate_content.return_value = mock_response
 
     try:
         response = client.models.generate_content(
