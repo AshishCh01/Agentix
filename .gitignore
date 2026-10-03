@@ -93,3 +93,5 @@ __pycache__/
 
 # Local Dev Test Artifacts
 .dev_session_id
+
+docs/

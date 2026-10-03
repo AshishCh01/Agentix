@@ -1,6 +1,7 @@
 # ============================================================
 # Agentic RAG - Backend Requirements
 # ============================================================
+--extra-index-url https://download.pytorch.org/whl/cpu
 
 # --- Web Framework ---
 fastapi>=0.115.0
@@ -31,6 +32,15 @@ langgraph>=0.2.0             # LangGraph agent orchestration
 # --- Document Parsing ---
 pypdf>=4.0.0                 # PDF parsing
 python-docx>=1.1.0           # DOCX parsing (from docx import Document)
+openpyxl>=3.1.5
+xlrd>=2.0.2
+
+# --- Web Search ---
+duckduckgo-search>=8.1.1
+
+# --- Local Models ---
+torch>=2.14.1
+sentence-transformers>=6.0.1
 
 # --- HTTP Client ---
 httpx>=0.27.0
