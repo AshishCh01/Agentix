@@ -1,3 +1,9 @@
+import os
+os.environ["DATABASE_URL"] = "postgresql+asyncpg://test:test@localhost:5432/test"
+os.environ["SUPABASE_URL"] = "https://test.supabase.co"
+os.environ["SUPABASE_KEY"] = "test"
+os.environ["GEMINI_API_KEY"] = "test"
+
 import pytest
 from ai.services.llm_service import llm_service
 import asyncio
