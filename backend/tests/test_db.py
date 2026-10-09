@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 import pytest
 from sqlalchemy import text
@@ -8,6 +9,10 @@ from app.models import Base
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(
+    os.environ.get("DATABASE_URL", "").startswith("postgresql+asyncpg://test:test"),
+    reason="No test database provided, skipping live connection test.",
+)
 async def test_connection():
     """
     Live connectivity smoke test for the configured database.
