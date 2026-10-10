@@ -125,13 +125,30 @@ class EmbeddingService:
         the model's native 3072-dim output, which exceeds its 2000-dim cap).
         `mode` selects the prefix used to signal task intent to the model.
         """
+        if not text or not text.strip():
+            raise ValueError("Empty input text provided for embedding.")
+
         prefixed_text = self._build_prefixed_text(text, mode, title)
         response = await self.client.aio.models.embed_content(
             model=settings.GEMINI_EMBEDDING_MODEL,
             contents=[prefixed_text],
             config={"output_dimensionality": settings.EMBEDDING_DIMENSIONS},
         )
-        return response.embeddings[0].values
+        
+        if not response.embeddings or not response.embeddings[0].values:
+            raise ValueError("Gemini API returned empty embedding.")
+            
+        emb = response.embeddings[0].values
+        
+        if len(emb) != settings.EMBEDDING_DIMENSIONS:
+            raise ValueError(f"Embedding dimension mismatch: expected {settings.EMBEDDING_DIMENSIONS}, got {len(emb)}")
+            
+        import math
+        for val in emb:
+            if not isinstance(val, (int, float)) or not math.isfinite(val):
+                raise ValueError(f"Invalid embedding value found: {val}")
+
+        return emb
 
     async def _embed_with_retry(
         self,
@@ -151,7 +168,26 @@ class EmbeddingService:
                     # Retry on 429 ResourceExhausted or other transient errors
                     # According to docs, genai SDK wraps HTTP errors
                     err_str = str(e).lower()
-                    if "429" not in err_str and "resource exhausted" not in err_str and "timeout" not in err_str and "50" not in err_str:
+                    
+                    is_4xx = False
+                    is_429 = False
+                    
+                    if hasattr(e, "code") and isinstance(e.code, int):
+                        if e.code == 429:
+                            is_429 = True
+                        elif 400 <= e.code < 500:
+                            is_4xx = True
+                    else:
+                        if "429" in err_str or "resource exhausted" in err_str:
+                            is_429 = True
+                        elif "400" in err_str or "401" in err_str or "403" in err_str or "404" in err_str:
+                            is_4xx = True
+                            
+                    if is_4xx and not is_429:
+                        # Do not retry non-429 4xx client errors
+                        raise e
+                        
+                    if "429" not in err_str and "resource exhausted" not in err_str and "timeout" not in err_str and "50" not in err_str and not is_429:
                         raise e
                         
                     if attempt == max_retries - 1:
