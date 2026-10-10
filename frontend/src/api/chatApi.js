@@ -1,4 +1,4 @@
-import apiClient from "./axios";
+import apiClient, { getCurrentToken } from "./axios";
 import { API_BASE_URL } from "../utils/constants";
 import { parseSSEStream } from "../utils/streamParser";
 import { supabase } from "./supabaseClient";
@@ -15,8 +15,7 @@ export const chatApi = {
 
   streamMessage: async ({ sessionId, message, imageData = null, onEvent, onError, signal }) => {
     try {
-      let { data } = await supabase.auth.getSession();
-      let token = data?.session?.access_token;
+      let token = await getCurrentToken();
 
       if (!token) {
         const { data: refreshed } = await supabase.auth.refreshSession();
