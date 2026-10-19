@@ -9,19 +9,19 @@ def _run_ddgs_sync(query: str, max_results: int) -> List[Dict[str, Any]]:
     """Synchronous DDGS execution to be run in a thread pool."""
     results = []
     
-    # Handle the dependency alias safely
+    # Prefer official modern ddgs package, fallback to legacy duckduckgo_search
     try:
-        from duckduckgo_search import DDGS
-    except ImportError:
         from ddgs import DDGS
+    except ImportError:
+        from duckduckgo_search import DDGS
 
     with DDGS() as ddgs:
         raw_results = list(ddgs.text(query, max_results=max_results))
         for item in raw_results:
             results.append({
                 "title": item.get("title", "Untitled Source"),
-                "url": item.get("href", ""),
-                "content": item.get("body", ""),
+                "url": item.get("href", "") or item.get("url", ""),
+                "content": item.get("body", "") or item.get("description", ""),
             })
     return results
 
