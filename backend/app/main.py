@@ -33,6 +33,13 @@ async def lifespan(app: FastAPI):
         try:
             __import__(dep)
         except ImportError:
+            if dep == "ddgs":
+                try:
+                    __import__("duckduckgo_search")
+                    print("[WARN] Dependency 'duckduckgo_search' is deprecated. Migrate to 'ddgs'.")
+                    continue
+                except ImportError:
+                    pass
             print(f"[WARN] Dependency '{dep}' is missing. Some features may not work or might fail.")
 
     # Reranker Warmup
