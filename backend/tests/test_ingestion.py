@@ -21,10 +21,18 @@ from app.database.connection import get_db
 async def override_get_db():
     mock_db = AsyncMock()
     
-    # Mock execute to return a fake result for scalar_one_or_none
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = MagicMock(id="mocked-id")
-    mock_db.execute.return_value = mock_result
+    async def mock_execute(stmt, *args, **kwargs):
+        mock_result = MagicMock()
+        stmt_str = str(stmt).lower()
+        if "chat_sessions" in stmt_str:
+            mock_result.scalar_one_or_none.return_value = MagicMock(id="fab9f37a-72ea-4dc7-ae70-0bd216c7a5a5")
+        elif "documents" in stmt_str:
+            mock_result.scalar_one_or_none.return_value = None
+        else:
+            mock_result.scalar_one_or_none.return_value = MagicMock(id="mocked-id")
+        return mock_result
+
+    mock_db.execute = AsyncMock(side_effect=mock_execute)
     
     async def mock_refresh(instance):
         from datetime import datetime, timezone

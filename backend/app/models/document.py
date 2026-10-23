@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -48,6 +48,35 @@ class Document(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+    content_hash: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_documents_session_content_hash",
+            "user_id",
+            "session_id",
+            "content_hash",
+            unique=True,
+            postgresql_where=text("session_id IS NOT NULL AND content_hash IS NOT NULL"),
+        ),
+        Index(
+            "uq_documents_kb_content_hash",
+            "user_id",
+            "knowledge_base_id",
+            "content_hash",
+            unique=True,
+            postgresql_where=text("knowledge_base_id IS NOT NULL AND content_hash IS NOT NULL"),
+        ),
+        Index(
+            "uq_documents_global_content_hash",
+            "user_id",
+            "content_hash",
+            unique=True,
+            postgresql_where=text("session_id IS NULL AND knowledge_base_id IS NULL AND content_hash IS NOT NULL"),
+        ),
     )
 
 

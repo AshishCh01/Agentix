@@ -1,6 +1,6 @@
 import uuid
 from typing import List
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -169,6 +169,7 @@ async def list_knowledge_base_documents(
 async def upload_knowledge_base_document(
     kb_id: uuid.UUID,
     background_tasks: BackgroundTasks,
+    response: Response,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -176,7 +177,7 @@ async def upload_knowledge_base_document(
     user_id = uuid.UUID(current_user["user_id"])
     await _get_owned_knowledge_base(db, kb_id, user_id)
     return await ingest_uploaded_file(
-        background_tasks, db, user_id, file, knowledge_base_id=kb_id
+        background_tasks, db, user_id, file, knowledge_base_id=kb_id, response=response
     )
 
 
