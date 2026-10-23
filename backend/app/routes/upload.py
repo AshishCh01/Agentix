@@ -2,11 +2,12 @@ import uuid
 import logging
 import asyncio
 from datetime import datetime, timezone
+import hashlib
 from typing import Optional
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, status, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Response, status, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.models.session import ChatSession
 from app.auth.dependencies import get_current_user, get_supabase_client
@@ -152,14 +153,15 @@ async def ingest_uploaded_file(
     *,
     session_id: Optional[uuid.UUID] = None,
     knowledge_base_id: Optional[uuid.UUID] = None,
+    response: Optional[Response] = None,
 ) -> DocumentUploadResponse:
     """
     Shared ingestion path for both the session-scoped (/upload) and
     knowledge-base-scoped (/knowledge-bases/{id}/documents) upload
-    endpoints: validates size, uploads bytes to Supabase Storage, creates
-    the `processing` Document record (tagged with whichever of
-    session_id/knowledge_base_id was provided), then offloads parsing +
-    chunking + embedding to the same background worker either way.
+    endpoints: validates size, calculates SHA-256 content hash, detects duplicates,
+    uploads bytes to Supabase Storage, creates the `processing` Document record
+    (tagged with whichever of session_id/knowledge_base_id was provided),
+    then offloads parsing + chunking + embedding to the background worker.
     Caller is responsible for verifying ownership of session_id /
     knowledge_base_id before calling this.
     """
@@ -177,14 +179,50 @@ async def ingest_uploaded_file(
         )
 
     filename = file.filename or "document.txt"
+    content_hash = hashlib.sha256(file_bytes).hexdigest()
+
+    # Pre-check for duplicate document with identical content in the same scope
+    scope_conditions = [
+        Document.user_id == user_id,
+        Document.content_hash == content_hash,
+    ]
+    if session_id is not None:
+        scope_conditions.append(Document.session_id == session_id)
+    else:
+        scope_conditions.append(Document.session_id.is_(None))
+
+    if knowledge_base_id is not None:
+        scope_conditions.append(Document.knowledge_base_id == knowledge_base_id)
+    else:
+        scope_conditions.append(Document.knowledge_base_id.is_(None))
+
+    try:
+        dup_res = await db.execute(select(Document).where(*scope_conditions))
+        existing_doc = dup_res.scalar_one_or_none()
+        if existing_doc:
+            logger.info(
+                f"Duplicate document detected for user {user_id} in scope "
+                f"(hash={content_hash}, existing_id={existing_doc.id}, existing_file={existing_doc.filename})."
+            )
+            if response:
+                response.status_code = status.HTTP_200_OK
+            return DocumentUploadResponse(
+                message=f"Duplicate document detected ({existing_doc.filename}). Referencing existing document.",
+                document_id=existing_doc.id,
+                status=existing_doc.status,
+                filename=existing_doc.filename,
+                is_duplicate=True,
+            )
+    except SQLAlchemyError as err:
+        logger.warning(f"Error querying for duplicate document: {err}")
 
     scope_segment = str(knowledge_base_id) if knowledge_base_id else str(session_id)
     storage_path = f"{user_id}/{scope_segment}/{uuid.uuid4().hex}_{filename}"
 
     # Upload file bytes to Supabase Storage Bucket
     supabase = get_supabase_client()
+    bucket_name = getattr(settings, "SUPABASE_STORAGE_BUCKET", "documents")
     try:
-        bucket_name = getattr(settings, "SUPABASE_STORAGE_BUCKET", "documents")
         def _upload_to_supabase():
             return supabase.storage.from_(bucket_name).upload(
                 path=storage_path,
@@ -212,12 +250,41 @@ async def ingest_uploaded_file(
             file_path=storage_path,
             file_size=len(file_bytes),
             status="processing",
+            content_hash=content_hash,
             created_at=now_utc,
             updated_at=now_utc,
         )
         db.add(doc_record)
         await db.commit()
         await db.refresh(doc_record)
+    except IntegrityError:
+        await db.rollback()
+        logger.warning(f"Concurrent duplicate upload collision caught for user {user_id} (hash={content_hash}).")
+        # Attempt to clean up the newly uploaded redundant storage file
+        try:
+            def _remove_redundant_storage():
+                supabase.storage.from_(bucket_name).remove([storage_path])
+            await asyncio.to_thread(_remove_redundant_storage)
+        except Exception as cleanup_err:
+            logger.warning(f"Failed to delete redundant storage file {storage_path}: {cleanup_err}")
+
+        # Fetch the winning document that was committed concurrently
+        dup_res = await db.execute(select(Document).where(*scope_conditions))
+        winning_doc = dup_res.scalar_one_or_none()
+        if winning_doc:
+            if response:
+                response.status_code = status.HTTP_200_OK
+            return DocumentUploadResponse(
+                message=f"Duplicate document detected ({winning_doc.filename}). Referencing existing document.",
+                document_id=winning_doc.id,
+                status=winning_doc.status,
+                filename=winning_doc.filename,
+                is_duplicate=True,
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Document upload conflict detected.",
+        )
     except SQLAlchemyError as db_err:
         await db.rollback()
         raise HTTPException(
@@ -239,12 +306,14 @@ async def ingest_uploaded_file(
         document_id=doc_record.id,
         status="processing",
         filename=doc_record.filename,
+        is_duplicate=False,
     )
 
 
 @router.post("", response_model=DocumentUploadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
     background_tasks: BackgroundTasks,
+    response: Response,
     session_id: uuid.UUID = Form(...),
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
@@ -272,5 +341,5 @@ async def upload_document(
         )
 
     return await ingest_uploaded_file(
-        background_tasks, db, user_id, file, session_id=session_id
+        background_tasks, db, user_id, file, session_id=session_id, response=response
     )

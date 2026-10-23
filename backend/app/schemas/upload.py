@@ -9,6 +9,7 @@ class DocumentUploadResponse(BaseModel):
     document_id: uuid.UUID
     status: str
     filename: str
+    is_duplicate: bool = False
 
 
 class DocumentResponse(BaseModel):
@@ -24,6 +25,7 @@ class DocumentResponse(BaseModel):
     error_message: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    content_hash: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
