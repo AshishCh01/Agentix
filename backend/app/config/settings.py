@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     # Ingestion & File Storage Settings
     SUPABASE_STORAGE_BUCKET: str = "documents"  # Name of your Supabase storage bucket
     MAX_UPLOAD_SIZE_MB: int = 10
+    INGESTION_STALE_TIMEOUT_SECONDS: int = 300  # Stale threshold for detecting abandoned ingestion jobs
+
 
     # Optimization Controls
     SKIP_REFLECTION: bool = False  # Skip reflection for faster responses

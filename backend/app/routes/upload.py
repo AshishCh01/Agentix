@@ -1,6 +1,7 @@
 import uuid
 import logging
 import asyncio
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, status, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,6 +48,7 @@ async def process_document_background(
                 if doc:
                     doc.status = "ready"
                     doc.error_message = "Document appears empty or contains no readable text."
+                    doc.updated_at = datetime.now(timezone.utc)
                 await db.commit()
                 return
 
@@ -78,6 +80,7 @@ async def process_document_background(
                 if doc:
                     doc.status = "ready"
                     doc.error_message = "Document generated 0 chunks."
+                    doc.updated_at = datetime.now(timezone.utc)
                 await db.commit()
                 return
 
@@ -117,6 +120,7 @@ async def process_document_background(
             if doc:
                 doc.status = "ready"
                 doc.error_message = None
+                doc.updated_at = datetime.now(timezone.utc)
 
             await db.commit()
             logger.info(f"✅ Document {doc_id} processed successfully! ({global_chunk_index} chunks created)")
@@ -133,6 +137,7 @@ async def process_document_background(
                     if doc:
                         doc.status = "failed"
                         doc.error_message = str(e)[:500]
+                        doc.updated_at = datetime.now(timezone.utc)
                         await err_db.commit()
                         logger.info(f"⚠️ Document {doc_id} status updated to 'failed'")
             except Exception as commit_err:
@@ -197,6 +202,7 @@ async def ingest_uploaded_file(
 
     # Save initial document record in 'processing' status
     try:
+        now_utc = datetime.now(timezone.utc)
         doc_record = Document(
             user_id=user_id,
             session_id=session_id,
@@ -206,6 +212,8 @@ async def ingest_uploaded_file(
             file_path=storage_path,
             file_size=len(file_bytes),
             status="processing",
+            created_at=now_utc,
+            updated_at=now_utc,
         )
         db.add(doc_record)
         await db.commit()

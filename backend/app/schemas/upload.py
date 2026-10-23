@@ -23,6 +23,7 @@ class DocumentResponse(BaseModel):
     status: str
     error_message: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
