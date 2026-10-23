@@ -64,9 +64,12 @@ export const DocumentRow = ({ document, onDelete }) => {
           <p className="text-[11px] text-slate-400 dark:text-slate-500">
             {formatFileSize(document.file_size)} &middot; Uploaded {formatDate(document.created_at)}
           </p>
-          {document.status === "failed" && document.error_message && (
-            <p className="text-[11px] text-red-500 dark:text-red-400 mt-0.5 truncate">
-              {document.error_message}
+          {document.status === "failed" && (
+            <p
+              className="text-[11px] text-red-500 dark:text-red-400 mt-0.5 truncate"
+              title={document.error_message || "Ingestion failed"}
+            >
+              {document.error_message || "Ingestion failed"}
             </p>
           )}
         </div>

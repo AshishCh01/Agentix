@@ -59,6 +59,17 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             print(f"[WARN] Failed to warm up reranker: {e}")
 
+    # Ingestion recovery: detect and fail documents left in 'processing' by interrupted jobs
+    try:
+        from app.database.connection import AsyncSessionLocal
+        from app.services.recovery import recover_stuck_ingestion_jobs
+        async with AsyncSessionLocal() as db:
+            recovered = await recover_stuck_ingestion_jobs(db)
+            if recovered > 0:
+                print(f"[OK] Recovered {recovered} interrupted document ingestion job(s).")
+    except Exception as e:
+        print(f"[WARN] Failed to run ingestion recovery on startup: {e}")
+
     print("[OK] Startup checks complete.")
 
     yield  # Application handles requests here
