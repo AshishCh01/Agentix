@@ -1,3 +1,4 @@
+import asyncio
 import codecs
 import io
 import logging
@@ -149,11 +150,15 @@ def decode_text_bytes(file_bytes: bytes, filename: str = "") -> str:
     return file_bytes.decode("utf-8", errors="replace")
 
 
-async def parse_document(file_bytes: bytes, filename: str) -> List[Dict[str, Any]]:
+async def parse_document(
+    file_bytes: bytes,
+    filename: str,
+    doc_id: Any = None,
+) -> List[Dict[str, Any]]:
     """
     Extracts content from uploaded file broken down by page number.
     Includes a Vision LLM fallback for scanned/image-based PDF pages.
-    Returns a list of dicts: [{"page_number": int, "text": str}]
+    Returns a list of dicts: [{"page_number": int, "text": str, "ocr_failed": bool}]
     """
     ext = filename.split(".")[-1].lower() if "." in filename else ""
 
@@ -165,6 +170,7 @@ async def parse_document(file_bytes: bytes, filename: str) -> List[Dict[str, Any
             page_num = idx + 1
             page_text = page.extract_text() or ""
             page_text_clean = page_text.strip()
+            ocr_failed = False
 
             # If text extraction returned near-empty content (< 20 chars), attempt Vision fallback for scanned pages
             if len(page_text_clean) < 20:
@@ -182,6 +188,10 @@ async def parse_document(file_bytes: bytes, filename: str) -> List[Dict[str, Any
                     # Fallback: Extract embedded image directly from pypdf if available
                     if hasattr(page, "images") and len(page.images) > 0:
                         rendered_img_bytes = page.images[0].data
+                except Exception as render_err:
+                    logger.warning(
+                        f"Failed to render page {page_num} of {filename} for OCR: {type(render_err).__name__}"
+                    )
 
                 if rendered_img_bytes:
                     try:
@@ -194,14 +204,25 @@ async def parse_document(file_bytes: bytes, filename: str) -> List[Dict[str, Any
                             ),
                         )
                         if ocr_description:
-                            page_text_clean = ocr_description
+                            page_text_clean = ocr_description.strip()
+                    except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+                        raise
                     except Exception as e:
-                        logger.error(f"OCR Extraction failed for page {page_num} of {filename}: {str(e)}")
-                        page_text_clean = "[OCR Extraction Failed]"
+                        doc_context = f"document {doc_id} ({filename})" if doc_id else f"{filename}"
+                        logger.warning(
+                            f"⚠️ OCR extraction failed for {doc_context} on page {page_num}: {type(e).__name__} - {str(e)[:150]}"
+                        )
+                        # Never return error messages as extracted content; skip page text and record failure flag
+                        page_text_clean = ""
+                        ocr_failed = True
 
-            pages.append({"page_number": page_num, "text": page_text_clean})
+            pages.append({
+                "page_number": page_num,
+                "text": page_text_clean,
+                "ocr_failed": ocr_failed,
+            })
 
-        return pages if pages else [{"page_number": 1, "text": ""}]
+        return pages if pages else [{"page_number": 1, "text": "", "ocr_failed": False}]
 
     elif ext == "doc":
         # Legacy binary .doc (OLE2/CFBF) is a different format from OOXML

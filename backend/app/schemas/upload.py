@@ -23,6 +23,7 @@ class DocumentResponse(BaseModel):
     file_size: int
     status: str
     error_message: Optional[str] = None
+    ocr_warning_count: int = 0
     created_at: datetime
     updated_at: Optional[datetime] = None
     content_hash: Optional[str] = None
