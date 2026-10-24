@@ -2,7 +2,7 @@ import asyncio
 import codecs
 import io
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import charset_normalizer
 from pypdf import PdfReader
 from docx import Document
@@ -150,6 +150,97 @@ def decode_text_bytes(file_bytes: bytes, filename: str = "") -> str:
     return file_bytes.decode("utf-8", errors="replace")
 
 
+def detect_image_mime_type(image_bytes: bytes) -> Optional[str]:
+    """
+    Detect the MIME type of image bytes using magic byte signatures with Pillow fallback.
+    Returns standard MIME type string (e.g. 'image/jpeg', 'image/png', 'image/webp')
+    or None if unrecognized or unsupported.
+    """
+    if not image_bytes or len(image_bytes) < 4:
+        return None
+
+    # Magic byte signatures
+    if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if image_bytes.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if len(image_bytes) >= 12 and image_bytes.startswith(b"RIFF") and image_bytes[8:12] == b"WEBP":
+        return "image/webp"
+    if image_bytes.startswith(b"GIF87a") or image_bytes.startswith(b"GIF89a"):
+        return "image/gif"
+    if image_bytes.startswith(b"II*\x00") or image_bytes.startswith(b"MM\x00*"):
+        return "image/tiff"
+    if image_bytes.startswith(b"BM"):
+        return "image/bmp"
+    if image_bytes.startswith(b"\x00\x00\x00\x0cjP  \r\n\x87\n"):
+        return "image/jp2"
+
+    # Pillow fallback if available
+    try:
+        from PIL import Image
+        with Image.open(io.BytesIO(image_bytes)) as img:
+            fmt = (img.format or "").upper()
+            mapping = {
+                "JPEG": "image/jpeg",
+                "JPG": "image/jpeg",
+                "PNG": "image/png",
+                "WEBP": "image/webp",
+                "GIF": "image/gif",
+                "TIFF": "image/tiff",
+                "BMP": "image/bmp",
+                "JP2": "image/jp2",
+            }
+            return mapping.get(fmt)
+    except Exception:
+        pass
+
+    return None
+
+
+def should_trigger_ocr(page_text: str, has_images: bool = False) -> bool:
+    """
+    Determines whether OCR / Vision fallback should be triggered for a PDF page.
+
+    Triggers OCR if:
+    - The page has zero extractable text (potential scanned page).
+    - The page has extracted text, but it is corrupted / low-quality
+      (printable ratio < 70% or no valid words) and has images.
+    - The page has sparse native text (< 50 chars) AND contains images
+      (e.g. scanned document with only a header or page number recognized natively).
+
+    Does NOT trigger OCR if:
+    - The page has substantial, high-quality native text (>= 50 chars, high printable ratio).
+    - The page is legitimately sparse text (short heading, title, page number) with NO images.
+    """
+    clean = (page_text or "").strip()
+
+    if not clean:
+        # Zero native text: scanned document page requires OCR fallback
+        return True
+
+    # Assess quality of extracted text
+    printable_count = sum(1 for c in clean if c.isprintable())
+    printable_ratio = printable_count / len(clean)
+    words = [w for w in clean.split() if any(c.isalnum() for c in w)]
+
+    # Corrupted / unmapped font artifacts (e.g. low printable ratio or no alphanumeric words)
+    is_corrupted = printable_ratio < 0.70 or (len(clean) >= 5 and len(words) == 0)
+    if is_corrupted and has_images:
+        return True
+
+    # Substantial, high-quality native text: native text is sufficient, skip OCR
+    if len(clean) >= 50 and printable_ratio >= 0.85 and len(words) >= 5:
+        return False
+
+    # Sparse native text (< 50 chars):
+    # If the page contains images, OCR is needed to capture the image content
+    if has_images:
+        return True
+
+    # Sparse native text with NO images: legitimately sparse page (e.g. "Chapter 1", "Page 5")
+    return False
+
+
 async def parse_document(
     file_bytes: bytes,
     filename: str,
@@ -163,64 +254,131 @@ async def parse_document(
     ext = filename.split(".")[-1].lower() if "." in filename else ""
 
     if ext == "pdf":
-        pdf_reader = PdfReader(io.BytesIO(file_bytes))
+        fitz_doc = None
         pages = []
 
-        for idx, page in enumerate(pdf_reader.pages):
-            page_num = idx + 1
-            page_text = page.extract_text() or ""
-            page_text_clean = page_text.strip()
-            ocr_failed = False
+        try:
+            # 1. Open PDF once with PyMuPDF (fitz) if available to avoid per-page reopening overhead
+            try:
+                import fitz
+                fitz_doc = fitz.open(stream=file_bytes, filetype="pdf")
+            except ImportError:
+                fitz_doc = None
+            except Exception as open_err:
+                logger.warning(
+                    f"Could not open PDF with PyMuPDF for {filename}: {type(open_err).__name__} - {str(open_err)[:100]}"
+                )
+                fitz_doc = None
 
-            # If text extraction returned near-empty content (< 20 chars), attempt Vision fallback for scanned pages
-            if len(page_text_clean) < 20:
-                rendered_img_bytes = None
+            pdf_reader = PdfReader(io.BytesIO(file_bytes))
 
-                # Try rendering page via PyMuPDF (fitz) if installed
-                try:
-                    import fitz  # PyMuPDF
-                    doc = fitz.open(stream=file_bytes, filetype="pdf")
-                    fitz_page = doc[idx]
-                    pix = fitz_page.get_pixmap()
-                    rendered_img_bytes = pix.tobytes("png")
-                    doc.close()
-                except ImportError:
-                    # Fallback: Extract embedded image directly from pypdf if available
-                    if hasattr(page, "images") and len(page.images) > 0:
-                        rendered_img_bytes = page.images[0].data
-                except Exception as render_err:
-                    logger.warning(
-                        f"Failed to render page {page_num} of {filename} for OCR: {type(render_err).__name__}"
-                    )
+            for idx, page in enumerate(pdf_reader.pages):
+                page_num = idx + 1
+                page_text = page.extract_text() or ""
+                page_text_clean = page_text.strip()
+                ocr_failed = False
 
-                if rendered_img_bytes:
+                # Check if page has images
+                has_images = False
+                fitz_page = None
+                if fitz_doc is not None:
                     try:
-                        ocr_description = await llm_service.describe_image(
-                            file_bytes=rendered_img_bytes,
-                            mime_type="image/png",
-                            prompt=(
-                                "Transcribe all visible text, numbers, headings, and data "
-                                "tables from this scanned document page accurately."
-                            ),
-                        )
-                        if ocr_description:
-                            page_text_clean = ocr_description.strip()
-                    except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
-                        raise
-                    except Exception as e:
-                        doc_context = f"document {doc_id} ({filename})" if doc_id else f"{filename}"
-                        logger.warning(
-                            f"⚠️ OCR extraction failed for {doc_context} on page {page_num}: {type(e).__name__} - {str(e)[:150]}"
-                        )
-                        # Never return error messages as extracted content; skip page text and record failure flag
-                        page_text_clean = ""
-                        ocr_failed = True
+                        fitz_page = fitz_doc[idx]
+                        has_images = len(fitz_page.get_images()) > 0
+                    except Exception:
+                        fitz_page = None
 
-            pages.append({
-                "page_number": page_num,
-                "text": page_text_clean,
-                "ocr_failed": ocr_failed,
-            })
+                if not has_images and hasattr(page, "images"):
+                    try:
+                        has_images = len(page.images) > 0
+                    except Exception:
+                        pass
+
+                # Check if OCR is needed using refined decision logic
+                if should_trigger_ocr(page_text_clean, has_images=has_images):
+                    rendered_img_bytes = None
+                    detected_mime_type = None
+
+                    # A. Try rendering page at 2x scale (144 DPI) via fitz
+                    if fitz_page is not None:
+                        try:
+                            import fitz as fitz_module
+                            # 2x scale: 72 DPI standard coordinate space * 2 = 144 DPI
+                            matrix = fitz_module.Matrix(2.0, 2.0)
+                            pix = fitz_page.get_pixmap(matrix=matrix)
+                            rendered_img_bytes = pix.tobytes("png")
+                            pix = None  # Free pixmap buffer immediately to conserve memory
+                            detected_mime_type = "image/png"
+                        except Exception as render_err:
+                            logger.warning(
+                                f"Failed to render page {page_num} of {filename} at 2x scale: {type(render_err).__name__}"
+                            )
+
+                    # B. Fallback: extract embedded image directly from pypdf if rendering unavailable
+                    if not rendered_img_bytes and hasattr(page, "images") and len(page.images) > 0:
+                        try:
+                            img_data = page.images[0].data
+                            img_mime = detect_image_mime_type(img_data)
+                            if img_mime:
+                                rendered_img_bytes = img_data
+                                detected_mime_type = img_mime
+                            else:
+                                logger.warning(
+                                    f"Embedded image on page {page_num} of {filename} has unsupported format"
+                                )
+                                ocr_failed = True
+                        except Exception as img_err:
+                            logger.warning(
+                                f"Failed to extract embedded image on page {page_num} of {filename}: {type(img_err).__name__}"
+                            )
+                            ocr_failed = True
+
+                    # C. Call OCR/Vision model if valid image bytes and MIME type are available
+                    if rendered_img_bytes and detected_mime_type:
+                        try:
+                            ocr_description = await llm_service.describe_image(
+                                file_bytes=rendered_img_bytes,
+                                mime_type=detected_mime_type,
+                                prompt=(
+                                    "Transcribe all visible text, numbers, headings, and data "
+                                    "tables from this scanned document page accurately."
+                                ),
+                            )
+                            if ocr_description:
+                                ocr_clean = ocr_description.strip()
+                                # Preserve native text if present and combine without duplication
+                                if not page_text_clean:
+                                    page_text_clean = ocr_clean
+                                elif page_text_clean.lower() in ocr_clean.lower():
+                                    page_text_clean = ocr_clean
+                                elif ocr_clean.lower() in page_text_clean.lower():
+                                    pass
+                                else:
+                                    page_text_clean = f"{page_text_clean}\n\n{ocr_clean}"
+                        except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+                            raise
+                        except Exception as e:
+                            doc_context = f"document {doc_id} ({filename})" if doc_id else f"{filename}"
+                            logger.warning(
+                                f"⚠️ OCR extraction failed for {doc_context} on page {page_num}: {type(e).__name__} - {str(e)[:150]}"
+                            )
+                            # Safe OCR failure handling from Issue #22
+                            page_text_clean = ""
+                            ocr_failed = True
+
+                pages.append({
+                    "page_number": page_num,
+                    "text": page_text_clean,
+                    "ocr_failed": ocr_failed,
+                })
+
+        finally:
+            # Safe resource management: ensure PDF document is always closed
+            if fitz_doc is not None:
+                try:
+                    fitz_doc.close()
+                except Exception:
+                    pass
 
         return pages if pages else [{"page_number": 1, "text": "", "ocr_failed": False}]
 
@@ -252,7 +410,9 @@ async def parse_document(
         return [{"page_number": 1, "text": full_text}]
 
     elif ext in ["png", "jpg", "jpeg", "webp"]:
-        mime_type = "image/jpeg" if ext in ["jpg", "jpeg"] else f"image/{ext}"
+        detected_mime = detect_image_mime_type(file_bytes)
+        fallback_mime = "image/jpeg" if ext in ["jpg", "jpeg"] else f"image/{ext}"
+        mime_type = detected_mime or fallback_mime
         description = await llm_service.describe_image(file_bytes=file_bytes, mime_type=mime_type)
         return [{"page_number": 1, "text": description}]
 
