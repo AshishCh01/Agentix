@@ -35,6 +35,7 @@ pypdf>=4.0.0                 # PDF parsing
 python-docx>=1.1.0           # DOCX parsing (from docx import Document)
 openpyxl>=3.1.5
 xlrd>=2.0.2
+charset-normalizer>=3.3.0    # Text encoding detection
 
 # --- Web Search ---
 ddgs>=9.0.0
