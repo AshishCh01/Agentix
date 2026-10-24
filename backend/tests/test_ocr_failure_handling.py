@@ -20,6 +20,25 @@ def create_blank_pdf(num_pages: int = 1) -> bytes:
     return buf.getvalue()
 
 
+@pytest.fixture(autouse=True)
+def mock_fitz_renderer():
+    """
+    Ensure fitz is mocked so tests run hermetically regardless of whether
+    optional PyMuPDF library is installed in the test environment (e.g. CI).
+    """
+    mock_fitz = MagicMock()
+    mock_doc = MagicMock()
+    mock_page = MagicMock()
+    mock_pix = MagicMock()
+    mock_pix.tobytes.return_value = b"fake-rendered-png-bytes"
+    mock_page.get_pixmap.return_value = mock_pix
+    mock_doc.__getitem__.return_value = mock_page
+    mock_fitz.open.return_value = mock_doc
+
+    with patch.dict("sys.modules", {"fitz": mock_fitz}):
+        yield mock_fitz
+
+
 # ---------------------------------------------------------------------------
 # PHASE 4 TEST SUITE: Issue #22 - Failed OCR Text Must Not Be Indexed
 # ---------------------------------------------------------------------------
@@ -313,3 +332,34 @@ async def test_regression_non_pdf_unaffected():
     assert len(pages) == 1
     assert pages[0]["text"] == text_content
     assert pages[0].get("ocr_failed", False) is False
+
+
+@pytest.mark.asyncio
+async def test_ocr_failure_with_embedded_image_fallback_when_fitz_unavailable():
+    """
+    Test Case A (ImportError fallback):
+    - When PyMuPDF (fitz) is not installed, parse_document falls back to page.images.
+    - If OCR on the embedded image fails, verify page is skipped and ocr_failed is True.
+    """
+    mock_img = MagicMock()
+    mock_img.data = b"raw-embedded-image-bytes"
+
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = ""
+    mock_page.images = [mock_img]
+
+    mock_pdf_reader = MagicMock()
+    mock_pdf_reader.pages = [mock_page]
+
+    with patch.dict("sys.modules", {"fitz": None}), \
+         patch("ai.services.parser_service.PdfReader", return_value=mock_pdf_reader), \
+         patch("ai.services.parser_service.llm_service.describe_image", new_callable=AsyncMock) as mock_ocr:
+
+        mock_ocr.side_effect = RuntimeError("OCR vision API unavailable")
+
+        pages = await parse_document(b"%PDF-mock", "scanned_embedded.pdf")
+
+        assert len(pages) == 1
+        assert pages[0]["text"] == ""
+        assert pages[0]["ocr_failed"] is True
+        assert "[OCR Extraction Failed]" not in pages[0]["text"]
