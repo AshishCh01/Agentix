@@ -40,6 +40,9 @@ class Document(Base):
         String(50), default="processing", nullable=False
     )
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ocr_warning_count: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False, server_default="0"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

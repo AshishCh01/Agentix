@@ -44,7 +44,7 @@ async def test_process_70_chunks(mock_parser_service, mock_embedding_service, mo
         
         async def mock_execute(stmt):
             mock_res = MagicMock()
-            if "count" in str(stmt).lower():
+            if "count(" in str(stmt).lower():
                 mock_res.scalar.return_value = 70
             else:
                 mock_res.scalar_one_or_none.return_value = mock_doc

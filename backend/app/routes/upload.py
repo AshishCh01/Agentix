@@ -39,16 +39,25 @@ async def process_document_background(
         try:
             # 1. Parse document text
             logger.info(f"📄 Parsing text from document {doc_id}...")
-            pages_data = await parse_document(file_bytes, filename)
+            pages_data = await parse_document(file_bytes, filename, doc_id=doc_id)
+            ocr_failed_count = sum(1 for p in pages_data if p.get("ocr_failed"))
             has_content = any(page.get("text", "").strip() for page in pages_data)
 
             if not has_content:
-                logger.warning(f"⚠️ No readable text found in document {doc_id}. Marking as ready with 0 chunks.")
                 res = await db.execute(select(Document).where(Document.id == doc_id))
                 doc = res.scalar_one_or_none()
                 if doc:
-                    doc.status = "ready"
-                    doc.error_message = "Document appears empty or contains no readable text."
+                    doc.ocr_warning_count = ocr_failed_count
+                    if ocr_failed_count > 0:
+                        logger.warning(
+                            f"⚠️ Document {doc_id} OCR failed on {ocr_failed_count} page(s) with no readable text. Marking as failed."
+                        )
+                        doc.status = "failed"
+                        doc.error_message = f"OCR extraction failed on all {ocr_failed_count} page(s). No readable text found."
+                    else:
+                        logger.warning(f"⚠️ No readable text found in document {doc_id}. Marking as ready with 0 chunks.")
+                        doc.status = "ready"
+                        doc.error_message = "Document appears empty or contains no readable text."
                     doc.updated_at = datetime.now(timezone.utc)
                 await db.commit()
                 return
@@ -62,7 +71,7 @@ async def process_document_background(
                 page_num = page_info.get("page_number", 1)
                 page_text = page_info.get("text", "")
 
-                if not page_text.strip():
+                if not page_text.strip() or "[OCR Extraction Failed]" in page_text:
                     continue
 
                 page_chunks = chunk_text(page_text)
@@ -79,8 +88,13 @@ async def process_document_background(
                 res = await db.execute(select(Document).where(Document.id == doc_id))
                 doc = res.scalar_one_or_none()
                 if doc:
-                    doc.status = "ready"
-                    doc.error_message = "Document generated 0 chunks."
+                    doc.ocr_warning_count = ocr_failed_count
+                    if ocr_failed_count > 0:
+                        doc.status = "failed"
+                        doc.error_message = f"OCR extraction failed on all {ocr_failed_count} page(s). No readable text found."
+                    else:
+                        doc.status = "ready"
+                        doc.error_message = "Document generated 0 chunks."
                     doc.updated_at = datetime.now(timezone.utc)
                 await db.commit()
                 return
@@ -120,11 +134,17 @@ async def process_document_background(
             doc = res.scalar_one_or_none()
             if doc:
                 doc.status = "ready"
-                doc.error_message = None
+                doc.ocr_warning_count = ocr_failed_count
+                if ocr_failed_count > 0:
+                    doc.error_message = f"Warning: OCR extraction failed on {ocr_failed_count} page(s)."
+                else:
+                    doc.error_message = None
                 doc.updated_at = datetime.now(timezone.utc)
 
             await db.commit()
-            logger.info(f"✅ Document {doc_id} processed successfully! ({global_chunk_index} chunks created)")
+            logger.info(
+                f"✅ Document {doc_id} processed successfully! ({global_chunk_index} chunks created, {ocr_failed_count} OCR warnings)"
+            )
 
         except Exception as e:
             await db.rollback()
