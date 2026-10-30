@@ -392,6 +392,27 @@ def iter_docx_body_blocks(doc: Any):
                 yield tbl_txt
 
 
+def format_excel_sheet(sheet_name: str, df: Any) -> str:
+    """
+    Format a single worksheet DataFrame into readable text with a sheet header.
+    Handles empty sheets, missing values (NaN), and preserves rows, columns, and data.
+    """
+    if df is None:
+        return f"Sheet: {sheet_name}"
+
+    if df.empty:
+        if len(df.columns) > 0 and any(not str(c).startswith("Unnamed:") for c in df.columns):
+            cols_str = "  ".join(str(c) for c in df.columns if not str(c).startswith("Unnamed:"))
+            return f"Sheet: {sheet_name}\n{cols_str}".strip()
+        return f"Sheet: {sheet_name}"
+
+    table_str = df.to_string(index=False).strip()
+    if not table_str or table_str.startswith("Empty DataFrame"):
+        return f"Sheet: {sheet_name}"
+
+    return f"Sheet: {sheet_name}\n{table_str}"
+
+
 async def parse_document(
     file_bytes: bytes,
     filename: str,
@@ -556,12 +577,50 @@ async def parse_document(
         full_text = "\n\n".join([p for p in all_parts if p.strip()])
         return [{"page_number": 1, "text": full_text}]
 
-    elif ext in ["csv", "xlsx", "xls"]:
-        if ext == "csv":
+    elif ext == "csv":
+        if not file_bytes:
+            return [{"page_number": 1, "text": ""}]
+        try:
             df = pd.read_csv(io.BytesIO(file_bytes))
+            if df.empty:
+                return [{"page_number": 1, "text": ""}]
+            return [{"page_number": 1, "text": df.to_string(index=False)}]
+        except Exception as e:
+            logger.warning(f"Failed to parse CSV file {filename}: {e}")
+            return [{"page_number": 1, "text": ""}]
+
+    elif ext in ["xlsx", "xls"]:
+        if not file_bytes:
+            return [{"page_number": 1, "text": ""}]
+
+        try:
+            excel_data = pd.read_excel(io.BytesIO(file_bytes), sheet_name=None)
+        except Exception as e:
+            logger.warning(f"Failed to read Excel file {filename}: {e}")
+            return [{"page_number": 1, "text": ""}]
+
+        if excel_data is None:
+            return [{"page_number": 1, "text": ""}]
+
+        if isinstance(excel_data, pd.DataFrame):
+            sheets_dict = {"Sheet1": excel_data}
+        elif isinstance(excel_data, dict):
+            sheets_dict = excel_data
         else:
-            df = pd.read_excel(io.BytesIO(file_bytes))
-        return [{"page_number": 1, "text": df.to_string(index=False)}]
+            sheets_dict = {"Sheet1": excel_data}
+
+        if not sheets_dict:
+            return [{"page_number": 1, "text": ""}]
+
+        pages = []
+        for idx, (sheet_name, df) in enumerate(sheets_dict.items()):
+            sheet_text = format_excel_sheet(str(sheet_name), df)
+            pages.append({
+                "page_number": idx + 1,
+                "text": sheet_text,
+            })
+
+        return pages if pages else [{"page_number": 1, "text": ""}]
 
     elif ext in ["txt", "md", "json"]:
         full_text = decode_text_bytes(file_bytes, filename)
