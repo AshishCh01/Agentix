@@ -6,6 +6,9 @@ from typing import Any, Dict, List, Optional
 import charset_normalizer
 from pypdf import PdfReader
 from docx import Document
+from docx.oxml.ns import qn
+from docx.table import Table
+from docx.text.paragraph import Paragraph
 import pandas as pd
 from ai.services.llm_service import llm_service
 
@@ -241,6 +244,154 @@ def should_trigger_ocr(page_text: str, has_images: bool = False) -> bool:
     return False
 
 
+def format_docx_table(table: Any) -> str:
+    """
+    Converts a python-docx Table into a readable Markdown table format.
+    Handles empty cells, multiple rows/columns, cell newlines, pipes,
+    and horizontally merged cells without duplicating cell content.
+    """
+    if not hasattr(table, "rows") or not table.rows:
+        return ""
+
+    rows_data: List[List[str]] = []
+    for row in table.rows:
+        row_cells: List[str] = []
+        seen_tc_ids = set()
+        for cell in row.cells:
+            # Handle horizontally merged cells: python-docx references the same _tc element
+            tc_elem = getattr(cell, "_tc", cell)
+            tc_id = id(tc_elem)
+            if tc_id in seen_tc_ids:
+                row_cells.append("")
+            else:
+                seen_tc_ids.add(tc_id)
+                clean_text = cell.text.strip().replace("\r\n", " ").replace("\n", " ").replace("|", "\\|")
+                row_cells.append(clean_text)
+        rows_data.append(row_cells)
+
+    # Return empty string if all cells across the table are whitespace
+    if not any(any(c for c in r) for r in rows_data):
+        return ""
+
+    num_cols = max(len(r) for r in rows_data)
+    if num_cols == 0:
+        return ""
+
+    normalized_rows = [r + [""] * (num_cols - len(r)) for r in rows_data]
+
+    lines = []
+    header_row = normalized_rows[0]
+    lines.append("| " + " | ".join(header_row) + " |")
+    lines.append("| " + " | ".join(["---"] * num_cols) + " |")
+
+    for data_row in normalized_rows[1:]:
+        lines.append("| " + " | ".join(data_row) + " |")
+
+    return "\n".join(lines)
+
+
+def extract_docx_headers_and_footers(doc: Any) -> tuple[List[str], List[str]]:
+    """
+    Extracts relevant document headers and footers across sections,
+    deduplicating identical header/footer content (e.g., from linked sections).
+    """
+    headers: List[str] = []
+    footers: List[str] = []
+    seen_headers: set = set()
+    seen_footers: set = set()
+
+    if not hasattr(doc, "sections"):
+        return headers, footers
+
+    for section in doc.sections:
+        # 1. Header extraction
+        header_containers = []
+        if hasattr(section, "header") and section.header:
+            header_containers.append(section.header)
+        if getattr(section, "different_first_page_header_footer", False):
+            if hasattr(section, "first_page_header") and section.first_page_header:
+                header_containers.append(section.first_page_header)
+
+        for container in header_containers:
+            for p in getattr(container, "paragraphs", []):
+                txt = p.text.strip()
+                if txt and txt not in seen_headers:
+                    seen_headers.add(txt)
+                    headers.append(txt)
+            for tbl in getattr(container, "tables", []):
+                tbl_txt = format_docx_table(tbl)
+                if tbl_txt and tbl_txt not in seen_headers:
+                    seen_headers.add(tbl_txt)
+                    headers.append(tbl_txt)
+
+        # 2. Footer extraction
+        footer_containers = []
+        if hasattr(section, "footer") and section.footer:
+            footer_containers.append(section.footer)
+        if getattr(section, "different_first_page_header_footer", False):
+            if hasattr(section, "first_page_footer") and section.first_page_footer:
+                footer_containers.append(section.first_page_footer)
+
+        for container in footer_containers:
+            for p in getattr(container, "paragraphs", []):
+                txt = p.text.strip()
+                if txt and txt not in seen_footers:
+                    seen_footers.add(txt)
+                    footers.append(txt)
+            for tbl in getattr(container, "tables", []):
+                tbl_txt = format_docx_table(tbl)
+                if tbl_txt and tbl_txt not in seen_footers:
+                    seen_footers.add(tbl_txt)
+                    footers.append(tbl_txt)
+
+    return headers, footers
+
+
+def iter_docx_body_blocks(doc: Any):
+    """
+    Yields extracted text blocks from the docx document body,
+    preserving the exact sequential order of paragraphs and tables.
+    """
+    def _traverse(parent_elem):
+        for child in parent_elem:
+            try:
+                tag = getattr(child, "tag", "")
+                if tag.endswith("p"):
+                    p = Paragraph(child, doc)
+                    txt = p.text.strip()
+                    if txt:
+                        yield txt
+                elif tag.endswith("tbl"):
+                    tbl = Table(child, doc)
+                    tbl_txt = format_docx_table(tbl)
+                    if tbl_txt:
+                        yield tbl_txt
+                elif tag.endswith("sdt"):
+                    sdt_content = child.find(qn("w:sdtContent"))
+                    container = sdt_content if sdt_content is not None else child
+                    yield from _traverse(container)
+            except Exception as block_err:
+                logger.debug(f"Skipping malformed block in docx body: {block_err}")
+
+    try:
+        if hasattr(doc, "_element") and hasattr(doc._element, "body"):
+            yield from _traverse(doc._element.body)
+        else:
+            raise AttributeError("Document has no _element.body")
+    except Exception as iter_err:
+        logger.warning(
+            f"Error during ordered docx body iteration: {iter_err}. Falling back to paragraphs and tables."
+        )
+        for p in getattr(doc, "paragraphs", []):
+            txt = p.text.strip()
+            if txt:
+                yield txt
+        for tbl in getattr(doc, "tables", []):
+            tbl_txt = format_docx_table(tbl)
+            if tbl_txt:
+                yield tbl_txt
+
+
 async def parse_document(
     file_bytes: bytes,
     filename: str,
@@ -394,8 +545,15 @@ async def parse_document(
         )
 
     elif ext == "docx":
+        if not file_bytes:
+            return [{"page_number": 1, "text": ""}]
+
         doc = Document(io.BytesIO(file_bytes))
-        full_text = "\n\n".join([para.text for para in doc.paragraphs if para.text.strip()])
+        headers, footers = extract_docx_headers_and_footers(doc)
+        body_blocks = list(iter_docx_body_blocks(doc))
+
+        all_parts = headers + body_blocks + footers
+        full_text = "\n\n".join([p for p in all_parts if p.strip()])
         return [{"page_number": 1, "text": full_text}]
 
     elif ext in ["csv", "xlsx", "xls"]:
