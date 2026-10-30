@@ -594,10 +594,20 @@ async def parse_document(
             return [{"page_number": 1, "text": ""}]
 
         try:
-            sheets_dict = pd.read_excel(io.BytesIO(file_bytes), sheet_name=None)
+            excel_data = pd.read_excel(io.BytesIO(file_bytes), sheet_name=None)
         except Exception as e:
             logger.warning(f"Failed to read Excel file {filename}: {e}")
             return [{"page_number": 1, "text": ""}]
+
+        if excel_data is None:
+            return [{"page_number": 1, "text": ""}]
+
+        if isinstance(excel_data, pd.DataFrame):
+            sheets_dict = {"Sheet1": excel_data}
+        elif isinstance(excel_data, dict):
+            sheets_dict = excel_data
+        else:
+            sheets_dict = {"Sheet1": excel_data}
 
         if not sheets_dict:
             return [{"page_number": 1, "text": ""}]
