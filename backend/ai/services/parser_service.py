@@ -392,25 +392,91 @@ def iter_docx_body_blocks(doc: Any):
                 yield tbl_txt
 
 
+def serialize_dataframe_to_text(df: Any, sheet_name: Optional[str] = None) -> str:
+    """
+    Serializes a pandas DataFrame into structured, readable row representations
+    where each row explicitly includes its column names:
+    'col1: val1 | col2: val2 | col3: val3'.
+
+    Preserves row order, column names, values, and column-value associations.
+    Handles empty sheets, missing values (None / NaN), and removes unnecessary
+    whitespace without data loss.
+    """
+    if df is None:
+        return f"Sheet: {sheet_name}" if sheet_name else ""
+
+    if not isinstance(df, pd.DataFrame):
+        try:
+            df = pd.DataFrame(df)
+        except Exception:
+            return f"Sheet: {sheet_name}" if sheet_name else ""
+
+    if df.empty:
+        if sheet_name:
+            if len(df.columns) > 0 and any(not str(c).startswith("Unnamed:") for c in df.columns):
+                cols_str = "  ".join(str(c) for c in df.columns if not str(c).startswith("Unnamed:"))
+                return f"Sheet: {sheet_name}\n{cols_str}".strip()
+            return f"Sheet: {sheet_name}"
+        return ""
+
+    # Filter out phantom columns (Unnamed columns with all NaN values)
+    valid_cols = []
+    for col in df.columns:
+        col_str = str(col).strip()
+        if col_str.startswith("Unnamed:") and df[col].isna().all():
+            continue
+        valid_cols.append(col)
+
+    if not valid_cols:
+        return f"Sheet: {sheet_name}" if sheet_name else ""
+
+    working_df = df[valid_cols]
+
+    # Format column names cleanly (strip extra whitespace, flatten internal newlines)
+    col_names = []
+    for c in valid_cols:
+        if isinstance(c, tuple):
+            c_name = " - ".join(str(part).strip() for part in c if not str(part).startswith("Unnamed:"))
+            col_names.append(c_name.strip() or str(c).strip())
+        else:
+            col_names.append(str(c).strip().replace("\r\n", " ").replace("\n", " "))
+
+    row_lines = []
+    for row in working_df.itertuples(index=False, name=None):
+        # Skip completely blank rows (all cells are NaN, None, or empty whitespace)
+        if all(pd.isna(v) or v is None or str(v).strip() == "" for v in row):
+            continue
+
+        cell_parts = []
+        for col_name, val in zip(col_names, row):
+            if pd.isna(val) or val is None or str(val).strip() == "":
+                val_str = "NaN"
+            else:
+                val_str = str(val).strip().replace("\r\n", " ").replace("\n", " ")
+                val_str = val_str.replace("|", "\\|")
+            cell_parts.append(f"{col_name}: {val_str}")
+
+        row_lines.append(" | ".join(cell_parts))
+
+    if not row_lines:
+        if sheet_name:
+            cols_str = "  ".join(c for c in col_names if not c.startswith("Unnamed:"))
+            return f"Sheet: {sheet_name}\n{cols_str}".strip() if cols_str else f"Sheet: {sheet_name}"
+        return ""
+
+    body = "\n".join(row_lines)
+    if sheet_name:
+        return f"Sheet: {sheet_name}\n{body}"
+    return body
+
+
 def format_excel_sheet(sheet_name: str, df: Any) -> str:
     """
     Format a single worksheet DataFrame into readable text with a sheet header.
-    Handles empty sheets, missing values (NaN), and preserves rows, columns, and data.
+    Handles empty sheets, missing values (NaN), and preserves rows, columns, and data
+    using structured tabular row serialization.
     """
-    if df is None:
-        return f"Sheet: {sheet_name}"
-
-    if df.empty:
-        if len(df.columns) > 0 and any(not str(c).startswith("Unnamed:") for c in df.columns):
-            cols_str = "  ".join(str(c) for c in df.columns if not str(c).startswith("Unnamed:"))
-            return f"Sheet: {sheet_name}\n{cols_str}".strip()
-        return f"Sheet: {sheet_name}"
-
-    table_str = df.to_string(index=False).strip()
-    if not table_str or table_str.startswith("Empty DataFrame"):
-        return f"Sheet: {sheet_name}"
-
-    return f"Sheet: {sheet_name}\n{table_str}"
+    return serialize_dataframe_to_text(df, sheet_name=sheet_name)
 
 
 async def parse_document(
@@ -581,10 +647,16 @@ async def parse_document(
         if not file_bytes:
             return [{"page_number": 1, "text": ""}]
         try:
-            df = pd.read_csv(io.BytesIO(file_bytes))
+            try:
+                df = pd.read_csv(io.BytesIO(file_bytes))
+            except (UnicodeDecodeError, pd.errors.ParserError):
+                decoded = decode_text_bytes(file_bytes, filename)
+                df = pd.read_csv(io.StringIO(decoded))
+
             if df.empty:
                 return [{"page_number": 1, "text": ""}]
-            return [{"page_number": 1, "text": df.to_string(index=False)}]
+            table_text = serialize_dataframe_to_text(df)
+            return [{"page_number": 1, "text": table_text}]
         except Exception as e:
             logger.warning(f"Failed to parse CSV file {filename}: {e}")
             return [{"page_number": 1, "text": ""}]
