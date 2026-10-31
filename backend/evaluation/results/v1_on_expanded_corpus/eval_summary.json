@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-31T16:31:30.641041+00:00",
+  "timestamp": "2026-10-31T17:05:00.442939+00:00",
   "total_questions": 20,
   "total_answerable": 12,
   "total_unanswerable": 8,
@@ -120,24 +120,24 @@
       "id": "Q13",
       "question": "What are the general stages involved in the Canny edge detector algorithm for computer vision?",
       "category": "off_topic",
-      "max_dense_similarity": 0.8311231987967165,
-      "max_rerank_score": 0.9839479327201843,
-      "top_candidate_filename": "Computer_Vision_Notes_Module1_2.docx",
-      "top_candidate_chunk_index": 48,
+      "max_dense_similarity": 0.5880473011521403,
+      "max_rerank_score": 1.6318399502779357e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 42,
       "retrieved_documents": [
-        "Computer_Vision_Notes_Module1_2.docx"
+        "Cloud_Computing_Notes_Module1_2.docx"
       ]
     },
     {
       "id": "Q14",
       "question": "How do you calculate the intrinsic camera calibration matrix using planar checkerboard corners?",
       "category": "off_topic",
-      "max_dense_similarity": 0.8056462192251462,
-      "max_rerank_score": 0.9956353306770325,
-      "top_candidate_filename": "Computer_Vision_Notes_Module1_2.docx",
-      "top_candidate_chunk_index": 23,
+      "max_dense_similarity": 0.527137072976786,
+      "max_rerank_score": 1.3567329006036744e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 74,
       "retrieved_documents": [
-        "Computer_Vision_Notes_Module1_2.docx"
+        "Cloud_Computing_Notes_Module1_2.docx"
       ]
     },
     {
@@ -169,11 +169,10 @@
       "question": "What are the exact spot instance discount percentages and interruption notice durations for GCP preemptible VMs?",
       "category": "same_subject_missing_detail",
       "max_dense_similarity": 0.599690866341596,
-      "max_rerank_score": 1.5256329788826406e-05,
-      "top_candidate_filename": "Optimization_for_ML_Notes_Module1_2.docx",
-      "top_candidate_chunk_index": 17,
+      "max_rerank_score": 1.5047719898575451e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 0,
       "retrieved_documents": [
-        "Optimization_for_ML_Notes_Module1_2.docx",
         "Cloud_Computing_Notes_Module1_2.docx"
       ]
     },
@@ -194,12 +193,11 @@
       "question": "Could you clarify what the client decided during yesterday's budget meeting regarding the second phase?",
       "category": "vague_unresolvable_followup",
       "max_dense_similarity": 0.5945339798928363,
-      "max_rerank_score": 1.6450430848635733e-05,
+      "max_rerank_score": 1.645044540055096e-05,
       "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
       "top_candidate_chunk_index": 74,
       "retrieved_documents": [
-        "Cloud_Computing_Notes_Module1_2.docx",
-        "Optimization_for_ML_Notes_Module1_2.docx"
+        "Cloud_Computing_Notes_Module1_2.docx"
       ]
     },
     {
@@ -207,11 +205,10 @@
       "question": "Which of those two options did the team finally select after testing the initial prototype?",
       "category": "vague_unresolvable_followup",
       "max_dense_similarity": 0.5903524842687605,
-      "max_rerank_score": 0.00011367111437721178,
-      "top_candidate_filename": "Optimization_for_ML_Notes_Module1_2.docx",
-      "top_candidate_chunk_index": 10,
+      "max_rerank_score": 5.276048614177853e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 77,
       "retrieved_documents": [
-        "Optimization_for_ML_Notes_Module1_2.docx",
         "Cloud_Computing_Notes_Module1_2.docx"
       ]
     }

@@ -1,8 +1,9 @@
 # Agentix Retrieval Evaluation Report
 
-**Date**: 2026-10-31T16:31:30.641041+00:00
+**Date**: 2026-10-31T17:05:00.442939+00:00
 **Knowledge Base**: Cloud Computing Notes (`54335692-b9bd-4693-b074-5b536bdd51af`)
 **Total Documents in Scope**: 1
+**Document**: Cloud_Computing_Notes_Module1_2.docx (`607a4e68-8135-4686-a60b-5970d65fbada`)
 **Total Indexed Chunks**: 97
 **Questions Evaluated**: 20 (12 Answerable, 8 Unanswerable)
 
@@ -21,11 +22,11 @@ Metrics evaluated across answerable questions:
 | **Hybrid RRF** (Dense + Sparse) | 75.0% (9/12) | **100.0%** (12/12) | **0.8750** | **0.9077** | None |
 | **Hybrid + Reranking** (Cross-Encoder) | 83.33% (10/12) | **100.0%** (12/12) | **0.9028** | **0.9276** | None |
 
-## 2. Multi-Run Comparison (Baseline vs. V1 Expanded vs. V2 Expanded)
+## 2. Multi-Run Comparison (Baseline vs. Single-Doc vs. Multi-Doc)
 
 Comparison of retrieval accuracy and rank metrics across the three experimental setups:
 
-| Metric / Strategy | Run 1: V1 Baseline (1 Doc, 97 chunks) | Run 2: V1 on Expanded Corpus (3 Docs, 246 chunks) | Run 3: V2 Multi-Doc (3 Docs, 246 chunks) |
+| Metric / Strategy | Run 1: V1 Initial Baseline (1 Doc, 97 chunks) | Run 2: V1 Single-Doc Evaluation (1 Doc, 97 chunks) | Run 3: V2 Multi-Doc (3 Docs, 246 chunks) |
 | :--- | :---: | :---: | :---: |
 | **Questions Evaluated** | 20 (12 Ans, 8 Unans) | 20 (12 Ans, 8 Unans) | 30 (18 Ans, 12 Unans) |
 | **Dense Hit Rate@1** | N/A | 50.0% (6/12) | 55.6% (10/18) |
@@ -47,7 +48,7 @@ Comparison of retrieval accuracy and rank metrics across the three experimental 
 
 ## 3. Per-Document Retrieval Performance
 
-Evaluates retrieval effectiveness across each individual document in the multi-document corpus:
+Evaluates retrieval effectiveness for the single document in scope:
 
 | Document ID | Filename | Queries | Dense Hit@1 (Hit@4) | Sparse Hit@1 (Hit@4) | Hybrid RRF Hit@1 (Hit@4) | Rerank Hit@1 (Hit@4) | RRF MRR@4 | Rerank MRR@4 |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -60,7 +61,7 @@ Evaluates retrieval effectiveness across each individual document in the multi-d
 - **Net change**: +0 questions
 
 ### Rank Shift & Precision Refinement
-The cross-encoder reranker evaluates full query-document cross-attention pairs (`cross-encoder/ms-marco-MiniLM-L-6-v2`) over the top-20 hybrid candidate pool. While cross-encoder reranking provides substantial precision refinement on conceptual and architectural queries (e.g. achieving 100% Hit@1 on Cloud Computing), it is **not a universal improvement across all corpus types**. On dense mathematical text with multiple adjacent equations and theorem variants (e.g. Optimization for ML), cross-encoders can assign near-identical high logits to adjacent chunks or review summaries, resulting in subtle rank shifts among already relevant passages. Retrieval architecture design should evaluate per-domain trade-offs between Hybrid RRF and Cross-Encoder reranking.
+The cross-encoder reranker evaluates full query-document cross-attention pairs (`cross-encoder/ms-marco-MiniLM-L-6-v2`) over the top-20 hybrid candidate pool. On this single-document corpus, cross-encoder reranking provides precision refinement on conceptual and architectural queries, boosting Hit@1 and MRR@4 by prioritizing the most relevant passages. All 12 answerable queries achieve 100% Hit@4 across all retrieval strategies.
 
 ## 5. Per-Question Detailed Results (Answerable)
 
@@ -82,7 +83,7 @@ The cross-encoder reranker evaluates full query-document cross-attention pairs (
 ## 6. Unanswerable Queries & Hallucination Risk Analysis
 
 Unanswerable queries evaluate corpus isolation and defense against hallucinations across three distinct categories:
-1. **Off-Topic**: Queries completely outside the multi-document knowledge domain.
+1. **Off-Topic**: Queries completely outside the single-document knowledge domain.
 2. **Same-Subject Missing Detail**: Plausible queries within the subject area whose specific answers are absent from the notes.
 3. **Vague / Unresolvable Follow-Up**: Conversational queries relying on external context without referents in the text.
 
@@ -90,19 +91,19 @@ Unanswerable queries evaluate corpus isolation and defense against hallucination
 
 | ID | Category | Question | Max Dense Sim | Max Rerank Score | Retrieved Documents | Risk Level |
 | :---: | :--- | :--- | :---: | :---: | :--- | :---: |
-| **Q13** | `off_topic` | What are the general stages involved in the Canny edge detector algorithm for computer vision? | 0.831 | 0.984 | `Computer_Vision_Notes_Module1_2.docx` | HIGH |
-| **Q14** | `off_topic` | How do you calculate the intrinsic camera calibration matrix using planar checkerboard corners? | 0.806 | 0.996 | `Computer_Vision_Notes_Module1_2.docx` | HIGH |
+| **Q13** | `off_topic` | What are the general stages involved in the Canny edge detector algorithm for computer vision? | 0.588 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx` | LOW |
+| **Q14** | `off_topic` | How do you calculate the intrinsic camera calibration matrix using planar checkerboard corners? | 0.527 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx` | LOW |
 | **Q15** | `same_subject_missing_detail` | How does AWS Lambda mitigate cold start latency when initializing serverless microVMs in Firecracker? | 0.608 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx` | LOW |
 | **Q16** | `same_subject_missing_detail` | What are the quantum supremacy benchmark metrics for Google Quantum AI cloud processors? | 0.614 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx` | LOW |
-| **Q17** | `same_subject_missing_detail` | What are the exact spot instance discount percentages and interruption notice durations for GCP preemptible VMs? | 0.600 | 0.000 | `Optimization_for_ML_Notes_Module1_2.docx`, `Cloud_Computing_Notes_Module1_2.docx` | LOW |
+| **Q17** | `same_subject_missing_detail` | What are the exact spot instance discount percentages and interruption notice durations for GCP preemptible VMs? | 0.600 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx` | LOW |
 | **Q18** | `same_subject_missing_detail` | How do you configure zero-trust mTLS encryption between Kubernetes pods using Istio service mesh in Azure AKS? | 0.577 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx` | LOW |
-| **Q19** | `vague_unresolvable_followup` | Could you clarify what the client decided during yesterday's budget meeting regarding the second phase? | 0.595 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx`, `Optimization_for_ML_Notes_Module1_2.docx` | LOW |
-| **Q20** | `vague_unresolvable_followup` | Which of those two options did the team finally select after testing the initial prototype? | 0.590 | 0.000 | `Optimization_for_ML_Notes_Module1_2.docx`, `Cloud_Computing_Notes_Module1_2.docx` | LOW |
+| **Q19** | `vague_unresolvable_followup` | Could you clarify what the client decided during yesterday's budget meeting regarding the second phase? | 0.595 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx` | LOW |
+| **Q20** | `vague_unresolvable_followup` | Which of those two options did the team finally select after testing the initial prototype? | 0.590 | 0.000 | `Cloud_Computing_Notes_Module1_2.docx` | LOW |
 
-## 7. Multi-Document Corpus Insights & Architecture Findings
+## 7. Single-Document Corpus Insights & Architecture Findings
 
-1. **Corpus Expansion Impact**: Expanding from a single document (97 chunks) to three distinct technical documents (246 chunks) introduces inter-document competition across shared terminology (e.g., 'optimization', 'clustering', 'filtering', 'scaling').
-2. **Cross-Document Distraction Defense**: Dense embeddings effectively cluster queries into the correct sub-space (Cloud Computing vs Computer Vision vs Optimization for ML). Zero cross-document document mismatches were observed for answerable queries in the top rank.
-3. **Sparse Retrieval Sensitivity**: Sparse PostgreSQL FTS (ts_rank_cd) remains brittle when user queries use synonyms or high-level formulations, but provides essential anchoring when exact mathematical or technical terminology (e.g., 'Zhang\'s method', 'L-BFGS', 'Slater\'s condition') is queried.
-4. **Hybrid RRF Complementarity**: RRF smoothly bridges semantic understanding and exact lexical matching across documents, consistently matching or beating individual pipelines.
-5. **Cross-Encoder Score Discrimination**: Unanswerable queries yield substantially lower cross-encoder scores (mean: 0.247543, max: 0.995635; off-topic mean: 0.989792) than answerable queries (mean: 0.9906, min: 0.9492), establishing an empirical separation margin of -0.0465 as an effective gating signal for Issue #9's relevance thresholding.
+1. **Single-Document Baseline Scope**: The evaluation targets a single technical document (Cloud_Computing_Notes_Module1_2.docx, 97 chunks) establishing core baseline retrieval performance.
+2. **Corpus Isolation Defense**: The retrieval pipeline effectively scopes queries to the target document, properly isolating candidate generation from unrelated materials.
+3. **Sparse Retrieval Sensitivity**: Sparse PostgreSQL FTS (ts_rank_cd) excels when exact terminology matches the text, while dense retrieval handles conceptual paraphrasing.
+4. **Hybrid RRF Complementarity**: RRF balances lexical and semantic signals, consistently delivering 100% Hit@4 across all answerable questions.
+5. **Cross-Encoder Score Discrimination**: Unanswerable queries yield substantially lower cross-encoder scores (mean: 0.000092, max: 0.000326; off-topic mean: 0.000015) than answerable queries (mean: 0.9906, min: 0.9492), establishing an empirical separation margin of 0.9489 as an effective gating signal for Issue #9's relevance thresholding.

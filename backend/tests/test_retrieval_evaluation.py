@@ -940,3 +940,92 @@ def test_annotate_candidate_hits_complete_evidence_semantics():
         is_answerable=False,
     )
     assert not any(c["is_hit"] for c in cands_unans)
+
+
+def test_single_document_report_scope_isolation():
+    """
+    Ensure that when generating a report for a single-document evaluation:
+    - Unrelated document names (CV, Optimization) do not appear in the report.
+    - Multi-document claims ('three distinct technical documents', 'Multi-Document Corpus Insights') do not appear.
+    - Section 7 is titled 'Single-Document Corpus Insights & Architecture Findings'.
+    - Table 2 labels properly reflect the single-doc evaluation scope:
+      'Run 1: V1 Initial Baseline (1 Doc, 97 chunks)'
+      'Run 2: V1 Single-Doc Evaluation (1 Doc, 97 chunks)'
+      'Run 3: V2 Multi-Doc (3 Docs, 246 chunks)'
+    """
+    metadata = {
+        "evaluation_scope": {
+            "knowledge_base_id": "54335692-b9bd-4693-b074-5b536bdd51af",
+            "knowledge_base_name": "Cloud Computing Notes",
+            "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+            "document_filename": "Cloud_Computing_Notes_Module1_2.docx",
+            "total_chunks": 97,
+        }
+    }
+    eval_results = [
+        {
+            "id": "Q01",
+            "question": "What is cloud computing?",
+            "answerable": True,
+            "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+            "strategies": {
+                "dense_only": {"hit_at_1": True, "hit_at_4": True, "first_hit_rank": 1, "reciprocal_rank": 1.0, "ndcg": 1.0, "retrieved": [{"chunk_id": "c1", "document_id": "607a4e68-8135-4686-a60b-5970d65fbada", "filename": "Cloud_Computing_Notes_Module1_2.docx", "is_hit": True}]},
+                "sparse_only": {"hit_at_1": True, "hit_at_4": True, "first_hit_rank": 1, "reciprocal_rank": 1.0, "ndcg": 1.0, "retrieved": []},
+                "hybrid_rrf": {"hit_at_1": True, "hit_at_4": True, "first_hit_rank": 1, "reciprocal_rank": 1.0, "ndcg": 1.0, "retrieved": []},
+                "hybrid_rerank": {"hit_at_1": True, "hit_at_4": True, "first_hit_rank": 1, "reciprocal_rank": 1.0, "ndcg": 1.0, "retrieved": [{"rerank_score": 0.95}]},
+            },
+        },
+        {
+            "id": "Q13",
+            "question": "Off topic question?",
+            "answerable": False,
+            "category": "off_topic",
+            "strategies": {
+                "dense_only": {"hit_at_1": False, "hit_at_4": False, "retrieved": []},
+                "sparse_only": {"hit_at_1": False, "hit_at_4": False, "retrieved": []},
+                "hybrid_rrf": {"hit_at_1": False, "hit_at_4": False, "retrieved": []},
+                "hybrid_rerank": {"hit_at_1": False, "hit_at_4": False, "retrieved": [{"rerank_score": 0.05, "document_id": "607a4e68-8135-4686-a60b-5970d65fbada", "filename": "Cloud_Computing_Notes_Module1_2.docx"}]},
+            },
+        },
+    ]
+    summary = calculate_metrics(eval_results)
+    report = generate_markdown_report(summary, eval_results, metadata)
+
+    # Scope and document isolation checks
+    assert "Computer_Vision_Notes_Module1_2.docx" not in report
+    assert "Optimization_for_ML_Notes_Module1_2.docx" not in report
+    assert "three distinct technical documents" not in report
+    assert "Multi-Document Corpus Insights" not in report
+    assert "Single-Document Corpus Insights & Architecture Findings" in report
+    assert "Run 1: V1 Initial Baseline (1 Doc, 97 chunks)" in report
+    assert "Run 2: V1 Single-Doc Evaluation (1 Doc, 97 chunks)" in report
+    assert "Run 3: V2 Multi-Doc (3 Docs, 246 chunks)" in report
+
+
+@pytest.mark.asyncio
+async def test_document_id_scope_isolation_sql_execution():
+    """Verify that passing document_id adds document filtering to SQL query and parameters."""
+    mock_db = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.mappings.return_value = []
+    mock_db.execute.return_value = mock_result
+
+    target_kb = "54335692-b9bd-4693-b074-5b536bdd51af"
+    target_doc = "607a4e68-8135-4686-a60b-5970d65fbada"
+
+    with patch("scripts.eval_retrieval.embedding_service.generate_embedding", return_value=[0.05] * 2000):
+        candidates, vec = await fetch_retrieval_candidates(
+            db=mock_db,
+            query_text="Sample query",
+            knowledge_base_id=target_kb,
+            document_id=target_doc,
+        )
+
+    calls = mock_db.execute.call_args_list
+    sql_call = calls[-1]
+    sql_text = str(sql_call[0][0])
+    params = sql_call[0][1]
+
+    assert params["scope_id"] == target_kb
+    assert params["document_id"] == target_doc
+    assert "d.id = :document_id" in sql_text
