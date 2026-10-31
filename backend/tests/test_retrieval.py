@@ -726,6 +726,41 @@ async def integration_db():
     await engine.dispose()
 
 
+async def _create_test_user(db: AsyncSession, user_id: Optional[uuid.UUID] = None) -> User:
+    uid = user_id or uuid.uuid4()
+    user = User(id=uid, email=f"user_{uid.hex[:8]}@example.com")
+    db.add(user)
+    await db.flush()
+    return user
+
+
+async def _create_test_session(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    session_id: Optional[uuid.UUID] = None,
+    title: str = "Test Session",
+    knowledge_base_id: Optional[uuid.UUID] = None,
+) -> ChatSession:
+    sid = session_id or uuid.uuid4()
+    session = ChatSession(id=sid, user_id=user_id, knowledge_base_id=knowledge_base_id, title=title)
+    db.add(session)
+    await db.flush()
+    return session
+
+
+async def _create_test_kb(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    kb_id: Optional[uuid.UUID] = None,
+    name: str = "Test KB",
+) -> KnowledgeBase:
+    kid = kb_id or uuid.uuid4()
+    kb = KnowledgeBase(id=kid, user_id=user_id, name=name)
+    db.add(kb)
+    await db.flush()
+    return kb
+
+
 async def _create_test_document_and_chunks(
     db: AsyncSession,
     user_id: uuid.UUID,
@@ -773,13 +808,10 @@ async def test_integration_dense_nearest_neighbor(integration_db: AsyncSession, 
     - Verify that the true nearest-neighbor chunk appears in the dense retrieval list.
     """
     dims = settings.EMBEDDING_DIMENSIONS
-    user_id = uuid.uuid4()
-    session_id = uuid.uuid4()
-
-    user = User(id=user_id, email=f"user_{user_id.hex[:6]}@example.com")
-    session = ChatSession(id=session_id, user_id=user_id, title="Integration Test Session")
-    integration_db.add_all([user, session])
-    await integration_db.flush()
+    user = await _create_test_user(integration_db)
+    session = await _create_test_session(integration_db, user.id, title="Integration Test Session")
+    user_id = user.id
+    session_id = session.id
 
     # Deterministic vectors
     q_vec = [1.0] + [0.0] * (dims - 1)
@@ -821,13 +853,10 @@ async def test_integration_sparse_multi_word_retrieval(integration_db: AsyncSess
     - Confirm that expected matching content appears.
     """
     dims = settings.EMBEDDING_DIMENSIONS
-    user_id = uuid.uuid4()
-    session_id = uuid.uuid4()
-
-    user = User(id=user_id, email=f"user_{user_id.hex[:6]}@example.com")
-    session = ChatSession(id=session_id, user_id=user_id, title="Integration Test Session")
-    integration_db.add_all([user, session])
-    await integration_db.flush()
+    user = await _create_test_user(integration_db)
+    session = await _create_test_session(integration_db, user.id, title="Integration Test Session")
+    user_id = user.id
+    session_id = session.id
 
     orthogonal_vec = [0.0] * dims
     target_id = uuid.uuid4()
@@ -874,15 +903,12 @@ async def test_integration_scope_isolation(integration_db: AsyncSession, monkeyp
     - Verify that results do not contain chunks outside the requested scope.
     """
     dims = settings.EMBEDDING_DIMENSIONS
-    user_id = uuid.uuid4()
-    user = User(id=user_id, email=f"user_{user_id.hex[:6]}@example.com")
-    integration_db.add(user)
+    user = await _create_test_user(integration_db)
+    user_id = user.id
 
     # 1. Knowledge Base scope test
-    kb1 = KnowledgeBase(id=uuid.uuid4(), user_id=user_id, name="KB Alpha")
-    kb2 = KnowledgeBase(id=uuid.uuid4(), user_id=user_id, name="KB Beta")
-    integration_db.add_all([kb1, kb2])
-    await integration_db.flush()
+    kb1 = await _create_test_kb(integration_db, user_id, name="KB Alpha")
+    kb2 = await _create_test_kb(integration_db, user_id, name="KB Beta")
 
     dummy_vec = [0.1] * dims
     kb1_chunk_id = uuid.uuid4()
@@ -916,10 +942,8 @@ async def test_integration_scope_isolation(integration_db: AsyncSession, monkeyp
     assert str(kb2_chunk_id) not in retrieved_ids_kb1, "Chunk from KB Beta leaked into KB Alpha query results"
 
     # 2. Chat Session scope test
-    session1 = ChatSession(id=uuid.uuid4(), user_id=user_id, title="Session 1")
-    session2 = ChatSession(id=uuid.uuid4(), user_id=user_id, title="Session 2")
-    integration_db.add_all([session1, session2])
-    await integration_db.flush()
+    session1 = await _create_test_session(integration_db, user_id, title="Session 1")
+    session2 = await _create_test_session(integration_db, user_id, title="Session 2")
 
     s1_chunk_id = uuid.uuid4()
     s2_chunk_id = uuid.uuid4()
@@ -957,13 +981,10 @@ async def test_integration_deterministic_ordering_with_ties(integration_db: Asyn
     - Include tied records to verify secondary ordering criterion (chunk_id).
     """
     dims = settings.EMBEDDING_DIMENSIONS
-    user_id = uuid.uuid4()
-    session_id = uuid.uuid4()
-
-    user = User(id=user_id, email=f"user_{user_id.hex[:6]}@example.com")
-    session = ChatSession(id=session_id, user_id=user_id, title="Tie Ordering Session")
-    integration_db.add_all([user, session])
-    await integration_db.flush()
+    user = await _create_test_user(integration_db)
+    session = await _create_test_session(integration_db, user.id, title="Tie Ordering Session")
+    user_id = user.id
+    session_id = session.id
 
     # Create 4 chunks where chunks have identical content and identical embeddings (tied RRF score)
     identical_vec = [0.05] * dims
@@ -1008,13 +1029,10 @@ async def test_integration_set_local_failure_recovery(integration_db: AsyncSessi
     - Retrieval succeeds and subsequent SELECT 1 can execute within transaction.
     """
     dims = settings.EMBEDDING_DIMENSIONS
-    user_id = uuid.uuid4()
-    session_id = uuid.uuid4()
-
-    user = User(id=user_id, email=f"user_{user_id.hex[:6]}@example.com")
-    session = ChatSession(id=session_id, user_id=user_id, title="Set Local Test Session")
-    integration_db.add_all([user, session])
-    await integration_db.flush()
+    user = await _create_test_user(integration_db)
+    session = await _create_test_session(integration_db, user.id, title="Set Local Test Session")
+    user_id = user.id
+    session_id = session.id
 
     dummy_vec = [0.01] * dims
     c_id = uuid.uuid4()
