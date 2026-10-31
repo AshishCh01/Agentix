@@ -7,6 +7,7 @@
     "expected_chunk_ids": [
       "dd082ba5-70d2-4ed3-b275-e14563cfe906"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Grid computing is a distributed computing paradigm that pools together the processing, storage, and network resources of geographically distributed, often heterogeneous and independently administered computers... and typically relies on middleware (e.g., Globus Toolkit) to coordinate resource sharing across administrative domains.",
     "topic": "Grid Computing Middleware",
@@ -335,6 +336,7 @@
     "expected_chunk_ids": [
       "bd9c492a-3b63-41d0-8670-fc35d8c37521"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Converts capital expenditure (CapEx) on hardware/infrastructure into operational expenditure (OpEx) — pay-as-you-go pricing. Faster time-to-market — new applications and services can be launched quickly without procurement/installation delays.",
     "topic": "Business Perspective (CapEx to OpEx)",
@@ -663,6 +665,7 @@
     "expected_chunk_ids": [
       "69080542-e0ab-4a8c-b1cf-9ecb794527fa"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "| Hybrid Cloud | A composition of two or more distinct cloud infrastructures (private, community, or public) bound together by standardized technology enabling data/application portability (e.g., cloud bursting for load balancing). |",
     "topic": "Hybrid Cloud Deployment",
@@ -991,6 +994,7 @@
     "expected_chunk_ids": [
       "160f00be-5dd0-4efe-a0e3-ac5e2dc5475f"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Amazon EC2 is an Infrastructure-as-a-Service (IaaS) offering from Amazon Web Services (AWS) that provides resizable virtual server instances ('instances') in the cloud... Key features include Amazon Machine Images (AMIs) as instance templates, elastic scaling via Auto Scaling groups, multiple instance types optimized for compute/memory/storage-intensive workloads",
     "topic": "Amazon EC2 AMIs",
@@ -1319,6 +1323,7 @@
     "expected_chunk_ids": [
       "bfcd80c5-3887-4bb2-8fad-c6189410e469"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Google App Engine (GAE) is a fully managed Platform-as-a-Service (PaaS) offering that lets developers build and deploy applications on Google's infrastructure without managing the underlying servers. Developers write code in supported languages (Python, Java, Go, Node.js, etc.), and GAE automatically handles provisioning, scaling (including scaling to zero), load balancing, and patching.",
     "topic": "Google App Engine PaaS",
@@ -1647,6 +1652,7 @@
     "expected_chunk_ids": [
       "39431cfd-70c2-42fb-bd28-437d94b2eb6c"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "| PaaS (Platform as a Service) | A managed platform (runtime, OS, middleware) for developing/deploying applications | Application code and data only | Google App Engine, Azure App Service, Heroku |",
     "topic": "PaaS Service Model Responsibilities",
@@ -1975,6 +1981,7 @@
     "expected_chunk_ids": [
       "c88a9c92-6103-4c4c-9960-00e7788ea7b0"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Reusability — common services (e.g., a payment-processing service) can be reused across multiple applications, reducing development effort. Interoperability — standard protocols (REST, SOAP, HTTP/JSON) allow heterogeneous cloud services and legacy systems to interoperate. Composability — complex cloud applications are composed ('orchestrated') from simpler, independently scalable services — closely related to today's microservices architecture.",
     "topic": "Service-Oriented Architecture (SOA)",
@@ -2303,6 +2310,7 @@
     "expected_chunk_ids": [
       "234dd71c-1e44-406b-9337-9416fec79d16"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Information Life Cycle Management is a strategy for managing data throughout its useful life — from creation to eventual deletion — by aligning the storage, protection, and access policies applied to data with its changing business value and access frequency over time.",
     "topic": "Information Life Cycle Management",
@@ -2631,6 +2639,7 @@
     "expected_chunk_ids": [
       "5432e401-9d6b-4052-aed0-f3e0a793759d"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Virtual Desktop Infrastructure is a technology that hosts desktop operating systems and applications as virtual machines on centralized servers (in a datacenter or cloud), streaming the desktop's display to end-user devices (thin clients, laptops, tablets) over the network, rather than running the OS locally.",
     "topic": "Virtual Desktop Infrastructure",
@@ -2959,6 +2968,7 @@
     "expected_chunk_ids": [
       "b1dc4966-ef47-40e1-9dab-6f27e40f82a1"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Object storage — stores data as discrete objects with metadata, accessed via APIs (e.g., Amazon S3, Azure Blob Storage); ideal for unstructured data like images, videos, and backups, offering very high scalability and durability. Block storage — presents raw storage volumes (like a virtual hard disk) attached to virtual machines (e.g., Amazon EBS, Azure Managed Disks); used for databases and applications needing low-latency, high-performance storage.",
     "topic": "Storage Cloud (Object vs Block)",
@@ -3287,6 +3297,7 @@
     "expected_chunk_ids": [
       "1fb3d24c-fb21-493e-9118-35cf7667bdbe"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Fault tolerance in cloud computing is the ability of a cloud-based system to continue operating correctly, without interruption or with only minimal degradation, even when one or more of its components (servers, storage devices, network links, or even entire datacenters) fail. It is essential because cloud environments run on large numbers of commodity hardware components, where individual failures are common and expected rather than exceptional.",
     "topic": "Cloud Fault Tolerance",
@@ -3615,6 +3626,7 @@
     "expected_chunk_ids": [
       "c05fec4e-a861-440b-8de8-172412e735b1"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "| Host-based VMM (Hosted Hypervisor) | Native VMM (Bare-Metal Hypervisor) |\n| A hypervisor (Type 2) that runs as an application on top of a conventional host operating system | A hypervisor (Type 1) that runs directly on the physical hardware, without a host OS underneath |",
     "topic": "Hypervisor Architecture Types",
@@ -3941,6 +3953,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Off-Topic: Computer Vision Edge Detection",
@@ -4267,6 +4280,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Off-Topic: Optical Camera Calibration",
@@ -4593,6 +4607,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Same-Subject Missing: AWS Lambda Firecracker Internals",
@@ -4919,6 +4934,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Same-Subject Missing: Quantum Cloud Computing",
@@ -5245,6 +5261,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Same-Subject Missing: GCP Preemptible VM Pricing",
@@ -5571,6 +5588,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Same-Subject Missing: Kubernetes Istio mTLS",
@@ -5897,6 +5915,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Vague Follow-Up: External Meeting Context",
@@ -6223,6 +6242,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Vague Follow-Up: Prototype Options Selection",

@@ -19,6 +19,8 @@ from scripts.eval_retrieval import (
     export_results,
     evaluate_query,
     fetch_retrieval_candidates,
+    compute_ranked_metrics,
+    normalize_evidence_sets,
 )
 
 
@@ -595,3 +597,240 @@ def test_v2_dataset_schema_validation():
     assert len(docs) == 3
     for d in docs:
         assert sum(1 for q in answerable if q["expected_document_id"] == d) == 6
+
+
+# ---------------------------------------------------------------------------
+# Multi-Chunk & Alternative Evidence Sets Tests (Audit Corrections)
+# ---------------------------------------------------------------------------
+
+def test_normalize_evidence_sets():
+    """Verify normalization of evidence sets across new and backward-compatible formats."""
+    # Explicit evidence sets
+    sets = normalize_evidence_sets(expected_evidence_sets=[["c1", "c2"], ["c3"]])
+    assert len(sets) == 2
+    assert {"c1", "c2"} in sets
+    assert {"c3"} in sets
+
+    # Backward compatibility: expected_chunks set/list
+    sets_compat = normalize_evidence_sets(expected_chunks=["c1", "c2"])
+    assert len(sets_compat) == 2
+    assert {"c1"} in sets_compat
+    assert {"c2"} in sets_compat
+
+    # Empty fallback
+    assert normalize_evidence_sets() == []
+
+
+def test_compute_ranked_metrics_single_chunk_sufficient():
+    """Verify single-chunk evidence calculation across ranks."""
+    evidence = [["c1"]]
+
+    # Rank 1 hit
+    r1 = [{"chunk_id": "c1"}, {"chunk_id": "c2"}, {"chunk_id": "c3"}, {"chunk_id": "c4"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r1, expected_evidence_sets=evidence)
+    assert h1 is True
+    assert h4 is True
+    assert rank == 1
+    assert rr == 1.0
+    assert ndcg == 1.0
+
+    # Rank 3 hit
+    r3 = [{"chunk_id": "c0"}, {"chunk_id": "c9"}, {"chunk_id": "c1"}, {"chunk_id": "c4"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r3, expected_evidence_sets=evidence)
+    assert h1 is False
+    assert h4 is True
+    assert rank == 3
+    assert abs(rr - 1 / 3) < 1e-6
+    # 1 / log2(3 + 1) = 0.5
+    assert abs(ndcg - 0.5) < 1e-6
+
+    # Miss (rank > 4)
+    r_miss = [{"chunk_id": "c0"}, {"chunk_id": "c9"}, {"chunk_id": "c8"}, {"chunk_id": "c7"}, {"chunk_id": "c1"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r_miss, expected_evidence_sets=evidence)
+    assert h1 is False
+    assert h4 is False
+    assert rank is None
+    assert rr == 0.0
+    assert ndcg == 0.0
+
+
+def test_compute_ranked_metrics_multi_chunk_required():
+    """Verify multi-chunk evidence sets require ALL chunks to form a complete hit."""
+    evidence = [["c1", "c2"]]
+
+    # Both c1 (rank 1) and c2 (rank 3) in top 4 -> completed at rank 3
+    r = [{"chunk_id": "c1"}, {"chunk_id": "c0"}, {"chunk_id": "c2"}, {"chunk_id": "c4"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r, expected_evidence_sets=evidence)
+    assert h1 is False
+    assert h4 is True
+    assert rank == 3
+    assert abs(rr - 1 / 3) < 1e-6
+    assert abs(ndcg - 0.5) < 1e-6
+
+    # Both c1 (rank 1) and c2 (rank 2) in top 4 -> completed at rank 2
+    r_2 = [{"chunk_id": "c1"}, {"chunk_id": "c2"}, {"chunk_id": "c0"}, {"chunk_id": "c4"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r_2, expected_evidence_sets=evidence)
+    assert h1 is False
+    assert h4 is True
+    assert rank == 2
+    assert rr == 0.5
+    assert abs(ndcg - (1.0 / 1.5849625)) < 1e-4
+
+
+def test_compute_ranked_metrics_partial_evidence_not_hit():
+    """Verify that retrieving only partial evidence (subset of required chunks) is NOT a hit."""
+    evidence = [["c1", "c2"]]
+
+    # Only c1 at rank 1, c2 missing
+    r_partial_1 = [{"chunk_id": "c1"}, {"chunk_id": "x1"}, {"chunk_id": "x2"}, {"chunk_id": "x3"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r_partial_1, expected_evidence_sets=evidence)
+    assert h1 is False
+    assert h4 is False
+    assert rank is None
+    assert rr == 0.0
+    assert ndcg == 0.0
+
+    # Only c2 at rank 4, c1 missing
+    r_partial_2 = [{"chunk_id": "x1"}, {"chunk_id": "x2"}, {"chunk_id": "x3"}, {"chunk_id": "c2"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r_partial_2, expected_evidence_sets=evidence)
+    assert h1 is False
+    assert h4 is False
+    assert rank is None
+    assert rr == 0.0
+    assert ndcg == 0.0
+
+
+def test_compute_ranked_metrics_alternative_evidence_sets():
+    """Verify alternative sufficient evidence sets choose the earliest completion rank."""
+    # Alternative sets: Set A = [c1], Set B = [c2, c3]
+    evidence = [["c1"], ["c2", "c3"]]
+
+    # Case A: Set A satisfied at rank 2
+    r_a = [{"chunk_id": "x1"}, {"chunk_id": "c1"}, {"chunk_id": "x2"}, {"chunk_id": "x3"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r_a, expected_evidence_sets=evidence)
+    assert h1 is False
+    assert h4 is True
+    assert rank == 2
+    assert rr == 0.5
+
+    # Case B: Set B satisfied at rank 2 (c2 at 1, c3 at 2), Set A missing
+    r_b = [{"chunk_id": "c2"}, {"chunk_id": "c3"}, {"chunk_id": "x1"}, {"chunk_id": "x2"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r_b, expected_evidence_sets=evidence)
+    assert h1 is False
+    assert h4 is True
+    assert rank == 2
+    assert rr == 0.5
+
+    # Case C: Both Set A and Set B completed -> chooses min completion rank
+    # Set A (c1) complete at rank 4; Set B (c2, c3) complete at rank 2
+    r_both = [{"chunk_id": "c2"}, {"chunk_id": "c3"}, {"chunk_id": "x1"}, {"chunk_id": "c1"}]
+    h1, h4, rank, rr, ndcg = compute_ranked_metrics(r_both, expected_evidence_sets=evidence)
+    assert rank == 2
+    assert rr == 0.5
+
+
+def test_dynamic_report_statistics_and_terminology():
+    """Verify that report uses dynamic statistics, Binary nDCG@4 terminology, and score interpretation notes."""
+    summary = {
+        "timestamp": "2026-10-31T12:00:00Z",
+        "total_questions": 2,
+        "total_answerable": 1,
+        "total_unanswerable": 1,
+        "strategies": {
+            "dense_only": {"hits": 1, "hits_at_1": 1, "hits_at_4": 1, "total": 1, "hit_rate_percentage": 100.0, "hit_rate_at_1_percentage": 100.0, "mrr_at_4": 1.0, "ndcg_at_4": 1.0, "missed_question_ids": []},
+            "sparse_only": {"hits": 1, "hits_at_1": 1, "hits_at_4": 1, "total": 1, "hit_rate_percentage": 100.0, "hit_rate_at_1_percentage": 100.0, "mrr_at_4": 1.0, "ndcg_at_4": 1.0, "missed_question_ids": []},
+            "hybrid_rrf": {"hits": 1, "hits_at_1": 1, "hits_at_4": 1, "total": 1, "hit_rate_percentage": 100.0, "hit_rate_at_1_percentage": 100.0, "mrr_at_4": 1.0, "ndcg_at_4": 1.0, "missed_question_ids": []},
+            "hybrid_rerank": {"hits": 1, "hits_at_1": 1, "hits_at_4": 1, "total": 1, "hit_rate_percentage": 100.0, "hit_rate_at_1_percentage": 100.0, "mrr_at_4": 1.0, "ndcg_at_4": 1.0, "missed_question_ids": []},
+        },
+        "per_document_metrics": {
+            "doc-1": {
+                "filename": "Doc1.docx",
+                "total_questions": 1,
+                "strategies": {
+                    "dense_only": {"hit_rate_at_1": 1.0, "hit_rate_at_4": 1.0, "mrr_at_4": 1.0},
+                    "sparse_only": {"hit_rate_at_1": 1.0, "hit_rate_at_4": 1.0, "mrr_at_4": 1.0},
+                    "hybrid_rrf": {"hit_rate_at_1": 1.0, "hit_rate_at_4": 1.0, "mrr_at_4": 1.0},
+                    "hybrid_rerank": {"hit_rate_at_1": 1.0, "hit_rate_at_4": 1.0, "mrr_at_4": 1.0},
+                },
+            }
+        },
+        "reranking_comparison": {
+            "improved_by_rerank": [],
+            "worsened_by_rerank": [],
+            "net_change": 0,
+        },
+        "unanswerable_analysis": [
+            {
+                "id": "Q02",
+                "question": "Unanswerable query",
+                "category": "off_topic",
+                "max_dense_similarity": 0.45,
+                "max_rerank_score": 0.000018,
+            }
+        ],
+    }
+
+    eval_results = [
+        {
+            "id": "Q01",
+            "question": "Valid query",
+            "answerable": True,
+            "expected_document_id": "doc-1",
+            "strategies": {
+                "dense_only": {"hit": True, "first_hit_rank": 1},
+                "sparse_only": {"hit": True, "first_hit_rank": 1},
+                "hybrid_rrf": {"hit": True, "first_hit_rank": 1},
+                "hybrid_rerank": {"hit": True, "first_hit_rank": 1, "retrieved": [{"chunk_id": "c1", "rerank_score": 0.9950}]},
+            },
+        }
+    ]
+
+    metadata = {
+        "evaluation_scope": {
+            "knowledge_base_name": "Test KB",
+            "knowledge_base_id": "test-kb-id",
+        }
+    }
+
+    report = generate_markdown_report(summary, eval_results, metadata)
+
+    # Terminology checks
+    assert "Binary nDCG@4" in report
+    assert "graded position discounting" not in report
+
+    # Score interpretation note
+    assert "empirical monotonic relevance scores" in report
+    assert "NOT calibrated posterior probabilities" in report
+
+    # Balanced reranker claim
+    assert "not a universal improvement across all corpus types" in report
+
+    # Per-document table contains Hit@1 and MRR@4 headers
+    assert "Dense Hit@1 (Hit@4)" in report
+    assert "RRF MRR@4" in report
+    assert "Rerank MRR@4" in report
+
+    # Dynamic statistics (exact numbers from unanswerable_analysis and eval_results)
+    assert "0.000018" in report
+    assert "0.9950" in report
+    assert "< 0.20" not in report
+
+
+def test_v2_q14_evidence_set_validation():
+    """Verify that Q14 ground-truth correctly defines alternative multi-chunk and single-chunk evidence sets."""
+    v2_path = Path(__file__).resolve().parent.parent / "evaluation" / "retrieval_questions_v2.json"
+    data = load_dataset(v2_path)
+    q14 = next(q for q in data["questions"] if q["id"] == "Q14")
+
+    # Both chunks must be indexed in expected_chunk_ids
+    chunk_21 = "1940a3fe-484e-49c3-bbdb-be2524d0dc10"
+    chunk_22 = "1e9c01e2-0966-4985-874c-0d46d12d83d9"
+    assert chunk_21 in q14["expected_chunk_ids"]
+    assert chunk_22 in q14["expected_chunk_ids"]
+
+    # Verify expected_evidence_sets structure
+    assert "expected_evidence_sets" in q14
+    ev_sets = q14["expected_evidence_sets"]
+    assert len(ev_sets) == 2
+    assert [chunk_22] in ev_sets
+    assert [chunk_21, chunk_22] in ev_sets

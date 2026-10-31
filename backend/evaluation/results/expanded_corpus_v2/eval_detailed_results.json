@@ -7,6 +7,7 @@
     "expected_chunk_ids": [
       "dd082ba5-70d2-4ed3-b275-e14563cfe906"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Grid computing is a distributed computing paradigm that pools together the processing, storage, and network resources of geographically distributed, often heterogeneous and independently administered computers, so that they can be used collectively to solve large-scale computational problems — treating the pooled resources somewhat like a 'virtual supercomputer'. It grew out of scientific/academic computing (e.g., SETI@home, high-energy physics data processing) and typically relies on middleware (e.g., Globus Toolkit) to coordinate resource sharing across administrative domains.",
     "topic": "Grid Computing Middleware",
@@ -335,6 +336,7 @@
     "expected_chunk_ids": [
       "bd9c492a-3b63-41d0-8670-fc35d8c37521"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Converts capital expenditure (CapEx) on hardware/infrastructure into operational expenditure (OpEx) — pay-as-you-go pricing. Faster time-to-market — new applications and services can be launched quickly without procurement/installation delays. Business agility — the ability to scale resources up/down rapidly in response to changing market demand.",
     "topic": "Business Perspective (CapEx to OpEx)",
@@ -663,6 +665,7 @@
     "expected_chunk_ids": [
       "d956a3b7-fcb9-4500-a74e-383ad0c5984c"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Vertical elasticity (scaling up/down) — increasing or decreasing the capacity (CPU, RAM) of an existing resource/instance. Horizontal elasticity (scaling out/in) — adding or removing instances/nodes to distribute load across more or fewer machines.",
     "topic": "Vertical vs Horizontal Elasticity",
@@ -991,6 +994,7 @@
     "expected_chunk_ids": [
       "234dd71c-1e44-406b-9337-9416fec79d16"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Information Life Cycle Management is a strategy for managing data throughout its useful life — from creation to eventual deletion — by aligning the storage, protection, and access policies applied to data with its changing business value and access frequency over time. Typical Stages of the Information Life Cycle: Creation/Capture — data is generated or ingested... Storage — data is stored, initially often on high-performance ('hot') storage tiers for frequent access.",
     "topic": "Information Life Cycle Management Storage Tiers",
@@ -1319,6 +1323,7 @@
     "expected_chunk_ids": [
       "1fb3d24c-fb21-493e-9118-35cf7667bdbe"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Fault tolerance in cloud computing is the ability of a cloud-based system to continue operating correctly, without interruption or with only minimal degradation, even when one or more of its components (servers, storage devices, network links, or even entire datacenters) fail. It is essential because cloud environments run on large numbers of commodity hardware components, where individual failures are common and expected rather than exceptional.",
     "topic": "Cloud Fault Tolerance & Commodity Hardware",
@@ -1647,6 +1652,7 @@
     "expected_chunk_ids": [
       "e3dec826-d945-4c9a-a94d-fac7d46e53de"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Server virtualization is the partitioning of a single physical server into multiple isolated, independent virtual servers (virtual machines), each capable of running its own operating system and applications as if it were a separate physical machine — enabled by a hypervisor that manages and allocates the underlying physical server's CPU, memory, storage, and network resources among the virtual servers.",
     "topic": "Server Virtualization and Hypervisor Role",
@@ -1975,6 +1981,7 @@
     "expected_chunk_ids": [
       "86dc483c-67e7-4df4-a5e5-e11f0a609d88"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Low-Level Vision | Works directly on raw pixel data with little or no semantic understanding. Deals with signal-level operations such as noise reduction and basic feature detection. | Filtering, edge detection, smoothing, thresholding",
     "topic": "Low-Level Computer Vision Characteristics",
@@ -2303,6 +2310,7 @@
     "expected_chunk_ids": [
       "01270da2-62c5-4d25-ac0c-8e1c89ac0b77"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Gradient computation — compute the derivative of intensity in x and y directions using an edge operator. Non-maximum suppression — thin the edges to a single-pixel width by keeping only local gradient maxima. Thresholding (often hysteresis, with a high and low threshold) — retain only strong, connected edges and discard weak/noisy responses.",
     "topic": "Canny Edge Detection Non-Maximum Suppression",
@@ -2631,6 +2639,7 @@
     "expected_chunk_ids": [
       "bb70dc2d-6d3d-4b56-9125-feb2067e975a"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Using the equivalent front image plane (to avoid inversion), a 3D point (X, Y, Z) projects to image coordinates: x = f · (X / Z), y = f · (Y / Z). This is the perspective projection equation — note the division by depth Z, which is why objects farther away appear smaller.",
     "topic": "Pinhole Camera Perspective Projection and Depth Division",
@@ -2959,6 +2968,7 @@
     "expected_chunk_ids": [
       "8075ada1-18eb-48d5-825c-81bf7d1ae774"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Capture multiple images of a known calibration pattern (commonly a planar checkerboard) from different orientations. Detect the pattern's corner points in each image... Solve for the intrinsic matrix K and lens distortion coefficients, and for each image's extrinsic parameters (R, t), typically using Zhang's method, which is based on homography estimation followed by non-linear (Levenberg–Marquardt) refinement.",
     "topic": "Zhang's Camera Calibration Method",
@@ -3287,6 +3297,7 @@
     "expected_chunk_ids": [
       "6b511874-5e9b-4786-b77f-9ec6912b3be6"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "combining camera, LiDAR, and RADAR data (e.g., via Kalman filters) for a unified 3D understanding of the scene. Object tracking & motion prediction — predicting future trajectories of dynamic agents (pedestrians, other vehicles). Localization — determining the vehicle's precise position using visual odometry/SLAM combined with GPS/IMU.",
     "topic": "Autonomous Vehicle Multi-Sensor Fusion",
@@ -3615,6 +3626,7 @@
     "expected_chunk_ids": [
       "0c13aa7a-75e0-4c65-8459-053ca5ad08ad"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Typical Face Recognition Pipeline: Face detection — locating face region(s) in the frame (e.g., Haar cascades, MTCNN, or CNN-based detectors). Face alignment — normalizing pose/scale using detected facial landmarks (eyes, nose, mouth). Feature extraction / embedding — mapping the aligned face to a compact feature vector (embedding) using deep networks (e.g., FaceNet, ArcFace). Matching/classification — comparing the embedding to a database using distance metrics",
     "topic": "Face Recognition Pipeline Architecture",
@@ -3943,6 +3955,7 @@
     "expected_chunk_ids": [
       "88be92f5-47d4-4c0f-8f71-2de95239a2ec"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "returns), efficient greedy algorithms give a provable (1 − 1/e) approximation to the optimal discrete subset. 1.3.3 Model Compression: Model compression reduces a trained model's size/computation while preserving accuracy... Pruning — deciding which weights, filters, or neurons to remove; this is a discrete 0/1 decision problem over model components",
     "topic": "Submodular Greedy Approximation Guarantee",
@@ -4269,21 +4282,31 @@
     "answerable": true,
     "expected_document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
     "expected_chunk_ids": [
+      "1e9c01e2-0966-4985-874c-0d46d12d83d9",
       "1940a3fe-484e-49c3-bbdb-be2524d0dc10"
     ],
+    "expected_evidence_sets": [
+      [
+        "1e9c01e2-0966-4985-874c-0d46d12d83d9"
+      ],
+      [
+        "1940a3fe-484e-49c3-bbdb-be2524d0dc10",
+        "1e9c01e2-0966-4985-874c-0d46d12d83d9"
+      ]
+    ],
     "expected_page": 1,
-    "source_passage": "For convex problems, every local minimum is also global. 2.2 Convexity... A function f: ℝⁿ → ℝ is convex if its domain is convex and for all x, y in the domain and λ ∈ [0,1]: f(λx + (1−λ)y) ≤ λf(x) + (1−λ)f(y)",
+    "source_passage": "Chunk 22 contains the core mathematical inequality f(λx + (1−λ)y) ≤ λf(x) + (1−λ)f(y) and the explicit subsection 'Why Convexity Matters: Any local minimum of a convex function is automatically a global minimum — this makes optimization tractable and guarantees convergence to the true optimum for many algorithms.' Chunk 21 contains the preceding domain setup 'A function f: ℝⁿ → ℝ is convex if its domain is convex and for all x, y in the domain and λ ∈ [0,1]:' which combines with Chunk 22 for the full section text.",
     "topic": "Convex Function Definition and Global Optimality",
     "unanswerable_category": null,
     "reason": null,
     "strategies": {
       "dense_only": {
         "hit": true,
-        "hit_at_1": true,
+        "hit_at_1": false,
         "hit_at_4": true,
-        "first_hit_rank": 1,
-        "reciprocal_rank": 1.0,
-        "ndcg": 1.0,
+        "first_hit_rank": 2,
+        "reciprocal_rank": 0.5,
+        "ndcg": 0.6309297535714575,
         "retrieved": [
           {
             "chunk_id": "1940a3fe-484e-49c3-bbdb-be2524d0dc10",
@@ -4317,7 +4340,7 @@
             "rerank_score": null,
             "rerank_logit": null,
             "strategy_rank": 2,
-            "is_hit": false
+            "is_hit": true
           },
           {
             "chunk_id": "446e8f6a-56bd-4769-9ed1-f642cdde44b8",
@@ -4356,12 +4379,12 @@
         ]
       },
       "sparse_only": {
-        "hit": false,
-        "hit_at_1": false,
-        "hit_at_4": false,
-        "first_hit_rank": null,
-        "reciprocal_rank": 0.0,
-        "ndcg": 0.0,
+        "hit": true,
+        "hit_at_1": true,
+        "hit_at_4": true,
+        "first_hit_rank": 1,
+        "reciprocal_rank": 1.0,
+        "ndcg": 1.0,
         "retrieved": [
           {
             "chunk_id": "1e9c01e2-0966-4985-874c-0d46d12d83d9",
@@ -4378,7 +4401,7 @@
             "rerank_score": null,
             "rerank_logit": null,
             "strategy_rank": 1,
-            "is_hit": false
+            "is_hit": true
           },
           {
             "chunk_id": "94940a00-dab4-40f3-ac7e-15d355cc6d42",
@@ -4435,11 +4458,11 @@
       },
       "hybrid_rrf": {
         "hit": true,
-        "hit_at_1": false,
+        "hit_at_1": true,
         "hit_at_4": true,
-        "first_hit_rank": 2,
-        "reciprocal_rank": 0.5,
-        "ndcg": 0.6309297535714575,
+        "first_hit_rank": 1,
+        "reciprocal_rank": 1.0,
+        "ndcg": 1.0,
         "retrieved": [
           {
             "chunk_id": "1e9c01e2-0966-4985-874c-0d46d12d83d9",
@@ -4456,7 +4479,7 @@
             "rerank_score": null,
             "rerank_logit": null,
             "strategy_rank": 1,
-            "is_hit": false
+            "is_hit": true
           },
           {
             "chunk_id": "1940a3fe-484e-49c3-bbdb-be2524d0dc10",
@@ -4512,12 +4535,12 @@
         ]
       },
       "hybrid_rerank": {
-        "hit": false,
+        "hit": true,
         "hit_at_1": false,
-        "hit_at_4": false,
-        "first_hit_rank": null,
-        "reciprocal_rank": 0.0,
-        "ndcg": 0.0,
+        "hit_at_4": true,
+        "first_hit_rank": 2,
+        "reciprocal_rank": 0.5,
+        "ndcg": 0.6309297535714575,
         "retrieved": [
           {
             "chunk_id": "f2441481-5460-44a4-973d-746066b2a24f",
@@ -4551,7 +4574,7 @@
             "rerank_score": 0.9194208979606628,
             "rerank_logit": 2.4345052242279053,
             "strategy_rank": 2,
-            "is_hit": false
+            "is_hit": true
           },
           {
             "chunk_id": "446e8f6a-56bd-4769-9ed1-f642cdde44b8",
@@ -4599,6 +4622,7 @@
     "expected_chunk_ids": [
       "2d05da13-a4f1-4c18-b27d-d9c2e260bbdd"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "x_{k+1} = x_k − η ∇f(x_k). η : learning rate / step size, ∇f(x_k) : gradient of f at the current point x_k. If η is chosen appropriately (e.g., via line search, or a fixed small value satisfying smoothness conditions) and f is convex and L-smooth, gradient descent converges to the global minimum.",
     "topic": "Gradient Descent Convergence on L-Smooth Functions",
@@ -4927,6 +4951,7 @@
     "expected_chunk_ids": [
       "6d3a9ffa-e570-4d56-a5dd-a7f19ef55acd"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Accelerated methods (notably Nesterov's Accelerated Gradient, NAG) improve on plain gradient descent's convergence rate by incorporating a 'momentum' term that uses information from previous iterates, effectively looking ahead before computing the gradient: y_k = x_k + β_k (x_k − x_{k−1}), x_{k+1} = y_k − η∇f(y_k). For convex, L-smooth functions, Nesterov's method achieves the optimal first-order convergence rate O(1/k²), compared to O(1/k) for vanilla gradient descent.",
     "topic": "Nesterov Acceleration Convergence Rate",
@@ -5255,6 +5280,7 @@
     "expected_chunk_ids": [
       "90df89d9-73df-4ae9-94d4-cd4e6c744ae3"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "Achieve superlinear convergence — faster than gradient descent, though typically slower than exact Newton's method — at a much lower per-iteration cost (O(n²) or, for L-BFGS, O(n)). L-BFGS, which stores only a limited history of updates rather than the full n×n matrix, is widely used for medium-scale ML optimization (e.g., logistic regression, CRFs) where full-batch second-order information is affordable.",
     "topic": "L-BFGS vs Exact Newton Scalability",
@@ -5583,6 +5609,7 @@
     "expected_chunk_ids": [
       "99ca75ba-b70a-434e-9e29-d793b334c940"
     ],
+    "expected_evidence_sets": null,
     "expected_page": 1,
     "source_passage": "maximize g(λ, ν) subject to λ ≥ 0. Weak duality — the dual optimal value is always ≤ the primal optimal value (holds for any optimization problem, convex or not). Strong duality — under suitable conditions (e.g., Slater's condition for convex problems), the dual optimal value equals the primal optimal value, i.e., zero duality gap.",
     "topic": "Weak vs Strong Duality and Slater's Condition",
@@ -5909,6 +5936,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Off-Topic: Vertebrate Paleontology Dinosaur Pelvis",
@@ -6235,6 +6263,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Off-Topic: Plant Biochemistry C4 Photosynthesis",
@@ -6561,6 +6590,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Off-Topic: Geophysics D-Double-Prime Discontinuity",
@@ -6887,6 +6917,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Off-Topic: Music Theory Baroque Invertible Counterpoint",
@@ -7213,6 +7244,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Same-Subject Missing: Kubernetes Cilium eBPF Kernel Bypass",
@@ -7539,6 +7571,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Same-Subject Missing: YOLOv10 NMS-Free Detection Architecture",
@@ -7865,6 +7898,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Same-Subject Missing: PyTorch FSDP ZeRO-3 Memory Allocation",
@@ -8191,6 +8225,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Same-Subject Missing: NeRF Hierarchical Stratified Sampling",
@@ -8517,6 +8552,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Vague Follow-Up: Unspecified Benchmark Test Run",
@@ -8843,6 +8879,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Vague Follow-Up: Committee Proposal Decision",
@@ -9169,6 +9206,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Vague Follow-Up: Prioritization of Recommendations",
@@ -9495,6 +9533,7 @@
     "answerable": false,
     "expected_document_id": null,
     "expected_chunk_ids": [],
+    "expected_evidence_sets": null,
     "expected_page": null,
     "source_passage": null,
     "topic": "Vague Follow-Up: Unanchored Workaround Outcome",
