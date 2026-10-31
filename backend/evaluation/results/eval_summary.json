@@ -1,0 +1,115 @@
+{
+  "timestamp": "2026-10-31T12:15:34.513125+00:00",
+  "total_questions": 20,
+  "total_answerable": 12,
+  "total_unanswerable": 8,
+  "strategies": {
+    "dense_only": {
+      "hits": 12,
+      "total": 12,
+      "hit_rate_at_4": 1.0,
+      "hit_rate_percentage": 100.0,
+      "missed_question_ids": []
+    },
+    "sparse_only": {
+      "hits": 12,
+      "total": 12,
+      "hit_rate_at_4": 1.0,
+      "hit_rate_percentage": 100.0,
+      "missed_question_ids": []
+    },
+    "hybrid_rrf": {
+      "hits": 12,
+      "total": 12,
+      "hit_rate_at_4": 1.0,
+      "hit_rate_percentage": 100.0,
+      "missed_question_ids": []
+    },
+    "hybrid_rerank": {
+      "hits": 12,
+      "total": 12,
+      "hit_rate_at_4": 1.0,
+      "hit_rate_percentage": 100.0,
+      "missed_question_ids": []
+    }
+  },
+  "reranking_comparison": {
+    "improved_by_rerank": [],
+    "worsened_by_rerank": [],
+    "net_change": 0
+  },
+  "unanswerable_analysis": [
+    {
+      "id": "Q13",
+      "question": "What are the general stages involved in the Canny edge detector algorithm for computer vision?",
+      "category": "off_topic",
+      "max_dense_similarity": 0.5880473011521403,
+      "max_rerank_score": 1.6318399502779357e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 42
+    },
+    {
+      "id": "Q14",
+      "question": "How do you calculate the intrinsic camera calibration matrix using planar checkerboard corners?",
+      "category": "off_topic",
+      "max_dense_similarity": 0.527137072976786,
+      "max_rerank_score": 1.3567329006036744e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 74
+    },
+    {
+      "id": "Q15",
+      "question": "How does AWS Lambda mitigate cold start latency when initializing serverless microVMs in Firecracker?",
+      "category": "same_subject_missing_detail",
+      "max_dense_similarity": 0.6079227176035302,
+      "max_rerank_score": 0.00023582016001455486,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 66
+    },
+    {
+      "id": "Q16",
+      "question": "What are the quantum supremacy benchmark metrics for Google Quantum AI cloud processors?",
+      "category": "same_subject_missing_detail",
+      "max_dense_similarity": 0.6141939810781569,
+      "max_rerank_score": 5.7294804719276726e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 45
+    },
+    {
+      "id": "Q17",
+      "question": "What are the exact spot instance discount percentages and interruption notice durations for GCP preemptible VMs?",
+      "category": "same_subject_missing_detail",
+      "max_dense_similarity": 0.599690866341596,
+      "max_rerank_score": 1.5047719898575451e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 0
+    },
+    {
+      "id": "Q18",
+      "question": "How do you configure zero-trust mTLS encryption between Kubernetes pods using Istio service mesh in Azure AKS?",
+      "category": "same_subject_missing_detail",
+      "max_dense_similarity": 0.5770640165982148,
+      "max_rerank_score": 0.00032557640224695206,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 25
+    },
+    {
+      "id": "Q19",
+      "question": "Could you clarify what the client decided during yesterday's budget meeting regarding the second phase?",
+      "category": "vague_unresolvable_followup",
+      "max_dense_similarity": 0.5945339798928363,
+      "max_rerank_score": 1.645044540055096e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 74
+    },
+    {
+      "id": "Q20",
+      "question": "Which of those two options did the team finally select after testing the initial prototype?",
+      "category": "vague_unresolvable_followup",
+      "max_dense_similarity": 0.5903524842687605,
+      "max_rerank_score": 5.276048614177853e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 77
+    }
+  ]
+}
