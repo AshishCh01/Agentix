@@ -1,0 +1,228 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "Retrieval Evaluation Dataset for Agentix RAG system (Issue #33)",
+    "evaluation_scope": {
+      "knowledge_base_id": "54335692-b9bd-4693-b074-5b536bdd51af",
+      "knowledge_base_name": "Cloud Computing Notes",
+      "user_id": "42e4af12-1cec-491d-9f83-08a11baaf9ec",
+      "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "document_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "total_chunks": 97
+    },
+    "total_questions": 20,
+    "total_answerable": 12,
+    "total_unanswerable": 8,
+    "target_hit_rate_metric": "Hit Rate@4"
+  },
+  "questions": [
+    {
+      "id": "Q01",
+      "question": "What middleware does grid computing typically rely on to coordinate resource sharing across administrative domains?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "dd082ba5-70d2-4ed3-b275-e14563cfe906"
+      ],
+      "expected_page": 1,
+      "source_passage": "Grid computing is a distributed computing paradigm that pools together the processing, storage, and network resources of geographically distributed, often heterogeneous and independently administered computers... and typically relies on middleware (e.g., Globus Toolkit) to coordinate resource sharing across administrative domains.",
+      "topic": "Grid Computing Middleware"
+    },
+    {
+      "id": "Q02",
+      "question": "From a business perspective, how does cloud computing transform IT spending on physical hardware into ongoing operational costs?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "bd9c492a-3b63-41d0-8670-fc35d8c37521"
+      ],
+      "expected_page": 1,
+      "source_passage": "Converts capital expenditure (CapEx) on hardware/infrastructure into operational expenditure (OpEx) — pay-as-you-go pricing. Faster time-to-market — new applications and services can be launched quickly without procurement/installation delays.",
+      "topic": "Business Perspective (CapEx to OpEx)"
+    },
+    {
+      "id": "Q03",
+      "question": "What deployment model combines two or more distinct cloud infrastructures to enable data portability and cloud bursting for load balancing?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "69080542-e0ab-4a8c-b1cf-9ecb794527fa"
+      ],
+      "expected_page": 1,
+      "source_passage": "| Hybrid Cloud | A composition of two or more distinct cloud infrastructures (private, community, or public) bound together by standardized technology enabling data/application portability (e.g., cloud bursting for load balancing). |",
+      "topic": "Hybrid Cloud Deployment"
+    },
+    {
+      "id": "Q04",
+      "question": "What role do Amazon Machine Images (AMIs) play in Amazon EC2 virtual server deployment?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "160f00be-5dd0-4efe-a0e3-ac5e2dc5475f"
+      ],
+      "expected_page": 1,
+      "source_passage": "Amazon EC2 is an Infrastructure-as-a-Service (IaaS) offering from Amazon Web Services (AWS) that provides resizable virtual server instances ('instances') in the cloud... Key features include Amazon Machine Images (AMIs) as instance templates, elastic scaling via Auto Scaling groups, multiple instance types optimized for compute/memory/storage-intensive workloads",
+      "topic": "Amazon EC2 AMIs"
+    },
+    {
+      "id": "Q05",
+      "question": "How does Google App Engine (GAE) handle application scaling and infrastructure management for developers?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "bfcd80c5-3887-4bb2-8fad-c6189410e469"
+      ],
+      "expected_page": 1,
+      "source_passage": "Google App Engine (GAE) is a fully managed Platform-as-a-Service (PaaS) offering that lets developers build and deploy applications on Google's infrastructure without managing the underlying servers. Developers write code in supported languages (Python, Java, Go, Node.js, etc.), and GAE automatically handles provisioning, scaling (including scaling to zero), load balancing, and patching.",
+      "topic": "Google App Engine PaaS"
+    },
+    {
+      "id": "Q06",
+      "question": "In the Platform as a Service (PaaS) model, what layers of the computing stack remain under the customer's direct management?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "39431cfd-70c2-42fb-bd28-437d94b2eb6c"
+      ],
+      "expected_page": 1,
+      "source_passage": "| PaaS (Platform as a Service) | A managed platform (runtime, OS, middleware) for developing/deploying applications | Application code and data only | Google App Engine, Azure App Service, Heroku |",
+      "topic": "PaaS Service Model Responsibilities"
+    },
+    {
+      "id": "Q07",
+      "question": "How does Service-Oriented Architecture (SOA) support composability and reuse when building complex cloud applications?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "c88a9c92-6103-4c4c-9960-00e7788ea7b0"
+      ],
+      "expected_page": 1,
+      "source_passage": "Reusability — common services (e.g., a payment-processing service) can be reused across multiple applications, reducing development effort. Interoperability — standard protocols (REST, SOAP, HTTP/JSON) allow heterogeneous cloud services and legacy systems to interoperate. Composability — complex cloud applications are composed ('orchestrated') from simpler, independently scalable services — closely related to today's microservices architecture.",
+      "topic": "Service-Oriented Architecture (SOA)"
+    },
+    {
+      "id": "Q08",
+      "question": "What is Information Life Cycle Management (ILM) in cloud computing, and how does it align storage policies with data value over time?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "234dd71c-1e44-406b-9337-9416fec79d16"
+      ],
+      "expected_page": 1,
+      "source_passage": "Information Life Cycle Management is a strategy for managing data throughout its useful life — from creation to eventual deletion — by aligning the storage, protection, and access policies applied to data with its changing business value and access frequency over time.",
+      "topic": "Information Life Cycle Management"
+    },
+    {
+      "id": "Q09",
+      "question": "How does Virtual Desktop Infrastructure (VDI) deliver user desktops from central datacenter servers to client endpoints?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "5432e401-9d6b-4052-aed0-f3e0a793759d"
+      ],
+      "expected_page": 1,
+      "source_passage": "Virtual Desktop Infrastructure is a technology that hosts desktop operating systems and applications as virtual machines on centralized servers (in a datacenter or cloud), streaming the desktop's display to end-user devices (thin clients, laptops, tablets) over the network, rather than running the OS locally.",
+      "topic": "Virtual Desktop Infrastructure"
+    },
+    {
+      "id": "Q10",
+      "question": "What is the primary difference between object storage and block storage in terms of data organization and access methods?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "b1dc4966-ef47-40e1-9dab-6f27e40f82a1"
+      ],
+      "expected_page": 1,
+      "source_passage": "Object storage — stores data as discrete objects with metadata, accessed via APIs (e.g., Amazon S3, Azure Blob Storage); ideal for unstructured data like images, videos, and backups, offering very high scalability and durability. Block storage — presents raw storage volumes (like a virtual hard disk) attached to virtual machines (e.g., Amazon EBS, Azure Managed Disks); used for databases and applications needing low-latency, high-performance storage.",
+      "topic": "Storage Cloud (Object vs Block)"
+    },
+    {
+      "id": "Q11",
+      "question": "Why is fault tolerance critical in cloud environments running on commodity hardware components?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "1fb3d24c-fb21-493e-9118-35cf7667bdbe"
+      ],
+      "expected_page": 1,
+      "source_passage": "Fault tolerance in cloud computing is the ability of a cloud-based system to continue operating correctly, without interruption or with only minimal degradation, even when one or more of its components (servers, storage devices, network links, or even entire datacenters) fail. It is essential because cloud environments run on large numbers of commodity hardware components, where individual failures are common and expected rather than exceptional.",
+      "topic": "Cloud Fault Tolerance"
+    },
+    {
+      "id": "Q12",
+      "question": "What is the key architectural difference between a Host-based VMM (Type 2 hypervisor) and a Native VMM (Bare-Metal Type 1 hypervisor)?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "c05fec4e-a861-440b-8de8-172412e735b1"
+      ],
+      "expected_page": 1,
+      "source_passage": "| Host-based VMM (Hosted Hypervisor) | Native VMM (Bare-Metal Hypervisor) |\n| A hypervisor (Type 2) that runs as an application on top of a conventional host operating system | A hypervisor (Type 1) that runs directly on the physical hardware, without a host OS underneath |",
+      "topic": "Hypervisor Architecture Types"
+    },
+    {
+      "id": "Q13",
+      "question": "What are the general stages involved in the Canny edge detector algorithm for computer vision?",
+      "answerable": false,
+      "unanswerable_category": "off_topic",
+      "reason": "The query asks about multi-stage edge detection (smoothing, gradient computation, non-maximum suppression, hysteresis thresholding) from computer vision, which belongs to an entirely separate subject area and is absent from this Cloud Computing knowledge base.",
+      "topic": "Off-Topic: Computer Vision Edge Detection"
+    },
+    {
+      "id": "Q14",
+      "question": "How do you calculate the intrinsic camera calibration matrix using planar checkerboard corners?",
+      "answerable": false,
+      "unanswerable_category": "off_topic",
+      "reason": "The query pertains to pinhole camera models, focal lengths, principal point coordinates, and homography calibration routines from optics and computer vision, none of which are discussed in this Cloud Computing corpus.",
+      "topic": "Off-Topic: Optical Camera Calibration"
+    },
+    {
+      "id": "Q15",
+      "question": "How does AWS Lambda mitigate cold start latency when initializing serverless microVMs in Firecracker?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "While Amazon Web Services is discussed at a high level (EC2, S3, EBS, RDS), low-level serverless execution details, Firecracker microVM snapshotting, and Lambda cold start latency mitigations are not present anywhere in these notes.",
+      "topic": "Same-Subject Missing: AWS Lambda Firecracker Internals"
+    },
+    {
+      "id": "Q16",
+      "question": "What are the quantum supremacy benchmark metrics for Google Quantum AI cloud processors?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "The document surveys Google App Engine and classical cloud utility models, but does not cover quantum computing architectures, qubit fidelities, or quantum supremacy benchmark experiments.",
+      "topic": "Same-Subject Missing: Quantum Cloud Computing"
+    },
+    {
+      "id": "Q17",
+      "question": "What are the exact spot instance discount percentages and interruption notice durations for GCP preemptible VMs?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "The notes discuss general elastic pricing and virtual machines, but do not contain detailed pricing tables, spot/preemptible discount ratios, or interruption notice durations for Google Cloud Platform.",
+      "topic": "Same-Subject Missing: GCP Preemptible VM Pricing"
+    },
+    {
+      "id": "Q18",
+      "question": "How do you configure zero-trust mTLS encryption between Kubernetes pods using Istio service mesh in Azure AKS?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "Azure and AKS are mentioned in a single summary sentence, but specific instructions, configuration manifests, or cryptographic details for zero-trust mTLS pod communication with Istio service mesh are not included.",
+      "topic": "Same-Subject Missing: Kubernetes Istio mTLS"
+    },
+    {
+      "id": "Q19",
+      "question": "Could you clarify what the client decided during yesterday's budget meeting regarding the second phase?",
+      "answerable": false,
+      "unanswerable_category": "vague_unresolvable_followup",
+      "reason": "The query relies entirely on unspecified external meeting context, past conversational turns, and ungrounded pronouns ('the client', 'yesterday\\'s budget meeting', 'the second phase') that cannot be resolved against the static document corpus.",
+      "topic": "Vague Follow-Up: External Meeting Context"
+    },
+    {
+      "id": "Q20",
+      "question": "Which of those two options did the team finally select after testing the initial prototype?",
+      "answerable": false,
+      "unanswerable_category": "vague_unresolvable_followup",
+      "reason": "The query contains ambiguous conversational references ('those two options', 'the team', 'initial prototype') with zero identifiable referents or semantic context within the indexed cloud computing document.",
+      "topic": "Vague Follow-Up: Prototype Options Selection"
+    }
+  ]
+}
