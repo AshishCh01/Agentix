@@ -1,0 +1,376 @@
+{
+  "timestamp": "2026-10-31T13:10:16.642908+00:00",
+  "total_questions": 30,
+  "total_answerable": 18,
+  "total_unanswerable": 12,
+  "strategies": {
+    "dense_only": {
+      "hits_at_1": 11,
+      "hit_rate_at_1": 0.6111,
+      "hit_rate_at_1_percentage": 61.11,
+      "hits": 18,
+      "hits_at_4": 18,
+      "total": 18,
+      "hit_rate_at_4": 1.0,
+      "hit_rate_percentage": 100.0,
+      "mrr_at_4": 0.787,
+      "ndcg_at_4": 0.8419,
+      "missed_question_ids": []
+    },
+    "sparse_only": {
+      "hits_at_1": 10,
+      "hit_rate_at_1": 0.5556,
+      "hit_rate_at_1_percentage": 55.56,
+      "hits": 14,
+      "hits_at_4": 14,
+      "total": 18,
+      "hit_rate_at_4": 0.7778,
+      "hit_rate_percentage": 77.78,
+      "mrr_at_4": 0.6389,
+      "ndcg_at_4": 0.6735,
+      "missed_question_ids": [
+        "Q10",
+        "Q13",
+        "Q14",
+        "Q17"
+      ]
+    },
+    "hybrid_rrf": {
+      "hits_at_1": 14,
+      "hit_rate_at_1": 0.7778,
+      "hit_rate_at_1_percentage": 77.78,
+      "hits": 17,
+      "hits_at_4": 17,
+      "total": 18,
+      "hit_rate_at_4": 0.9444,
+      "hit_rate_percentage": 94.44,
+      "mrr_at_4": 0.8519,
+      "ndcg_at_4": 0.8757,
+      "missed_question_ids": [
+        "Q13"
+      ]
+    },
+    "hybrid_rerank": {
+      "hits_at_1": 12,
+      "hit_rate_at_1": 0.6667,
+      "hit_rate_at_1_percentage": 66.67,
+      "hits": 17,
+      "hits_at_4": 17,
+      "total": 18,
+      "hit_rate_at_4": 0.9444,
+      "hit_rate_percentage": 94.44,
+      "mrr_at_4": 0.7778,
+      "ndcg_at_4": 0.8201,
+      "missed_question_ids": [
+        "Q14"
+      ]
+    }
+  },
+  "per_document_metrics": {
+    "607a4e68-8135-4686-a60b-5970d65fbada": {
+      "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "total_questions": 6,
+      "strategies": {
+        "dense_only": {
+          "hits_at_1": 3,
+          "hit_rate_at_1": 0.5,
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 0.75,
+          "ndcg_at_4": 0.8155,
+          "missed_question_ids": []
+        },
+        "sparse_only": {
+          "hits_at_1": 4,
+          "hit_rate_at_1": 0.6667,
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 0.75,
+          "ndcg_at_4": 0.8102,
+          "missed_question_ids": []
+        },
+        "hybrid_rrf": {
+          "hits_at_1": 6,
+          "hit_rate_at_1": 1.0,
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 1.0,
+          "ndcg_at_4": 1.0,
+          "missed_question_ids": []
+        },
+        "hybrid_rerank": {
+          "hits_at_1": 6,
+          "hit_rate_at_1": 1.0,
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 1.0,
+          "ndcg_at_4": 1.0,
+          "missed_question_ids": []
+        }
+      }
+    },
+    "927c37b8-4608-450d-9ff9-84cd52edeaa1": {
+      "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+      "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+      "total_questions": 6,
+      "strategies": {
+        "dense_only": {
+          "hits_at_1": 4,
+          "hit_rate_at_1": 0.6667,
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 0.7778,
+          "ndcg_at_4": 0.8333,
+          "missed_question_ids": []
+        },
+        "sparse_only": {
+          "hits_at_1": 3,
+          "hit_rate_at_1": 0.5,
+          "hits_at_4": 3,
+          "hit_rate_at_4": 0.5,
+          "mrr_at_4": 0.5,
+          "ndcg_at_4": 0.5,
+          "missed_question_ids": [
+            "Q13",
+            "Q14",
+            "Q17"
+          ]
+        },
+        "hybrid_rrf": {
+          "hits_at_1": 3,
+          "hit_rate_at_1": 0.5,
+          "hits_at_4": 5,
+          "hit_rate_at_4": 0.8333,
+          "mrr_at_4": 0.6389,
+          "ndcg_at_4": 0.6885,
+          "missed_question_ids": [
+            "Q13"
+          ]
+        },
+        "hybrid_rerank": {
+          "hits_at_1": 1,
+          "hit_rate_at_1": 0.1667,
+          "hits_at_4": 5,
+          "hit_rate_at_4": 0.8333,
+          "mrr_at_4": 0.4167,
+          "ndcg_at_4": 0.5218,
+          "missed_question_ids": [
+            "Q14"
+          ]
+        }
+      }
+    },
+    "f9ae765d-6b31-4bfe-8855-75d1627cd66f": {
+      "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+      "filename": "Computer_Vision_Notes_Module1_2.docx",
+      "total_questions": 6,
+      "strategies": {
+        "dense_only": {
+          "hits_at_1": 4,
+          "hit_rate_at_1": 0.6667,
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 0.8333,
+          "ndcg_at_4": 0.877,
+          "missed_question_ids": []
+        },
+        "sparse_only": {
+          "hits_at_1": 3,
+          "hit_rate_at_1": 0.5,
+          "hits_at_4": 5,
+          "hit_rate_at_4": 0.8333,
+          "mrr_at_4": 0.6667,
+          "ndcg_at_4": 0.7103,
+          "missed_question_ids": [
+            "Q10"
+          ]
+        },
+        "hybrid_rrf": {
+          "hits_at_1": 5,
+          "hit_rate_at_1": 0.8333,
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 0.9167,
+          "ndcg_at_4": 0.9385,
+          "missed_question_ids": []
+        },
+        "hybrid_rerank": {
+          "hits_at_1": 5,
+          "hit_rate_at_1": 0.8333,
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 0.9167,
+          "ndcg_at_4": 0.9385,
+          "missed_question_ids": []
+        }
+      }
+    }
+  },
+  "reranking_comparison": {
+    "improved_by_rerank": [
+      "Q13"
+    ],
+    "worsened_by_rerank": [
+      "Q14"
+    ],
+    "net_change": 0
+  },
+  "unanswerable_analysis": [
+    {
+      "id": "Q19",
+      "question": "What anatomical features differentiate Theropod dinosaur pelvic structures from Ornithischian dinosaurs in vertebrate paleontology?",
+      "category": "off_topic",
+      "max_dense_similarity": 0.5470006893870788,
+      "max_rerank_score": 1.8605202058097348e-05,
+      "top_candidate_filename": "Computer_Vision_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 14,
+      "retrieved_documents": [
+        "Computer_Vision_Notes_Module1_2.docx",
+        "Optimization_for_ML_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q20",
+      "question": "How does the Hatch-Slack C4 photosynthetic pathway spatially separate carbon fixation from the Calvin cycle in plant leaves?",
+      "category": "off_topic",
+      "max_dense_similarity": 0.543790599723183,
+      "max_rerank_score": 2.027963819273282e-05,
+      "top_candidate_filename": "Optimization_for_ML_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 64,
+      "retrieved_documents": [
+        "Optimization_for_ML_Notes_Module1_2.docx",
+        "Computer_Vision_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q21",
+      "question": "What seismic wave velocity anomalies characterize the boundary layer between the Earth's mantle and outer core at the D-double-prime discontinuity?",
+      "category": "off_topic",
+      "max_dense_similarity": 0.5636908964385965,
+      "max_rerank_score": 1.6875808796612546e-05,
+      "top_candidate_filename": "Optimization_for_ML_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 39,
+      "retrieved_documents": [
+        "Optimization_for_ML_Notes_Module1_2.docx",
+        "Computer_Vision_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q22",
+      "question": "How did 18th-century Baroque composers use invertible counterpoint and equal temperament tuning in polyphonic fugues?",
+      "category": "off_topic",
+      "max_dense_similarity": 0.5363845841290953,
+      "max_rerank_score": 1.7416608898201957e-05,
+      "top_candidate_filename": "Computer_Vision_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 47,
+      "retrieved_documents": [
+        "Computer_Vision_Notes_Module1_2.docx",
+        "Optimization_for_ML_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q23",
+      "question": "How do you configure eBPF kernel bypass programs in Cilium to replace kube-proxy iptables routing in Kubernetes clusters?",
+      "category": "same_subject_missing_detail",
+      "max_dense_similarity": 0.5562331940988872,
+      "max_rerank_score": 3.864624886773527e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 65,
+      "retrieved_documents": [
+        "Cloud_Computing_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q24",
+      "question": "What are the exact architectural modifications and loss functions used in the YOLOv10 dual-label assignment head for end-to-end NMS-free object detection?",
+      "category": "same_subject_missing_detail",
+      "max_dense_similarity": 0.5724317686300507,
+      "max_rerank_score": 0.00010136976925423369,
+      "top_candidate_filename": "Optimization_for_ML_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 52,
+      "retrieved_documents": [
+        "Optimization_for_ML_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q25",
+      "question": "What are the specific PyTorch Fully Sharded Data Parallel (FSDP) ZeRO-3 memory buffer management formulas for 70B parameter models?",
+      "category": "same_subject_missing_detail",
+      "max_dense_similarity": 0.5741462265574602,
+      "max_rerank_score": 4.56606358056888e-05,
+      "top_candidate_filename": "Optimization_for_ML_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 13,
+      "retrieved_documents": [
+        "Optimization_for_ML_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q26",
+      "question": "How do Neural Radiance Fields (NeRF) compute volume density gradients along camera rays using hierarchical stratified sampling?",
+      "category": "same_subject_missing_detail",
+      "max_dense_similarity": 0.6040211963906417,
+      "max_rerank_score": 0.00596019858494401,
+      "top_candidate_filename": "Computer_Vision_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 9,
+      "retrieved_documents": [
+        "Computer_Vision_Notes_Module1_2.docx",
+        "Optimization_for_ML_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q27",
+      "question": "Could you send over the updated figures and benchmark numbers from yesterday's second test run?",
+      "category": "vague_unresolvable_followup",
+      "max_dense_similarity": 0.5871536589540478,
+      "max_rerank_score": 1.737750426400453e-05,
+      "top_candidate_filename": "Optimization_for_ML_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 35,
+      "retrieved_documents": [
+        "Optimization_for_ML_Notes_Module1_2.docx",
+        "Cloud_Computing_Notes_Module1_2.docx",
+        "Computer_Vision_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q28",
+      "question": "Did the committee approve the revised proposal that was submitted before the end of the quarter?",
+      "category": "vague_unresolvable_followup",
+      "max_dense_similarity": 0.5902741687999924,
+      "max_rerank_score": 1.622711897653062e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 50,
+      "retrieved_documents": [
+        "Cloud_Computing_Notes_Module1_2.docx",
+        "Optimization_for_ML_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q29",
+      "question": "Which of those three recommendations should our engineering team prioritize for the sprint?",
+      "category": "vague_unresolvable_followup",
+      "max_dense_similarity": 0.5973952536472744,
+      "max_rerank_score": 1.656115273362957e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 72,
+      "retrieved_documents": [
+        "Cloud_Computing_Notes_Module1_2.docx",
+        "Computer_Vision_Notes_Module1_2.docx"
+      ]
+    },
+    {
+      "id": "Q30",
+      "question": "What was the final outcome after applying the workaround discussed in the previous section?",
+      "category": "vague_unresolvable_followup",
+      "max_dense_similarity": 0.6171158589764489,
+      "max_rerank_score": 5.4221331083681434e-05,
+      "top_candidate_filename": "Cloud_Computing_Notes_Module1_2.docx",
+      "top_candidate_chunk_index": 64,
+      "retrieved_documents": [
+        "Cloud_Computing_Notes_Module1_2.docx",
+        "Optimization_for_ML_Notes_Module1_2.docx",
+        "Computer_Vision_Notes_Module1_2.docx"
+      ]
+    }
+  ]
+}

@@ -445,3 +445,153 @@ def test_export_results_creates_files(tmp_path):
     assert report_file.is_file()
     assert summary_file.stat().st_size > 0
     assert report_file.stat().st_size > 0
+
+
+
+# ---------------------------------------------------------------------------
+# Multi-Document & Advanced Metric Tests (Hit Rate@1, MRR@4, nDCG@4, Per-Doc)
+# ---------------------------------------------------------------------------
+
+def test_calculate_metrics_advanced_rank_metrics():
+    """Verify exact calculation of Hit Rate@1, Hit Rate@4, MRR@4, and nDCG@4."""
+    eval_results = [
+        # Q1: Hit at Rank 1 (RR = 1.0, nDCG = 1.0)
+        {
+            "id": "Q01",
+            "answerable": True,
+            "expected_document_id": "doc-a",
+            "strategies": {
+                "dense_only": {
+                    "hit": True,
+                    "hit_at_1": True,
+                    "hit_at_4": True,
+                    "first_hit_rank": 1,
+                    "reciprocal_rank": 1.0,
+                    "ndcg": 1.0,
+                },
+                "sparse_only": {"hit": False, "hit_at_1": False, "hit_at_4": False, "reciprocal_rank": 0.0, "ndcg": 0.0},
+                "hybrid_rrf": {"hit": True, "hit_at_1": True, "hit_at_4": True, "reciprocal_rank": 1.0, "ndcg": 1.0},
+                "hybrid_rerank": {"hit": True, "hit_at_1": True, "hit_at_4": True, "reciprocal_rank": 1.0, "ndcg": 1.0},
+            },
+        },
+        # Q2: Hit at Rank 2 (RR = 0.5, nDCG = 1/log2(3) = 0.6309)
+        {
+            "id": "Q02",
+            "answerable": True,
+            "expected_document_id": "doc-b",
+            "strategies": {
+                "dense_only": {
+                    "hit": True,
+                    "hit_at_1": False,
+                    "hit_at_4": True,
+                    "first_hit_rank": 2,
+                    "reciprocal_rank": 0.5,
+                    "ndcg": 0.6309,
+                },
+                "sparse_only": {"hit": False, "hit_at_1": False, "hit_at_4": False, "reciprocal_rank": 0.0, "ndcg": 0.0},
+                "hybrid_rrf": {"hit": True, "hit_at_1": False, "hit_at_4": True, "reciprocal_rank": 0.5, "ndcg": 0.6309},
+                "hybrid_rerank": {"hit": True, "hit_at_1": True, "hit_at_4": True, "reciprocal_rank": 1.0, "ndcg": 1.0},
+            },
+        },
+        # Q3: Miss (not in top 4, RR = 0.0, nDCG = 0.0)
+        {
+            "id": "Q03",
+            "answerable": True,
+            "expected_document_id": "doc-a",
+            "strategies": {
+                "dense_only": {
+                    "hit": False,
+                    "hit_at_1": False,
+                    "hit_at_4": False,
+                    "first_hit_rank": None,
+                    "reciprocal_rank": 0.0,
+                    "ndcg": 0.0,
+                },
+                "sparse_only": {"hit": False, "hit_at_1": False, "hit_at_4": False, "reciprocal_rank": 0.0, "ndcg": 0.0},
+                "hybrid_rrf": {"hit": False, "hit_at_1": False, "hit_at_4": False, "reciprocal_rank": 0.0, "ndcg": 0.0},
+                "hybrid_rerank": {"hit": False, "hit_at_1": False, "hit_at_4": False, "reciprocal_rank": 0.0, "ndcg": 0.0},
+            },
+        },
+    ]
+
+    metrics = calculate_metrics(eval_results)
+    dense_m = metrics["strategies"]["dense_only"]
+    assert dense_m["hits_at_1"] == 1
+    assert dense_m["hit_rate_at_1"] == round(1 / 3, 4)
+    assert dense_m["hits_at_4"] == 2
+    assert dense_m["hit_rate_at_4"] == round(2 / 3, 4)
+    # MRR = (1.0 + 0.5 + 0.0) / 3 = 0.5
+    assert dense_m["mrr_at_4"] == 0.5
+    # nDCG = (1.0 + 0.6309 + 0.0) / 3 = 0.5436
+    assert abs(dense_m["ndcg_at_4"] - 0.5436) < 0.001
+
+
+def test_calculate_metrics_per_document_breakdown():
+    """Verify that per-document metrics cleanly isolate questions by document ID."""
+    eval_results = [
+        {
+            "id": "Q01",
+            "answerable": True,
+            "expected_document_id": "doc-cloud",
+            "strategies": {
+                "dense_only": {"hit_at_1": True, "hit_at_4": True, "reciprocal_rank": 1.0, "ndcg": 1.0, "retrieved": [{"document_id": "doc-cloud", "filename": "Cloud.docx"}]},
+                "sparse_only": {"hit_at_1": False, "hit_at_4": False, "reciprocal_rank": 0.0, "ndcg": 0.0, "retrieved": []},
+                "hybrid_rrf": {"hit_at_1": True, "hit_at_4": True, "reciprocal_rank": 1.0, "ndcg": 1.0, "retrieved": []},
+                "hybrid_rerank": {"hit_at_1": True, "hit_at_4": True, "reciprocal_rank": 1.0, "ndcg": 1.0, "retrieved": []},
+            },
+        },
+        {
+            "id": "Q02",
+            "answerable": True,
+            "expected_document_id": "doc-cv",
+            "strategies": {
+                "dense_only": {"hit_at_1": False, "hit_at_4": True, "reciprocal_rank": 0.5, "ndcg": 0.6309, "retrieved": [{"document_id": "doc-cv", "filename": "CV.docx"}]},
+                "sparse_only": {"hit_at_1": False, "hit_at_4": True, "reciprocal_rank": 0.5, "ndcg": 0.6309, "retrieved": []},
+                "hybrid_rrf": {"hit_at_1": False, "hit_at_4": True, "reciprocal_rank": 0.5, "ndcg": 0.6309, "retrieved": []},
+                "hybrid_rerank": {"hit_at_1": True, "hit_at_4": True, "reciprocal_rank": 1.0, "ndcg": 1.0, "retrieved": []},
+            },
+        },
+    ]
+
+    metrics = calculate_metrics(eval_results)
+    per_doc = metrics["per_document_metrics"]
+
+    assert "doc-cloud" in per_doc
+    assert "doc-cv" in per_doc
+    assert per_doc["doc-cloud"]["total_questions"] == 1
+    assert per_doc["doc-cloud"]["strategies"]["dense_only"]["hit_rate_at_1"] == 1.0
+    assert per_doc["doc-cloud"]["strategies"]["dense_only"]["hit_rate_at_4"] == 1.0
+
+    assert per_doc["doc-cv"]["total_questions"] == 1
+    assert per_doc["doc-cv"]["strategies"]["dense_only"]["hit_rate_at_1"] == 0.0
+    assert per_doc["doc-cv"]["strategies"]["dense_only"]["hit_rate_at_4"] == 1.0
+    assert per_doc["doc-cv"]["strategies"]["hybrid_rerank"]["hit_rate_at_1"] == 1.0
+
+
+def test_v2_dataset_schema_validation():
+    """Verify that retrieval_questions_v2.json exists, loads, and passes validation."""
+    v2_path = Path(__file__).resolve().parent.parent / "evaluation" / "retrieval_questions_v2.json"
+    assert v2_path.is_file(), f"retrieval_questions_v2.json not found at {v2_path}"
+
+    data = load_dataset(v2_path)
+    errors = validate_dataset(data)
+    assert errors == []
+
+    # Verify dataset proportions: 30 total, 18 answerable (6 per doc), 12 unanswerable
+    assert len(data["questions"]) == 30
+    answerable = [q for q in data["questions"] if q["answerable"]]
+    unanswerable = [q for q in data["questions"] if not q["answerable"]]
+    assert len(answerable) == 18
+    assert len(unanswerable) == 12
+
+    # Check unanswerable breakdown (4 off-topic, 4 same-subject missing, 4 vague)
+    categories = [q["unanswerable_category"] for q in unanswerable]
+    assert categories.count("off_topic") == 4
+    assert categories.count("same_subject_missing_detail") == 4
+    assert categories.count("vague_unresolvable_followup") == 4
+
+    # Check 3 documents represented with 6 questions each
+    docs = set(q["expected_document_id"] for q in answerable)
+    assert len(docs) == 3
+    for d in docs:
+        assert sum(1 for q in answerable if q["expected_document_id"] == d) == 6

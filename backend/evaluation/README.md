@@ -1,55 +1,59 @@
-# Retrieval Evaluation Dataset
+# Agentix Retrieval Evaluation Framework
 
-This dataset provides a rigorous, ground-truth evaluation benchmark for the Agentix RAG retrieval pipeline (Issue #33).
+This directory houses the ground-truth evaluation datasets, retrieval evaluation scripts, and experimental benchmarks for the Agentix RAG retrieval pipeline.
 
-## Evaluation Scope
+---
 
-* **Knowledge Base ID**: `54335692-b9bd-4693-b074-5b536bdd51af`
-* **Knowledge Base Name**: Cloud Computing Notes
-* **Owner User ID**: `42e4af12-1cec-491d-9f83-08a11baaf9ec`
-* **Document ID**: `607a4e68-8135-4686-a60b-5970d65fbada`
-* **Document Filename**: `Cloud_Computing_Notes_Module1_2.docx`
-* **Total Chunks in Corpus**: 97 chunks (`chunk_index` 0 to 96)
-* **Embedding Model**: `gemini-embedding-2` (2000 dimensions, truncated for pgvector HNSW index)
-* **Full-Text Tokenizer**: PostgreSQL `tsvector` (`to_tsvector('english', content)`) with GIN index
+## Evaluation Datasets
 
-### Selection Rationale
-The `Cloud Computing Notes` knowledge base was chosen because it represents a complete, high-quality development corpus containing 97 well-structured chunks spanning foundational distributed computing concepts, NIST definitions, cloud service models (IaaS/PaaS/SaaS), architecture paradigms (SOA, Cloud Stack, VDI, Storage), fault tolerance, and hypervisor architectures. It provides diverse lexical and semantic variety suitable for testing dense vector search, sparse keyword matching, reciprocal rank fusion, and cross-encoder reranking.
+### Version 1: `retrieval_questions.json` (Single-Document Baseline)
+* **Scope**: Knowledge Base `Cloud Computing Notes` (`54335692-b9bd-4693-b074-5b536bdd51af`), single document `Cloud_Computing_Notes_Module1_2.docx` (`607a4e68-8135-4686-a60b-5970d65fbada`).
+* **Total Chunks**: 97 chunks.
+* **Total Questions**: 20 (12 Answerable, 8 Unanswerable).
+* **Unanswerable Breakdown**: 2 Off-Topic (CV), 4 Same-Subject Missing Details, 2 Vague Follow-ups.
+* **Benchmark Results**: Baseline Hit Rate@4 = 100.0% across all strategies.
 
-## Dataset Composition
+### Version 2: `retrieval_questions_v2.json` (Multi-Document Corpus Expansion)
+* **Scope**: Knowledge Base `Cloud Computing Notes` (`54335692-b9bd-4693-b074-5b536bdd51af`), containing 3 distinct syllabus documents:
+  1. `Cloud_Computing_Notes_Module1_2.docx` (`607a4e68-8135-4686-a60b-5970d65fbada`, 97 chunks)
+  2. `Computer_Vision_Notes_Module1_2.docx` (`f9ae765d-6b31-4bfe-8855-75d1627cd66f`, 72 chunks)
+  3. `Optimization_for_ML_Notes_Module1_2.docx` (`927c37b8-4608-450d-9ff9-84cd52edeaa1`, 77 chunks)
+* **Total Chunks**: 246 chunks (`chunk_index` 0 to 245 across 3 documents).
+* **Total Questions**: 30 questions:
+  * **18 Answerable Questions**: Exactly 6 grounded in each of the three documents (Q01–Q18).
+  * **12 Unanswerable Questions**: 4 Off-Topic, 4 Same-Subject Missing Details, 4 Vague Follow-ups (Q19–Q30).
+  * **Grounding Guarantee**: Every answerable question is mapped to verified document IDs, chunk IDs, page numbers, and source excerpts. Every unanswerable question has been verified to lack supporting evidence across all three documents.
 
-The dataset comprises **20 questions** in total:
+---
 
-### 1. Answerable Questions (12 items: Q01 – Q12)
-Every answerable question is strictly grounded in an actual indexed chunk from the development database:
-* **Direct Lexical Queries**: Target specific terminology (e.g., Globus Toolkit in Grid Computing, Amazon Machine Images).
-* **Paraphrased Conceptual Queries**: Rephrase underlying concepts without verbatim keyword copying (e.g., CapEx to OpEx business shift, VDI desktop streaming).
-* **Semantic & Multi-Aspect Queries**: Require semantic understanding of definitions, architectural boundaries, and comparisons (e.g., PaaS customer management boundaries, Type 1 vs. Type 2 hypervisors, Object vs. Block storage).
+## Evaluation Metrics
 
-Each answerable record includes:
-* `id`: Unique identifier (e.g., `Q01`)
-* `question`: Evaluation query string
-* `answerable`: `true`
-* `expected_document_id`: Target document UUID
-* `expected_chunk_ids`: List of verified ground-truth chunk UUIDs
-* `expected_page`: Document page reference (where available)
-* `source_passage`: Verbatim excerpt from the indexed chunk confirming the answer
+1. **Hit Rate@1**: Proportion of queries where a ground-truth chunk is retrieved at rank #1.
+2. **Hit Rate@4**: Proportion of queries where at least one ground-truth chunk appears within top 4 retrieved results.
+3. **MRR@4 (Mean Reciprocal Rank @ 4)**: Reciprocal rank ($1 / \text{rank}$) of the first retrieved ground-truth chunk within top 4 ($0.0$ if unretrieved in top 4).
+4. **nDCG@4 (Normalized Discounted Cumulative Gain @ 4)**: Graded position discounting ($\sum \frac{\text{rel}_i}{\log_2(i + 1)} / \text{IDCG}$) evaluating rank quality within top 4.
+5. **Per-Document Performance Breakdown**: Separate evaluation metrics for each document in the multi-document corpus.
+6. **Hallucination Risk & Unanswerable Score Tracking**: Analysis of maximum dense similarity and cross-encoder reranker confidence on unanswerable queries.
 
-### 2. Unanswerable Questions (8 items: Q13 – Q20)
-Used to evaluate retrieval behavior when user queries cannot or should not be satisfied by the indexed corpus:
-* **Off-Topic Questions (Q13 – Q14)**: Topics entirely outside the domain (e.g., Computer Vision Canny edge detection, camera calibration matrix).
-* **Same-Subject Missing Detail (Q15 – Q18)**: Questions within the cloud computing domain whose specific answers are absent from this syllabus document (e.g., AWS Lambda Firecracker cold starts, Google Quantum AI benchmarks, GCP preemptible VM discount tables, Kubernetes Istio mTLS manifests).
-* **Vague / Unresolvable Follow-Ups (Q19 – Q20)**: Queries relying on ambiguous pronouns and ungrounded external meeting context.
+---
 
-Each unanswerable record includes:
-* `id`: Unique identifier (e.g., `Q13`)
-* `question`: Evaluation query string
-* `answerable`: `false`
-* `unanswerable_category`: `off_topic` | `same_subject_missing_detail` | `vague_unresolvable_followup`
-* `reason`: Concrete justification for why the document does not answer the question
+## Running the Evaluation
 
-## Target Evaluation Metric
+To evaluate against the expanded multi-document corpus:
 
-* **Primary Metric**: **Hit Rate@4** for answerable questions.
-  * A query is marked as a **Hit** if at least one expected chunk appears within the **top 4 retrieved results**.
-  * Unanswerable queries are reported separately and do not count as positive hits.
+```bash
+cd backend
+python scripts/eval_retrieval.py --dataset evaluation/retrieval_questions_v2.json --output-dir evaluation/results/expanded_corpus_v2
+```
+
+To evaluate the Version 1 dataset against the expanded corpus for comparison:
+
+```bash
+cd backend
+python scripts/eval_retrieval.py --dataset evaluation/retrieval_questions.json --output-dir evaluation/results/v1_on_expanded_corpus
+```
+
+Results are exported to:
+* `eval_summary.json`: High-level metric summary, per-document breakdowns, and reranker comparisons.
+* `eval_detailed_results.json`: Complete ranking outputs for every query and strategy (`dense_rank`, `sparse_rank`, `rrf_score`, `rerank_score`, `strategy_rank`).
+* `retrieval_eval_report.md`: Comprehensive Markdown report comparing baseline single-doc, V1 expanded, and V2 expanded runs.
