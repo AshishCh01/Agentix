@@ -21,6 +21,7 @@ from scripts.eval_retrieval import (
     fetch_retrieval_candidates,
     compute_ranked_metrics,
     normalize_evidence_sets,
+    annotate_candidate_hits,
 )
 
 
@@ -805,6 +806,10 @@ def test_dynamic_report_statistics_and_terminology():
     # Balanced reranker claim
     assert "not a universal improvement across all corpus types" in report
 
+    # Sparse FTS terminology check
+    assert "Sparse PostgreSQL FTS (ts_rank_cd)" in report
+    assert "Sparse BM25/FTS" not in report
+
     # Per-document table contains Hit@1 and MRR@4 headers
     assert "Dense Hit@1 (Hit@4)" in report
     assert "RRF MRR@4" in report
@@ -817,20 +822,121 @@ def test_dynamic_report_statistics_and_terminology():
 
 
 def test_v2_q14_evidence_set_validation():
-    """Verify that Q14 ground-truth correctly defines alternative multi-chunk and single-chunk evidence sets."""
+    """Verify that Q14 ground-truth defines Chunk 22 as the simplified independent sufficient evidence set."""
     v2_path = Path(__file__).resolve().parent.parent / "evaluation" / "retrieval_questions_v2.json"
     data = load_dataset(v2_path)
     q14 = next(q for q in data["questions"] if q["id"] == "Q14")
 
-    # Both chunks must be indexed in expected_chunk_ids
-    chunk_21 = "1940a3fe-484e-49c3-bbdb-be2524d0dc10"
     chunk_22 = "1e9c01e2-0966-4985-874c-0d46d12d83d9"
-    assert chunk_21 in q14["expected_chunk_ids"]
-    assert chunk_22 in q14["expected_chunk_ids"]
+    chunk_21 = "1940a3fe-484e-49c3-bbdb-be2524d0dc10"
+    # Chunk 22 independently satisfies the question; redundant combined alternative is removed
+    assert q14["expected_chunk_ids"] == [chunk_22]
+    assert chunk_21 not in q14["expected_chunk_ids"]
 
     # Verify expected_evidence_sets structure
     assert "expected_evidence_sets" in q14
     ev_sets = q14["expected_evidence_sets"]
-    assert len(ev_sets) == 2
-    assert [chunk_22] in ev_sets
-    assert [chunk_21, chunk_22] in ev_sets
+    assert ev_sets == [[chunk_22]]
+    assert "independently answers" in q14["source_passage"]
+
+
+def test_annotate_candidate_hits_complete_evidence_semantics():
+    """
+    Verify that candidate-level is_hit strictly adheres to complete-evidence-set semantics:
+    - Partial retrieval of a multi-chunk evidence set does NOT mark individual candidates as hits.
+    - Complete retrieval of a multi-chunk evidence set marks all member candidates as hits.
+    - Single-chunk evidence marks retrieved chunk as hit.
+    - Alternative evidence sets only mark chunks belonging to fully completed sets.
+    - Unanswerable queries have is_hit=False for all candidates.
+    - Candidates outside top_k cutoff are never marked as hits.
+    - any(c['is_hit'] for c in retrieved[:top_k]) is strictly consistent with hit_at_4.
+    """
+    # Scenario 1: Partial multi-chunk retrieval
+    # Required evidence: {c1, c2}. Retrieved in top 4: c1 only.
+    cands_partial = [
+        {"chunk_id": "c1", "content": "part 1"},
+        {"chunk_id": "cx", "content": "irrelevant"},
+        {"chunk_id": "cy", "content": "irrelevant"},
+        {"chunk_id": "cz", "content": "irrelevant"},
+    ]
+    annotate_candidate_hits(
+        cands_partial,
+        expected_evidence_sets=[["c1", "c2"]],
+        top_k=4,
+        is_answerable=True,
+    )
+    _, hit_at_4, _, _, _ = compute_ranked_metrics(
+        cands_partial,
+        expected_evidence_sets=[["c1", "c2"]],
+        top_k=4,
+    )
+    assert not hit_at_4
+    assert not cands_partial[0]["is_hit"], "Partial evidence chunk c1 must NOT be marked is_hit"
+    assert not any(c["is_hit"] for c in cands_partial)
+
+    # Scenario 2: Complete multi-chunk retrieval
+    # Required evidence: {c1, c2}. Both retrieved in top 4.
+    cands_complete = [
+        {"chunk_id": "c1", "content": "part 1"},
+        {"chunk_id": "cx", "content": "irrelevant"},
+        {"chunk_id": "c2", "content": "part 2"},
+        {"chunk_id": "cy", "content": "irrelevant"},
+    ]
+    annotate_candidate_hits(
+        cands_complete,
+        expected_evidence_sets=[["c1", "c2"]],
+        top_k=4,
+        is_answerable=True,
+    )
+    _, hit_at_4, _, _, _ = compute_ranked_metrics(
+        cands_complete,
+        expected_evidence_sets=[["c1", "c2"]],
+        top_k=4,
+    )
+    assert hit_at_4
+    assert cands_complete[0]["is_hit"] is True
+    assert cands_complete[1]["is_hit"] is False
+    assert cands_complete[2]["is_hit"] is True
+    assert cands_complete[3]["is_hit"] is False
+
+    # Scenario 3: Alternative sets: {c1} complete, {c2, c3} incomplete
+    cands_alt = [
+        {"chunk_id": "cx", "content": "irrelevant"},
+        {"chunk_id": "c2", "content": "part of incomplete set"},
+        {"chunk_id": "c1", "content": "sufficient alone"},
+        {"chunk_id": "cy", "content": "irrelevant"},
+    ]
+    annotate_candidate_hits(
+        cands_alt,
+        expected_evidence_sets=[["c1"], ["c2", "c3"]],
+        top_k=4,
+        is_answerable=True,
+    )
+    assert cands_alt[2]["is_hit"] is True, "c1 is part of completed set {c1}"
+    assert cands_alt[1]["is_hit"] is False, "c2 is part of incomplete set {c2, c3} and must NOT be marked is_hit"
+    assert cands_alt[0]["is_hit"] is False
+    assert cands_alt[3]["is_hit"] is False
+
+    # Scenario 4: Candidate outside top_k cutoff
+    cands_cutoff = [
+        {"chunk_id": "cx"}, {"chunk_id": "cy"}, {"chunk_id": "cz"}, {"chunk_id": "cw"},
+        {"chunk_id": "c1"},
+    ]
+    annotate_candidate_hits(
+        cands_cutoff,
+        expected_evidence_sets=[["c1"]],
+        top_k=4,
+        is_answerable=True,
+    )
+    assert cands_cutoff[4]["is_hit"] is False
+    assert cands_cutoff[4]["strategy_rank"] == 5
+
+    # Scenario 5: Unanswerable query
+    cands_unans = [{"chunk_id": "c1"}, {"chunk_id": "c2"}]
+    annotate_candidate_hits(
+        cands_unans,
+        expected_evidence_sets=[["c1"]],
+        top_k=4,
+        is_answerable=False,
+    )
+    assert not any(c["is_hit"] for c in cands_unans)

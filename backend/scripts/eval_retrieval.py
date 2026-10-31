@@ -339,6 +339,42 @@ def compute_ranked_metrics(
     return hit_at_1, hit_at_4, first_hit_rank, rr, binary_ndcg
 
 
+def annotate_candidate_hits(
+    retrieved: List[Dict[str, Any]],
+    expected_evidence_sets: Optional[List[List[str]]] = None,
+    expected_chunks: Optional[Set[str] | List[str]] = None,
+    top_k: int = 4,
+    is_answerable: bool = True,
+) -> None:
+    """
+    Annotates each candidate in retrieved with 1-based strategy_rank and is_hit flag.
+    Adheres strictly to complete-evidence-set semantics:
+    - If unanswerable, is_hit is always False.
+    - If answerable, a candidate within top_k is marked is_hit=True if and only if
+      it belongs to at least one evidence set that is completely satisfied within retrieved[:top_k].
+    - Candidates belonging to only partially retrieved multi-chunk sets are NOT marked as hits.
+    - Candidates outside top_k cutoff are not hits.
+    """
+    if not is_answerable:
+        for idx, c in enumerate(retrieved):
+            c["strategy_rank"] = idx + 1
+            c["is_hit"] = False
+        return
+
+    evidence_sets = normalize_evidence_sets(expected_evidence_sets, expected_chunks)
+    top_chunks = {c.get("chunk_id") for c in retrieved[:top_k] if c.get("chunk_id")}
+
+    completed_hit_chunks: Set[str] = set()
+    for s in evidence_sets:
+        if s and s.issubset(top_chunks):
+            completed_hit_chunks.update(s)
+
+    for idx, c in enumerate(retrieved):
+        c["strategy_rank"] = idx + 1
+        cid = c.get("chunk_id")
+        c["is_hit"] = bool(idx < top_k and cid in completed_hit_chunks)
+
+
 async def evaluate_query(
     db: AsyncSession,
     query_item: Dict[str, Any],
@@ -374,9 +410,9 @@ async def evaluate_query(
     dense_candidates = [c for c in candidates if c["dense_rank"] is not None]
     dense_candidates.sort(key=lambda x: x["dense_rank"])
     dense_top = [dict(c) for c in dense_candidates[:top_k]]
-    for idx, c in enumerate(dense_top):
-        c["strategy_rank"] = idx + 1
-        c["is_hit"] = c["chunk_id"] in all_expected_chunks if is_answerable else False
+    annotate_candidate_hits(
+        dense_top, expected_evidence_sets=evidence_sets, expected_chunks=all_expected_chunks, top_k=top_k, is_answerable=is_answerable
+    )
     d_h1, d_h4, d_rank, d_rr, d_ndcg = compute_ranked_metrics(
         dense_top, expected_chunks=all_expected_chunks, top_k=top_k, expected_evidence_sets=evidence_sets
     ) if is_answerable else (False, False, None, 0.0, 0.0)
@@ -385,9 +421,9 @@ async def evaluate_query(
     sparse_candidates = [c for c in candidates if c["sparse_rank"] is not None]
     sparse_candidates.sort(key=lambda x: x["sparse_rank"])
     sparse_top = [dict(c) for c in sparse_candidates[:top_k]]
-    for idx, c in enumerate(sparse_top):
-        c["strategy_rank"] = idx + 1
-        c["is_hit"] = c["chunk_id"] in all_expected_chunks if is_answerable else False
+    annotate_candidate_hits(
+        sparse_top, expected_evidence_sets=evidence_sets, expected_chunks=all_expected_chunks, top_k=top_k, is_answerable=is_answerable
+    )
     s_h1, s_h4, s_rank, s_rr, s_ndcg = compute_ranked_metrics(
         sparse_top, expected_chunks=all_expected_chunks, top_k=top_k, expected_evidence_sets=evidence_sets
     ) if is_answerable else (False, False, None, 0.0, 0.0)
@@ -395,9 +431,9 @@ async def evaluate_query(
     # 3. Strategy: Hybrid RRF
     hybrid_candidates = sorted(candidates, key=lambda x: x["rrf_score"], reverse=True)
     hybrid_top = [dict(c) for c in hybrid_candidates[:top_k]]
-    for idx, c in enumerate(hybrid_top):
-        c["strategy_rank"] = idx + 1
-        c["is_hit"] = c["chunk_id"] in all_expected_chunks if is_answerable else False
+    annotate_candidate_hits(
+        hybrid_top, expected_evidence_sets=evidence_sets, expected_chunks=all_expected_chunks, top_k=top_k, is_answerable=is_answerable
+    )
     h_h1, h_h4, h_rank, h_rr, h_ndcg = compute_ranked_metrics(
         hybrid_top, expected_chunks=all_expected_chunks, top_k=top_k, expected_evidence_sets=evidence_sets
     ) if is_answerable else (False, False, None, 0.0, 0.0)
@@ -409,9 +445,9 @@ async def evaluate_query(
     else:
         reranked_pool = []
     rerank_top = [dict(c) for c in reranked_pool[:top_k]]
-    for idx, c in enumerate(rerank_top):
-        c["strategy_rank"] = idx + 1
-        c["is_hit"] = c["chunk_id"] in all_expected_chunks if is_answerable else False
+    annotate_candidate_hits(
+        rerank_top, expected_evidence_sets=evidence_sets, expected_chunks=all_expected_chunks, top_k=top_k, is_answerable=is_answerable
+    )
     r_h1, r_h4, r_rank, r_rr, r_ndcg = compute_ranked_metrics(
         rerank_top, expected_chunks=all_expected_chunks, top_k=top_k, expected_evidence_sets=evidence_sets
     ) if is_answerable else (False, False, None, 0.0, 0.0)
@@ -869,7 +905,7 @@ def generate_markdown_report(
         "",
         "1. **Corpus Expansion Impact**: Expanding from a single document (97 chunks) to three distinct technical documents (246 chunks) introduces inter-document competition across shared terminology (e.g., 'optimization', 'clustering', 'filtering', 'scaling').",
         "2. **Cross-Document Distraction Defense**: Dense embeddings effectively cluster queries into the correct sub-space (Cloud Computing vs Computer Vision vs Optimization for ML). Zero cross-document document mismatches were observed for answerable queries in the top rank.",
-        "3. **Sparse Retrieval Sensitivity**: Sparse BM25/FTS remains brittle when user queries use synonyms or high-level formulations, but provides essential anchoring when exact mathematical or technical terminology (e.g., 'Zhang\\'s method', 'L-BFGS', 'Slater\\'s condition') is queried.",
+        "3. **Sparse Retrieval Sensitivity**: Sparse PostgreSQL FTS (ts_rank_cd) remains brittle when user queries use synonyms or high-level formulations, but provides essential anchoring when exact mathematical or technical terminology (e.g., 'Zhang\\'s method', 'L-BFGS', 'Slater\\'s condition') is queried.",
         "4. **Hybrid RRF Complementarity**: RRF smoothly bridges semantic understanding and exact lexical matching across documents, consistently matching or beating individual pipelines.",
         f"5. **Cross-Encoder Score Discrimination**: Unanswerable queries yield substantially lower cross-encoder scores (mean: {mean_unans:.6f}, max: {max_unans:.6f}; off-topic mean: {mean_off_topic:.6f}) than answerable queries (mean: {mean_ans:.4f}, min: {min_ans:.4f}), establishing an empirical separation margin of {separation_margin:.4f} as an effective gating signal for Issue #9's relevance thresholding.",
         "",

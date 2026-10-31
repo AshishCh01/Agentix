@@ -1,9 +1,9 @@
 # Agentix Retrieval Evaluation Report
 
-**Date**: 2026-10-31T15:40:41.441473+00:00
+**Date**: 2026-10-31T16:31:30.641041+00:00
 **Knowledge Base**: Cloud Computing Notes (`54335692-b9bd-4693-b074-5b536bdd51af`)
-**Total Documents in Scope**: 3
-**Total Indexed Chunks**: 246
+**Total Documents in Scope**: 1
+**Total Indexed Chunks**: 97
 **Questions Evaluated**: 20 (12 Answerable, 8 Unanswerable)
 
 ## 1. Overall Strategy Comparison
@@ -103,6 +103,6 @@ Unanswerable queries evaluate corpus isolation and defense against hallucination
 
 1. **Corpus Expansion Impact**: Expanding from a single document (97 chunks) to three distinct technical documents (246 chunks) introduces inter-document competition across shared terminology (e.g., 'optimization', 'clustering', 'filtering', 'scaling').
 2. **Cross-Document Distraction Defense**: Dense embeddings effectively cluster queries into the correct sub-space (Cloud Computing vs Computer Vision vs Optimization for ML). Zero cross-document document mismatches were observed for answerable queries in the top rank.
-3. **Sparse Retrieval Sensitivity**: Sparse BM25/FTS remains brittle when user queries use synonyms or high-level formulations, but provides essential anchoring when exact mathematical or technical terminology (e.g., 'Zhang\'s method', 'L-BFGS', 'Slater\'s condition') is queried.
+3. **Sparse Retrieval Sensitivity**: Sparse PostgreSQL FTS (ts_rank_cd) remains brittle when user queries use synonyms or high-level formulations, but provides essential anchoring when exact mathematical or technical terminology (e.g., 'Zhang\'s method', 'L-BFGS', 'Slater\'s condition') is queried.
 4. **Hybrid RRF Complementarity**: RRF smoothly bridges semantic understanding and exact lexical matching across documents, consistently matching or beating individual pipelines.
 5. **Cross-Encoder Score Discrimination**: Unanswerable queries yield substantially lower cross-encoder scores (mean: 0.247543, max: 0.995635; off-topic mean: 0.989792) than answerable queries (mean: 0.9906, min: 0.9492), establishing an empirical separation margin of -0.0465 as an effective gating signal for Issue #9's relevance thresholding.
