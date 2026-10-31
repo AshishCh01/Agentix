@@ -33,7 +33,7 @@
       "Hit Rate@1",
       "Hit Rate@4",
       "MRR@4",
-      "nDCG@4"
+      "Binary nDCG@4"
     ]
   },
   "questions": [
@@ -199,11 +199,16 @@
       "answerable": true,
       "expected_document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
       "expected_chunk_ids": [
-        "1940a3fe-484e-49c3-bbdb-be2524d0dc10"
+        "1e9c01e2-0966-4985-874c-0d46d12d83d9"
       ],
       "expected_page": 1,
-      "source_passage": "For convex problems, every local minimum is also global. 2.2 Convexity... A function f: ℝⁿ → ℝ is convex if its domain is convex and for all x, y in the domain and λ ∈ [0,1]: f(λx + (1−λ)y) ≤ λf(x) + (1−λ)f(y)",
-      "topic": "Convex Function Definition and Global Optimality"
+      "source_passage": "Chunk 22 contains the core mathematical inequality f(λx + (1−λ)y) ≤ λf(x) + (1−λ)f(y) and the explicit subsection 'Why Convexity Matters: Any local minimum of a convex function is automatically a global minimum — this makes optimization tractable and guarantees convergence to the true optimum for many algorithms.' This passage independently answers both the mathematical definition and the desirability of local minima in convex optimization.",
+      "topic": "Convex Function Definition and Global Optimality",
+      "expected_evidence_sets": [
+        [
+          "1e9c01e2-0966-4985-874c-0d46d12d83d9"
+        ]
+      ]
     },
     {
       "id": "Q15",

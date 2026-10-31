@@ -28,12 +28,15 @@ This directory houses the ground-truth evaluation datasets, retrieval evaluation
 
 ## Evaluation Metrics
 
-1. **Hit Rate@1**: Proportion of queries where a ground-truth chunk is retrieved at rank #1.
-2. **Hit Rate@4**: Proportion of queries where at least one ground-truth chunk appears within top 4 retrieved results.
-3. **MRR@4 (Mean Reciprocal Rank @ 4)**: Reciprocal rank ($1 / \text{rank}$) of the first retrieved ground-truth chunk within top 4 ($0.0$ if unretrieved in top 4).
-4. **nDCG@4 (Normalized Discounted Cumulative Gain @ 4)**: Graded position discounting ($\sum \frac{\text{rel}_i}{\log_2(i + 1)} / \text{IDCG}$) evaluating rank quality within top 4.
-5. **Per-Document Performance Breakdown**: Separate evaluation metrics for each document in the multi-document corpus.
-6. **Hallucination Risk & Unanswerable Score Tracking**: Analysis of maximum dense similarity and cross-encoder reranker confidence on unanswerable queries.
+1. **Hit Rate@1**: Proportion of queries where a complete ground-truth evidence set is retrieved at rank #1.
+2. **Hit Rate@4**: Proportion of queries where a complete ground-truth evidence set appears within the top 4 retrieved results.
+3. **MRR@4 (Mean Reciprocal Rank @ 4)**: Reciprocal rank ($1 / \text{rank}$) of the completed ground-truth evidence set within top 4 ($0.0$ if unretrieved in top 4).
+4. **Binary nDCG@4 (Normalized Discounted Cumulative Gain @ 4)**: Binary relevance position discounting ($1.0 / \log_2(\text{rank} + 1)$ for rank $\le 4$, with $\text{IDCG}=1.0$) evaluating rank quality within top 4.
+5. **Alternative & Multi-Chunk Evidence Sets**: Queries support `expected_evidence_sets`:
+   * **Multi-chunk sets**: When a question requires multiple distinct passages to be answered completely, completion rank is $\max_{c \in S} \text{rank}(c)$. Partial retrieval of the set does not count as a hit.
+   * **Alternative sets**: When multiple different chunks or chunk combinations can independently answer the question, the overall completion rank is $\min_{S \text{ completed}} \text{rank}(S)$.
+6. **Per-Document Performance Breakdown**: Separate evaluation metrics for each document in the multi-document corpus.
+7. **Empirical Reranker Confidence & Unanswerable Score Tracking**: Analysis of maximum dense similarity and cross-encoder reranker confidence scores on unanswerable queries. Note that sigmoid-transformed cross-encoder logits are empirical monotonic scores for ranking, not calibrated posterior probabilities of answerability.
 
 ---
 

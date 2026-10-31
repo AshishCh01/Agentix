@@ -1,51 +1,53 @@
 {
-  "timestamp": "2026-10-31T13:10:16.642908+00:00",
+  "timestamp": "2026-10-31T16:29:09.836710+00:00",
   "total_questions": 30,
   "total_answerable": 18,
   "total_unanswerable": 12,
   "strategies": {
     "dense_only": {
-      "hits_at_1": 11,
-      "hit_rate_at_1": 0.6111,
-      "hit_rate_at_1_percentage": 61.11,
+      "hits_at_1": 10,
+      "hit_rate_at_1": 0.5556,
+      "hit_rate_at_1_percentage": 55.56,
       "hits": 18,
       "hits_at_4": 18,
       "total": 18,
       "hit_rate_at_4": 1.0,
       "hit_rate_percentage": 100.0,
-      "mrr_at_4": 0.787,
-      "ndcg_at_4": 0.8419,
+      "mrr_at_4": 0.7593,
+      "ndcg_at_4": 0.8214,
+      "binary_ndcg_at_4": 0.8214,
       "missed_question_ids": []
     },
     "sparse_only": {
-      "hits_at_1": 10,
-      "hit_rate_at_1": 0.5556,
-      "hit_rate_at_1_percentage": 55.56,
-      "hits": 14,
-      "hits_at_4": 14,
+      "hits_at_1": 11,
+      "hit_rate_at_1": 0.6111,
+      "hit_rate_at_1_percentage": 61.11,
+      "hits": 15,
+      "hits_at_4": 15,
       "total": 18,
-      "hit_rate_at_4": 0.7778,
-      "hit_rate_percentage": 77.78,
-      "mrr_at_4": 0.6389,
-      "ndcg_at_4": 0.6735,
+      "hit_rate_at_4": 0.8333,
+      "hit_rate_percentage": 83.33,
+      "mrr_at_4": 0.6944,
+      "ndcg_at_4": 0.7291,
+      "binary_ndcg_at_4": 0.7291,
       "missed_question_ids": [
         "Q10",
         "Q13",
-        "Q14",
         "Q17"
       ]
     },
     "hybrid_rrf": {
-      "hits_at_1": 14,
-      "hit_rate_at_1": 0.7778,
-      "hit_rate_at_1_percentage": 77.78,
+      "hits_at_1": 15,
+      "hit_rate_at_1": 0.8333,
+      "hit_rate_at_1_percentage": 83.33,
       "hits": 17,
       "hits_at_4": 17,
       "total": 18,
       "hit_rate_at_4": 0.9444,
       "hit_rate_percentage": 94.44,
-      "mrr_at_4": 0.8519,
-      "ndcg_at_4": 0.8757,
+      "mrr_at_4": 0.8796,
+      "ndcg_at_4": 0.8962,
+      "binary_ndcg_at_4": 0.8962,
       "missed_question_ids": [
         "Q13"
       ]
@@ -54,16 +56,15 @@
       "hits_at_1": 12,
       "hit_rate_at_1": 0.6667,
       "hit_rate_at_1_percentage": 66.67,
-      "hits": 17,
-      "hits_at_4": 17,
+      "hits": 18,
+      "hits_at_4": 18,
       "total": 18,
-      "hit_rate_at_4": 0.9444,
-      "hit_rate_percentage": 94.44,
-      "mrr_at_4": 0.7778,
-      "ndcg_at_4": 0.8201,
-      "missed_question_ids": [
-        "Q14"
-      ]
+      "hit_rate_at_4": 1.0,
+      "hit_rate_percentage": 100.0,
+      "mrr_at_4": 0.8056,
+      "ndcg_at_4": 0.8552,
+      "binary_ndcg_at_4": 0.8552,
+      "missed_question_ids": []
     }
   },
   "per_document_metrics": {
@@ -79,6 +80,7 @@
           "hit_rate_at_4": 1.0,
           "mrr_at_4": 0.75,
           "ndcg_at_4": 0.8155,
+          "binary_ndcg_at_4": 0.8155,
           "missed_question_ids": []
         },
         "sparse_only": {
@@ -88,6 +90,7 @@
           "hit_rate_at_4": 1.0,
           "mrr_at_4": 0.75,
           "ndcg_at_4": 0.8102,
+          "binary_ndcg_at_4": 0.8102,
           "missed_question_ids": []
         },
         "hybrid_rrf": {
@@ -97,6 +100,7 @@
           "hit_rate_at_4": 1.0,
           "mrr_at_4": 1.0,
           "ndcg_at_4": 1.0,
+          "binary_ndcg_at_4": 1.0,
           "missed_question_ids": []
         },
         "hybrid_rerank": {
@@ -106,6 +110,7 @@
           "hit_rate_at_4": 1.0,
           "mrr_at_4": 1.0,
           "ndcg_at_4": 1.0,
+          "binary_ndcg_at_4": 1.0,
           "missed_question_ids": []
         }
       }
@@ -116,34 +121,36 @@
       "total_questions": 6,
       "strategies": {
         "dense_only": {
-          "hits_at_1": 4,
-          "hit_rate_at_1": 0.6667,
+          "hits_at_1": 3,
+          "hit_rate_at_1": 0.5,
           "hits_at_4": 6,
           "hit_rate_at_4": 1.0,
-          "mrr_at_4": 0.7778,
-          "ndcg_at_4": 0.8333,
+          "mrr_at_4": 0.6944,
+          "ndcg_at_4": 0.7718,
+          "binary_ndcg_at_4": 0.7718,
           "missed_question_ids": []
         },
         "sparse_only": {
-          "hits_at_1": 3,
-          "hit_rate_at_1": 0.5,
-          "hits_at_4": 3,
-          "hit_rate_at_4": 0.5,
-          "mrr_at_4": 0.5,
-          "ndcg_at_4": 0.5,
+          "hits_at_1": 4,
+          "hit_rate_at_1": 0.6667,
+          "hits_at_4": 4,
+          "hit_rate_at_4": 0.6667,
+          "mrr_at_4": 0.6667,
+          "ndcg_at_4": 0.6667,
+          "binary_ndcg_at_4": 0.6667,
           "missed_question_ids": [
             "Q13",
-            "Q14",
             "Q17"
           ]
         },
         "hybrid_rrf": {
-          "hits_at_1": 3,
-          "hit_rate_at_1": 0.5,
+          "hits_at_1": 4,
+          "hit_rate_at_1": 0.6667,
           "hits_at_4": 5,
           "hit_rate_at_4": 0.8333,
-          "mrr_at_4": 0.6389,
-          "ndcg_at_4": 0.6885,
+          "mrr_at_4": 0.7222,
+          "ndcg_at_4": 0.75,
+          "binary_ndcg_at_4": 0.75,
           "missed_question_ids": [
             "Q13"
           ]
@@ -151,13 +158,12 @@
         "hybrid_rerank": {
           "hits_at_1": 1,
           "hit_rate_at_1": 0.1667,
-          "hits_at_4": 5,
-          "hit_rate_at_4": 0.8333,
-          "mrr_at_4": 0.4167,
-          "ndcg_at_4": 0.5218,
-          "missed_question_ids": [
-            "Q14"
-          ]
+          "hits_at_4": 6,
+          "hit_rate_at_4": 1.0,
+          "mrr_at_4": 0.5,
+          "ndcg_at_4": 0.627,
+          "binary_ndcg_at_4": 0.627,
+          "missed_question_ids": []
         }
       }
     },
@@ -173,6 +179,7 @@
           "hit_rate_at_4": 1.0,
           "mrr_at_4": 0.8333,
           "ndcg_at_4": 0.877,
+          "binary_ndcg_at_4": 0.877,
           "missed_question_ids": []
         },
         "sparse_only": {
@@ -182,6 +189,7 @@
           "hit_rate_at_4": 0.8333,
           "mrr_at_4": 0.6667,
           "ndcg_at_4": 0.7103,
+          "binary_ndcg_at_4": 0.7103,
           "missed_question_ids": [
             "Q10"
           ]
@@ -193,6 +201,7 @@
           "hit_rate_at_4": 1.0,
           "mrr_at_4": 0.9167,
           "ndcg_at_4": 0.9385,
+          "binary_ndcg_at_4": 0.9385,
           "missed_question_ids": []
         },
         "hybrid_rerank": {
@@ -202,6 +211,7 @@
           "hit_rate_at_4": 1.0,
           "mrr_at_4": 0.9167,
           "ndcg_at_4": 0.9385,
+          "binary_ndcg_at_4": 0.9385,
           "missed_question_ids": []
         }
       }
@@ -211,10 +221,8 @@
     "improved_by_rerank": [
       "Q13"
     ],
-    "worsened_by_rerank": [
-      "Q14"
-    ],
-    "net_change": 0
+    "worsened_by_rerank": [],
+    "net_change": 1
   },
   "unanswerable_analysis": [
     {
