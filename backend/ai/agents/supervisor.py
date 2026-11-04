@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict, List, Literal
 from pydantic import BaseModel, Field
 from ai.agents.state import AgentState
@@ -7,6 +8,19 @@ from ai.services.llm_service import llm_service
 from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = logging.getLogger(__name__)
+
+GREETING_PATTERN = re.compile(r"\b(hi|hello|hey)\b", re.IGNORECASE)
+
+
+def is_greeting(query: str) -> bool:
+    """
+    Check if the query contains a greeting as a whole word.
+    Avoids matching substrings in words like 'this', 'which', 'machine', 'history', 'architecture'.
+    """
+    if not query:
+        return False
+    return bool(GREETING_PATTERN.search(query))
+
 
 class IntentClassification(BaseModel):
     intent: Literal["GREETING", "RAG_QUERY", "WEB_SEARCH", "DIRECT_ANSWER"] = Field(
@@ -69,11 +83,12 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
         logger.warning(
             f"Intent classification structured output failed ({str(e)}). Applying fallback."
         )
-        fallback_intent = "DIRECT_ANSWER"
         if image_data:
             fallback_intent = "RAG_QUERY"
-        elif any(k in user_query.lower() for k in ["hi", "hello", "hey"]):
+        elif is_greeting(user_query):
             fallback_intent = "GREETING"
+        else:
+            fallback_intent = "RAG_QUERY"
             
         return {
             "intent": fallback_intent,

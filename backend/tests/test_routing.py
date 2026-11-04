@@ -1,6 +1,36 @@
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
-from ai.agents.supervisor import classify_intent, IntentClassification
+from ai.agents.supervisor import classify_intent, is_greeting, IntentClassification
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "hi",
+        "Hi!",
+        "hello",
+        "hey there",
+    ],
+)
+def test_is_greeting_positive(query: str):
+    assert is_greeting(query) is True
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "this document",
+        "which model is used",
+        "explain machine learning",
+        "history of RAG",
+        "this",
+        "which",
+        "architecture",
+    ],
+)
+def test_is_greeting_negative(query: str):
+    assert is_greeting(query) is False
+
 
 @pytest.mark.asyncio
 async def test_supervisor_intents():
@@ -34,3 +64,53 @@ async def test_supervisor_intents():
         assert res["intent"] == "RAG_QUERY"
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "query",
+    [
+        "hi",
+        "Hi!",
+        "hello",
+        "hey there",
+    ],
+)
+async def test_supervisor_fallback_greeting(query: str):
+    # Pass chat_history to bypass fast-path and trigger the fallback path when LLM fails
+    state = {
+        "user_query": query,
+        "chat_history": [{"role": "user", "content": "previous context"}],
+    }
+    with patch("ai.agents.supervisor.llm_service.get_chat_model", side_effect=Exception("LLM 429 Rate Limit")):
+        res = await classify_intent(state)
+        assert res["intent"] == "GREETING"
+        assert res["standalone_query"] == query
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "query",
+    [
+        "this document",
+        "which model is used",
+        "explain machine learning",
+        "history of RAG",
+        "this",
+        "which",
+        "architecture",
+        "What does this document say about refunds?",
+    ],
+)
+async def test_supervisor_fallback_rag_query(query: str):
+    state = {"user_query": query}
+    with patch("ai.agents.supervisor.llm_service.get_chat_model", side_effect=Exception("LLM 429 Rate Limit")):
+        res = await classify_intent(state)
+        assert res["intent"] == "RAG_QUERY"
+        assert res["standalone_query"] == query
+
+
+@pytest.mark.asyncio
+async def test_supervisor_fallback_with_image():
+    state = {"user_query": "analyze this", "image_data": "data:image/png;base64,abc123"}
+    with patch("ai.agents.supervisor.llm_service.get_chat_model", side_effect=Exception("LLM error")):
+        res = await classify_intent(state)
+        assert res["intent"] == "RAG_QUERY"
