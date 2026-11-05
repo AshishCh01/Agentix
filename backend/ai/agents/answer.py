@@ -50,9 +50,8 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
             }
         return {
             "final_response": (
-                "I couldn't find any relevant information in your uploaded documents "
-                "to answer your question. Please ensure the relevant document has been "
-                "uploaded to this session."
+                "I couldn't find this in your uploaded documents. "
+                "Would you like me to search the web instead?"
             )
         }
 

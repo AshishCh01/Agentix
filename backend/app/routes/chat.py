@@ -71,6 +71,7 @@ async def _setup_chat_state(
         "session_id": session_id,
         "user_id": user_id,
         "knowledge_base_id": str(session.knowledge_base_id) if session.knowledge_base_id else None,
+        "allow_web_search": request.allow_web_search,
         "user_query": user_query_text,
         "image_data": request.image_data,
         "intent": None,
