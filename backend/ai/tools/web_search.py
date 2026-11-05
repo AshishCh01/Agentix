@@ -18,10 +18,21 @@ def _run_ddgs_sync(query: str, max_results: int) -> List[Dict[str, Any]]:
     with DDGS() as ddgs:
         raw_results = list(ddgs.text(query, max_results=max_results))
         for item in raw_results:
+            raw_score = (
+                item.get("score")
+                if item.get("score") is not None
+                else item.get("similarity_score")
+                if item.get("similarity_score") is not None
+                else item.get("relevance_score")
+                if item.get("relevance_score") is not None
+                else item.get("rating")
+            )
+            score = float(raw_score) if raw_score is not None else None
             results.append({
                 "title": item.get("title", "Untitled Source"),
                 "url": item.get("href", "") or item.get("url", ""),
                 "content": item.get("body", "") or item.get("description", ""),
+                "score": score,
             })
     return results
 
@@ -50,13 +61,25 @@ async def web_search_tool(query: str, max_results: int = 4) -> Dict[str, Any]:
             context_blocks.append(
                 f"Source: {res['title']} ({res['url']})\nContent: {res['content']}"
             )
+            raw_score = (
+                res.get("score")
+                if res.get("score") is not None
+                else res.get("similarity_score")
+                if res.get("similarity_score") is not None
+                else res.get("relevance_score")
+                if res.get("relevance_score") is not None
+                else res.get("rating")
+            )
+            score = float(raw_score) if raw_score is not None else None
+
             # Map explicitly to the ChatSource Pydantic schema
             sources.append({
                 "filename": res["title"],
                 "url": res["url"],
                 "chunk_index": idx,
-                "similarity_score": 1.0, 
-                "page_number": None
+                "score": score,
+                "page_number": None,
+                "source_type": res.get("source_type", "web"),
             })
 
         formatted_context = "\n\n---\n\n".join(context_blocks)

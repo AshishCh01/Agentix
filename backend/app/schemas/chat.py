@@ -19,7 +19,7 @@ class ChatRequest(BaseModel):
 class ChatSource(BaseModel):
     filename: str
     chunk_index: int
-    score: float
+    score: Optional[float] = None
     page_number: Optional[int] = None
     url: Optional[str] = None
     source_type: Optional[str] = None

@@ -55,6 +55,8 @@ class LLMService:
         model: Optional[str] = None,
         temperature: float = 0.3,
         streaming: bool = True,
+        max_tokens: Optional[int] = None,
+        max_output_tokens: Optional[int] = None,
     ) -> ChatGoogleGenerativeAI:
         """
         Returns a LangChain ChatGoogleGenerativeAI instance configured for Gemini.
@@ -62,15 +64,20 @@ class LLMService:
         for real SSE token streaming.
         """
         target_model = model or self.default_model
-        cache_key = (target_model, temperature, streaming)
+        tokens_limit = max_output_tokens if max_output_tokens is not None else max_tokens
+        cache_key = (target_model, temperature, streaming, tokens_limit)
 
         if cache_key not in self._models:
-            self._models[cache_key] = ChatGoogleGenerativeAI(
-                model=target_model,
-                google_api_key=self.api_key,
-                temperature=temperature,
-                streaming=streaming,
-            )
+            kwargs: Dict[str, Any] = {
+                "model": target_model,
+                "google_api_key": self.api_key,
+                "temperature": temperature,
+                "streaming": streaming,
+            }
+            if tokens_limit is not None:
+                kwargs["max_output_tokens"] = tokens_limit
+
+            self._models[cache_key] = ChatGoogleGenerativeAI(**kwargs)
             
         return self._models[cache_key]
 
@@ -92,6 +99,7 @@ class LLMService:
                 model=target_model,
                 temperature=temperature,
                 streaming=False,
+                max_tokens=max_tokens,
             )
 
             # Convert dictionary messages to LangChain BaseMessage objects
