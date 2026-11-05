@@ -8,6 +8,7 @@ class AgentState(TypedDict):
     session_id: str
     user_id: str
     knowledge_base_id: Optional[str]  # Scopes vector_search to a KB instead of the session
+    allow_web_search: Optional[bool]  # Opt-in flag for web search fallback when 0 chunks pass relevance threshold
     user_query: str
     standalone_query: Optional[str]  # <-- ADDED: Rewritten query with conversation context
     image_data: Optional[str]  # <-- ADDED: Base64 image payload

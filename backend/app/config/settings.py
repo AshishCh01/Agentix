@@ -83,6 +83,15 @@ class Settings(BaseSettings):
     RERANK_QUANTIZE: bool = False
     RERANK_PRELOAD: bool = True
 
+    # Relevance Threshold Settings (calibrated in Issue #9 Phase 1 across 3 documents / 246 chunks)
+    # Primary: Cross-Encoder rerank score threshold. Phase 1 measured answerable min = 0.8865,
+    # unanswerable max = 0.0060 (margin: +0.8806). 0.30 sits safely in the clean gap.
+    MIN_RELEVANCE_RERANK: float = 0.30
+
+    # Fallback: Dense similarity cosine threshold used when reranking is disabled (RERANK_PROVIDER == "none").
+    # Phase 1 measured answerable min = 0.7591, unanswerable max = 0.6171 (margin: +0.1420).
+    MIN_RELEVANCE_DENSE: float = 0.68
+
     # CORS Configurations
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",

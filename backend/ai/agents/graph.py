@@ -46,15 +46,28 @@ def route_intent(state: AgentState) -> str:
 
 
 def route_after_vector_search(state: AgentState) -> str:
-    """Routes to web_search if vector database returned zero chunks."""
+    """
+    Routes after vector retrieval based on chunk relevance and knowledge base scoping.
+    """
     if state.get("retrieval_error"):
         logger.info("⚠️ Retrieval error occurred. Routing to answer to handle error gracefully.")
         return "answer"
     
     retrieved_chunks = state.get("retrieved_chunks", [])
     if not retrieved_chunks or len(retrieved_chunks) == 0:
-        logger.info("⚠️ Vector store returned 0 chunks. Rerouting to web_search fallback...")
+        # If this is a knowledge-base chat, 0 chunks passing threshold means documents do
+        # not cover the query. Web search is opt-in (Decision 2 & 3).
+        if state.get("knowledge_base_id"):
+            if state.get("allow_web_search"):
+                logger.info("⚠️ 0 chunks passed threshold in KB chat, but allow_web_search is enabled. Routing to web_search...")
+                return "web_search"
+            logger.info("⚠️ 0 chunks passed threshold in KB chat. Routing to answer for 'not covered' response (web search is opt-in).")
+            return "answer"
+        
+        # In non-KB chat (e.g. ad-hoc session chat with no KB attached), preserve existing fallback
+        logger.info("⚠️ Vector store returned 0 chunks in non-KB chat. Rerouting to web_search fallback...")
         return "web_search"
+
     return "answer"
 
 

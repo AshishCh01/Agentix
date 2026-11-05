@@ -178,5 +178,39 @@ async def search_similar_chunks(
             print(f"   Rank {i+1}: Score={c.get('rerank_score', 0):.4f} | File={c['filename']} | Chunk Index={c['chunk_index']}")
     print("-" * 50)
 
-    # 7. Return Top K
+    # 7. Relevance Threshold Filtering (Issue #9)
+    # Primary: Cross-Encoder rerank score (MIN_RELEVANCE_RERANK).
+    # Fallback: Dense cosine similarity (MIN_RELEVANCE_DENSE) when reranker is disabled (RERANK_PROVIDER == 'none') or unavailable.
+    use_rerank = (
+        settings.RERANK_PROVIDER != "none"
+        and any(c.get("rerank_score") is not None for c in retrieved_chunks)
+    )
+    threshold = settings.MIN_RELEVANCE_RERANK if use_rerank else settings.MIN_RELEVANCE_DENSE
+    score_field = "rerank_score" if use_rerank else "dense_similarity"
+
+    surviving_chunks = []
+    dropped_count = 0
+    top_score = -1.0
+    for chunk in retrieved_chunks:
+        score_val = chunk.get(score_field)
+        score_float = float(score_val) if score_val is not None else 0.0
+        if score_float > top_score:
+            top_score = score_float
+        if score_float >= threshold:
+            surviving_chunks.append(chunk)
+        else:
+            dropped_count += 1
+
+    logger.debug(
+        "Relevance threshold filtering (%s, threshold=%.4f): kept %d/%d candidates, dropped %d, top score was %.4f",
+        score_field,
+        threshold,
+        len(surviving_chunks),
+        len(retrieved_chunks),
+        dropped_count,
+        top_score if top_score >= 0.0 else 0.0,
+    )
+    retrieved_chunks = surviving_chunks
+
+    # 8. Return Top K
     return retrieved_chunks[:top_k]

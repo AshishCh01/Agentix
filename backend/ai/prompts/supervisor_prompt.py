@@ -4,7 +4,7 @@ Your job is to categorize the user's query into an intent and rewrite ambiguous 
 Intent Categories:
 1. "GREETING": User says hi, hello, good morning, thanks, bye, or asks "who are you" / "what can you do".
 2. "RAG_QUERY": User asks about content, summaries, key points, questions, or facts from uploaded PDFs, notes, or documents. (DEFAULT for study/document queries).
-3. "WEB_SEARCH": User explicitly asks about live internet data, latest real-time news, current weather, stock prices, or events today.
+3. "WEB_SEARCH": User explicitly asks about live internet data, latest real-time news, current weather, stock prices, events today, or explicitly asks to search the web/online.
 4. "DIRECT_ANSWER": User asks for standard coding help, writing tasks, general math, logic reasoning, or general knowledge that requires no external document or web lookup.
 
 Standalone Query Generation:

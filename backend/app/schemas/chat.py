@@ -14,6 +14,10 @@ class ChatRequest(BaseModel):
     session_id: uuid.UUID
     message: str = Field(default="", max_length=8000)
     image_data: Optional[str] = Field(default=None, max_length=_MAX_IMAGE_DATA_LENGTH)
+    allow_web_search: bool = Field(
+        default=False,
+        description="Opt-in flag to enable web search fallback when document chunks do not meet the relevance threshold.",
+    )
 
 
 class ChatSource(BaseModel):
