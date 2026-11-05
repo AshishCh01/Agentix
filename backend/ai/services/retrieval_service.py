@@ -8,6 +8,7 @@ from app.models.document import Document
 from app.models.document_chunks import DocumentChunk
 from app.config.settings import settings
 import re
+import math
 import logging
 
 logger = logging.getLogger(__name__)
@@ -193,7 +194,13 @@ async def search_similar_chunks(
     top_score = -1.0
     for chunk in retrieved_chunks:
         score_val = chunk.get(score_field)
-        score_float = float(score_val) if score_val is not None else 0.0
+        try:
+            score_float = float(score_val) if score_val is not None else 0.0
+            if math.isnan(score_float):
+                score_float = 0.0
+        except (ValueError, TypeError):
+            score_float = 0.0
+
         if score_float > top_score:
             top_score = score_float
         if score_float >= threshold:

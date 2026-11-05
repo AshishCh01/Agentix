@@ -862,7 +862,7 @@ async def test_integration_sparse_multi_word_retrieval(integration_db: AsyncSess
     user_id = user.id
     session_id = session.id
 
-    orthogonal_vec = [0.0] * dims
+    orthogonal_vec = [0.0, 1.0] + [0.0] * (dims - 2)
     target_id = uuid.uuid4()
     chunks_data = [
         {
