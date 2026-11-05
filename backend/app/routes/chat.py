@@ -138,7 +138,11 @@ async def chat_endpoint(
         ChatSource(
             filename=chunk.get("filename", ""),
             chunk_index=chunk.get("chunk_index", 0),
-            score=chunk.get("score", 0.0),
+            score=(
+                chunk.get("score")
+                if chunk.get("score") is not None
+                else chunk.get("similarity_score")
+            ),
             page_number=chunk.get("page_number"),  # Added for PDF page mapping
             url=chunk.get("url"),                  # Added for Web search mapping
             source_type=chunk.get("source_type")
@@ -241,7 +245,11 @@ async def chat_stream_endpoint(
                 {
                     "filename": chunk.get("filename", ""),
                     "chunk_index": chunk.get("chunk_index", 0),
-                    "score": chunk.get("score", 0.0),
+                    "score": (
+                        chunk.get("score")
+                        if chunk.get("score") is not None
+                        else chunk.get("similarity_score")
+                    ),
                     "page_number": chunk.get("page_number"),  # Added for PDF page mapping
                     "url": chunk.get("url"),                  # Added for Web search mapping
                     "source_type": chunk.get("source_type")

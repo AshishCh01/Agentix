@@ -8,6 +8,7 @@ import pytest
 
 from ai.services.parser_service import parse_document
 from ai.tools.web_search import _run_ddgs_sync, web_search_tool
+from app.schemas.chat import ChatSource
 
 
 # --- 1. Web Search Tool Unit Tests (Mocked) ---
@@ -115,6 +116,88 @@ async def test_web_search_tool_handles_exception_gracefully():
     assert output["results"] == []
     assert output["sources"] == []
     assert "Web search service is currently unavailable" in output["formatted_context"]
+
+
+@pytest.mark.asyncio
+async def test_web_search_tool_preserves_score():
+    sample_results = [
+        {
+            "title": "Ranked Result",
+            "url": "https://example.com/ranked",
+            "content": "Sample content",
+            "score": 0.88,
+        }
+    ]
+
+    with patch("ai.tools.web_search._run_ddgs_sync", return_value=sample_results):
+        output = await web_search_tool("ranked query", max_results=1)
+
+    assert len(output["sources"]) == 1
+    src = output["sources"][0]
+    assert src["score"] == 0.88
+    assert src["source_type"] == "web"
+
+
+@pytest.mark.asyncio
+async def test_web_search_tool_preserves_relevance_and_similarity_score():
+    sample_results = [
+        {
+            "title": "Result with relevance",
+            "url": "https://example.com/rel",
+            "content": "Relevance content",
+            "relevance_score": 0.95,
+        },
+        {
+            "title": "Result with similarity",
+            "url": "https://example.com/sim",
+            "content": "Similarity content",
+            "similarity_score": 0.72,
+        },
+    ]
+
+    with patch("ai.tools.web_search._run_ddgs_sync", return_value=sample_results):
+        output = await web_search_tool("multi-score query", max_results=2)
+
+    assert len(output["sources"]) == 2
+    assert output["sources"][0]["score"] == 0.95
+    assert output["sources"][1]["score"] == 0.72
+
+
+@pytest.mark.asyncio
+async def test_web_search_tool_no_score_falls_back_to_none():
+    sample_results = [
+        {
+            "title": "No Score Result",
+            "url": "https://example.com/noscore",
+            "content": "No score content",
+        }
+    ]
+
+    with patch("ai.tools.web_search._run_ddgs_sync", return_value=sample_results):
+        output = await web_search_tool("unscored query", max_results=1)
+
+    assert len(output["sources"]) == 1
+    assert output["sources"][0]["score"] is None
+
+
+def test_chat_source_score_mapping_with_score_and_none():
+    # 1. Real score provided
+    source_with_score = ChatSource(
+        filename="Doc",
+        chunk_index=0,
+        score=0.91,
+        url="https://example.com",
+    )
+    assert source_with_score.score == 0.91
+
+    # 2. No score provided (None)
+    source_without_score = ChatSource(
+        filename="Web Source",
+        chunk_index=0,
+        score=None,
+        url="https://example.com",
+    )
+    assert source_without_score.score is None
 
 
 # --- 2. Startup Dependency Self-Check Tests ---
