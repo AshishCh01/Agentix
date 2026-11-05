@@ -593,6 +593,7 @@ async def test_candidate_count_scenario_3_reranking_disabled(monkeypatch):
     db = _MockDBSession(rows=rows)
     monkeypatch.setattr(settings, "RERANK_PROVIDER", "none")
     monkeypatch.setattr(embedding_service, "_reranker", None)
+    monkeypatch.setattr(settings, "MIN_RELEVANCE_DENSE", 0.0)
     monkeypatch.setattr(embedding_service, "_reranker_unavailable", False)
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
@@ -622,6 +623,7 @@ async def test_candidate_count_scenario_4_insufficient_candidates(monkeypatch):
     db = _MockDBSession(rows=rows)
     monkeypatch.setattr(settings, "RERANK_PROVIDER", "none")
     monkeypatch.setattr(embedding_service, "_reranker", None)
+    monkeypatch.setattr(settings, "MIN_RELEVANCE_DENSE", 0.0)
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
@@ -653,6 +655,7 @@ async def test_set_local_failure_handling_and_transaction_usability(caplog, monk
     db = _MockDBSession(rows=rows, fail_on_set_local=True, set_local_exc=set_local_error)
     monkeypatch.setattr(settings, "RERANK_PROVIDER", "none")
     monkeypatch.setattr(embedding_service, "_reranker", None)
+    monkeypatch.setattr(settings, "MIN_RELEVANCE_DENSE", 0.0)
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
@@ -829,6 +832,7 @@ async def test_integration_dense_nearest_neighbor(integration_db: AsyncSession, 
 
     monkeypatch.setattr(settings, "RERANK_PROVIDER", "none")
     monkeypatch.setattr(embedding_service, "_reranker", None)
+    monkeypatch.setattr(settings, "MIN_RELEVANCE_DENSE", 0.0)
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = q_vec
@@ -876,6 +880,7 @@ async def test_integration_sparse_multi_word_retrieval(integration_db: AsyncSess
 
     monkeypatch.setattr(settings, "RERANK_PROVIDER", "none")
     monkeypatch.setattr(embedding_service, "_reranker", None)
+    monkeypatch.setattr(settings, "MIN_RELEVANCE_DENSE", 0.0)
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = orthogonal_vec
@@ -926,6 +931,7 @@ async def test_integration_scope_isolation(integration_db: AsyncSession, monkeyp
     dummy_session = uuid.uuid4()
     monkeypatch.setattr(settings, "RERANK_PROVIDER", "none")
     monkeypatch.setattr(embedding_service, "_reranker", None)
+    monkeypatch.setattr(settings, "MIN_RELEVANCE_DENSE", 0.0)
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = dummy_vec
@@ -998,6 +1004,7 @@ async def test_integration_deterministic_ordering_with_ties(integration_db: Asyn
 
     monkeypatch.setattr(settings, "RERANK_PROVIDER", "none")
     monkeypatch.setattr(embedding_service, "_reranker", None)
+    monkeypatch.setattr(settings, "MIN_RELEVANCE_DENSE", 0.0)
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = identical_vec
@@ -1043,6 +1050,7 @@ async def test_integration_set_local_failure_recovery(integration_db: AsyncSessi
 
     monkeypatch.setattr(settings, "RERANK_PROVIDER", "none")
     monkeypatch.setattr(embedding_service, "_reranker", None)
+    monkeypatch.setattr(settings, "MIN_RELEVANCE_DENSE", 0.0)
     # Set invalid ef_search value to trigger PostgreSQL SET LOCAL failure
     monkeypatch.setattr(settings, "HNSW_EF_SEARCH", -1)
 
