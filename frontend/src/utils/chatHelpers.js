@@ -85,11 +85,30 @@ export const isNotCoveredReply = (content) => {
 };
 
 /**
+ * Checks whether an assistant message was answered from web search sources.
+ *
+ * @param {Object} message - Chat message object
+ * @returns {boolean}
+ */
+export const isWebSourceMessage = (message) => {
+  if (!message) return false;
+  if (message.context_source === "web" || message.intent === "WEB_SEARCH") {
+    return true;
+  }
+  if (Array.isArray(message.sources) && message.sources.length > 0) {
+    return message.sources.some(
+      (src) => Boolean(src.url) || src.source_type === "web"
+    );
+  }
+  return false;
+};
+
+/**
  * Determines the verification badge configuration for an assistant message.
  * Returns null if the message is unverified, older/history, web answer, or not-covered.
  *
  * @param {Object} message - Chat message object
- * @returns {{ type: "verified"|"unverified", label: string, title: string, ariaLabel: string } | null}
+ * @returns {{ type: "verified"|"unverified", label: string, title: string, ariaLabel: string, isWeb: boolean } | null}
  */
 export const getVerificationBadgeConfig = (message) => {
   if (!message || message.role !== "assistant" || message.isStreaming) {
@@ -101,12 +120,16 @@ export const getVerificationBadgeConfig = (message) => {
     return null;
   }
 
+  const isWeb = isWebSourceMessage(message);
+
   if (message.verified === true) {
+    const label = isWeb ? "Verified against web sources" : "Verified against your documents";
     return {
       type: "verified",
-      label: "Verified against your documents",
-      title: "Verified against your documents",
-      ariaLabel: "Verified against your documents",
+      label,
+      title: label,
+      ariaLabel: label,
+      isWeb,
     };
   }
 
@@ -116,6 +139,7 @@ export const getVerificationBadgeConfig = (message) => {
       label: "Could not be fully verified",
       title: "Could not be fully verified",
       ariaLabel: "Could not be fully verified",
+      isWeb,
     };
   }
 
