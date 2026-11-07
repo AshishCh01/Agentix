@@ -266,7 +266,7 @@ async def chat_stream_endpoint(
             # Extract reflection metrics if present
             tool_outputs = final_state.get("tool_outputs", [])
             reflection_data = next(
-                (t for t in tool_outputs if isinstance(t, dict) and t.get("node") == "reflection"),
+                (t for t in reversed(tool_outputs) if isinstance(t, dict) and t.get("node") == "reflection"),
                 None,
             )
 
