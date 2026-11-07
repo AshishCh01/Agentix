@@ -35,3 +35,5 @@ class ChatResponse(BaseModel):
     assistant_message: str
     intent: Optional[str] = None
     sources: List[ChatSource] = []
+    verified: Optional[bool] = None
+    reflection_verdict: Optional[str] = None

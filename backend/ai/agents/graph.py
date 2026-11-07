@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from ai.agents.answer import run_answer_agent
 from ai.agents.greeting import run_greeting_agent
 from ai.agents.direct_answer import run_direct_answer_agent
-from ai.agents.reflection import evaluate_response
+from ai.agents.reflection import UNVERIFIED_ANSWER_CAVEAT, evaluate_response
 from ai.agents.state import AgentState
 from ai.agents.supervisor import classify_intent, rewrite_query_for_retry
 from ai.services.llm_service import llm_service
@@ -48,8 +48,14 @@ async def supervisor_node(state: AgentState, config: RunnableConfig) -> Dict[str
                 f"⚠️ [Supervisor Node] Could not produce a new query distinct from previous queries "
                 f"({previous_queries}). Stopping retry loop."
             )
+            final_resp = state.get("final_response", "")
+            if UNVERIFIED_ANSWER_CAVEAT not in final_resp:
+                final_resp = f"{final_resp.rstrip()}{UNVERIFIED_ANSWER_CAVEAT}"
             return {
                 "intent": "STOP_RETRY",
+                "final_response": final_resp,
+                "verified": False,
+                "reflection_verdict": "failed",
                 "previous_queries": previous_queries,
             }
 
