@@ -4,6 +4,7 @@ import { sessionApi } from "../api/sessionApi";
 import { chatApi } from "../api/chatApi";
 import { AuthContext } from "./AuthContext";
 import { MAX_RETAINED_MESSAGE_IMAGES } from "../utils/constants";
+import { extractFinalReflection } from "../utils/chatHelpers";
 
 export const ChatContext = createContext(null);
 
@@ -294,6 +295,7 @@ export const ChatProvider = ({ children }) => {
               return updated;
             });
           } else if (event.type === "completion") {
+            const { reflection, verified, reflection_verdict } = extractFinalReflection(event);
             setMessages((prev) => {
               const updated = [...prev];
               const lastMsg = updated[updated.length - 1];
@@ -305,7 +307,9 @@ export const ChatProvider = ({ children }) => {
                     content: event.assistant_message || lastMsg.content,
                     sources: event.sources || [],
                     intent: event.intent,
-                    reflection: event.reflection || null,
+                    reflection,
+                    verified,
+                    reflection_verdict,
                     isStreaming: false,
                   },
                 ];
