@@ -9,13 +9,23 @@ export const chatApi = {
       session_id: sessionId,
       message,
       image_data: imageData,
-      allow_web_search: allowWebSearch,
+      allow_web_search: Boolean(allowWebSearch),
     });
     return response.data;
   },
 
-  streamMessage: async ({ sessionId, message, imageData = null, allowWebSearch = false, onEvent, onError, signal }) => {
+  streamMessage: async ({
+    sessionId,
+    message,
+    imageData = null,
+    allowWebSearch = false,
+    allow_web_search,
+    onEvent,
+    onError,
+    signal,
+  }) => {
     try {
+      const enableWebSearch = Boolean(allowWebSearch || allow_web_search);
       let token = await getCurrentToken();
 
       if (!token) {
@@ -37,7 +47,7 @@ export const chatApi = {
           session_id: sessionId,
           message,
           image_data: imageData,
-          allow_web_search: allowWebSearch,
+          allow_web_search: enableWebSearch,
         }),
         signal,
       });

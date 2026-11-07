@@ -219,7 +219,12 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  const sendMessage = async (userPrompt, imageData = null, allowWebSearch = false) => {
+  const sendMessage = async (
+    userPrompt,
+    imageData = null,
+    allowWebSearch = false,
+    options = {}
+  ) => {
     if ((!userPrompt.trim() && !imageData) || isStreaming) return;
 
     let targetSessionId = activeSessionId;
@@ -236,14 +241,6 @@ export const ChatProvider = ({ children }) => {
       activeSessionIdRef.current = targetSessionId;
     }
 
-    const userMsg = {
-      id: Date.now().toString(),
-      role: "user",
-      content: userPrompt,
-      image_data: imageData,
-      created_at: new Date().toISOString(),
-    };
-
     const assistantPlaceholder = {
       id: (Date.now() + 1).toString(),
       role: "assistant",
@@ -253,7 +250,19 @@ export const ChatProvider = ({ children }) => {
       created_at: new Date().toISOString(),
     };
 
-    setMessages((prev) => pruneOldImageData([...prev, userMsg, assistantPlaceholder]));
+    if (options?.skipUserMessageInTranscript) {
+      setMessages((prev) => pruneOldImageData([...prev, assistantPlaceholder]));
+    } else {
+      const userMsg = {
+        id: Date.now().toString(),
+        role: "user",
+        content: userPrompt,
+        image_data: imageData,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => pruneOldImageData([...prev, userMsg, assistantPlaceholder]));
+    }
+
     setIsStreaming(true);
     setActiveNode("supervisor");
 

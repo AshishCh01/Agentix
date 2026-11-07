@@ -65,6 +65,25 @@ export const updateMessagesOnToken = (messages, tokenContent, currentNode) => {
   return updated;
 };
 
+export const NOT_COVERED_PROMPT_SNIPPET =
+  "I couldn't find this in your uploaded documents. Would you like me to search the web instead?";
+
+/**
+ * Detects whether an assistant response is the canned 'not covered' reply
+ * prompting for optional web search fallback.
+ *
+ * @param {string|null} content - Assistant message text
+ * @returns {boolean}
+ */
+export const isNotCoveredReply = (content) => {
+  if (typeof content !== "string" || !content) return false;
+  return (
+    content.includes(NOT_COVERED_PROMPT_SNIPPET) ||
+    (content.includes("I couldn't find this in your uploaded documents") &&
+      content.includes("Would you like me to search the web instead?"))
+  );
+};
+
 /**
  * Extracts final reflection verdict and verification status from a completion event.
  * Ensures that the final verdict from the last reflection pass is preserved.

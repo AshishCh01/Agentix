@@ -19,8 +19,16 @@ export const MessageList = () => {
   // and MessageItem is memoized, so a token appended to the last message
   // re-renders just that one item instead of the whole list.
   const messageItems = useMemo(
-    () =>
-      messages.map((msg, idx) => {
+    () => {
+      let latestAssistantId = null;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "assistant") {
+          latestAssistantId = messages[i].id;
+          break;
+        }
+      }
+
+      return messages.map((msg, idx) => {
         let previousUserMessage = null;
         if (msg.role === "assistant") {
           for (let i = idx - 1; i >= 0; i--) {
@@ -31,15 +39,20 @@ export const MessageList = () => {
           }
         }
 
+        const isLatestAssistant =
+          msg.role === "assistant" && msg.id === latestAssistantId;
+
         return (
           <ErrorBoundary key={msg.id}>
             <MessageItem
               message={msg}
               previousUserMessage={previousUserMessage}
+              isLatestAssistant={isLatestAssistant}
             />
           </ErrorBoundary>
         );
-      }),
+      });
+    },
     [messages]
   );
 

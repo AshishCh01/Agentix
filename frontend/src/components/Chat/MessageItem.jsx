@@ -1,7 +1,8 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { User, Globe } from "lucide-react";
 import { SourceBadge } from "./SourceBadge";
 import { formatDate } from "../../utils/helpers";
+import { isNotCoveredReply } from "../../utils/chatHelpers";
 import { useChat } from "../../hooks/useChat";
 
 // Memoized so that during token streaming -- where ChatContext rebuilds the
@@ -9,23 +10,27 @@ import { useChat } from "../../hooks/useChat";
 // object -- every other message keeps the same `message` prop reference and
 // skips re-rendering entirely, instead of the whole list re-rendering per
 // token.
-export const MessageItem = memo(function MessageItem({ message, previousUserMessage = null }) {
+export const MessageItem = memo(function MessageItem({
+  message,
+  previousUserMessage = null,
+  isLatestAssistant = false,
+}) {
   const isUser = message.role === "user";
   const { sendMessage, isStreaming } = useChat();
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleSearchWeb = () => {
-    if (isStreaming) return;
+    if (isStreaming || hasSearched || message.webSearchInitiated) return;
     const query = previousUserMessage?.content?.trim();
-    if (query) {
-      if (query.toLowerCase().startsWith("search the web")) {
-        sendMessage(query, null, true);
-      } else {
-        sendMessage(`Search the web for: ${query}`, null, true);
-      }
-    } else {
-      sendMessage("Search the web for this", null, true);
-    }
+    if (!query) return;
+
+    setHasSearched(true);
+    sendMessage(query, null, true, { skipUserMessageInTranscript: true });
   };
+
+  const isNotCovered = !isUser && !message.isStreaming && isNotCoveredReply(message.content);
+  const showSearchWebButton = isNotCovered && isLatestAssistant;
+  const isSearchDisabled = isStreaming || hasSearched || Boolean(message.webSearchInitiated);
 
   return (
     <div
@@ -67,17 +72,18 @@ export const MessageItem = memo(function MessageItem({ message, previousUserMess
           <div className="whitespace-pre-wrap break-words">{message.content}</div>
         )}
 
-        {!isUser && !message.isStreaming && message.content?.includes("Would you like me to search the web instead?") && (
+        {showSearchWebButton && (
           <div className="mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={handleSearchWeb}
-              disabled={isStreaming}
+              disabled={isSearchDisabled}
+              aria-label="Search the web for this question"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:text-blue-400 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 dark:border-blue-800/60 rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               title="Search the web for this question"
             >
               <Globe className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
-              <span>Search the web</span>
+              <span>{hasSearched || message.webSearchInitiated ? "Searching web..." : "Search the web"}</span>
             </button>
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
               Not in documents
