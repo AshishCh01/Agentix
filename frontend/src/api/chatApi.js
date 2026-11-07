@@ -4,16 +4,17 @@ import { parseSSEStream } from "../utils/streamParser";
 import { supabase } from "./supabaseClient";
 
 export const chatApi = {
-  sendMessageSync: async (sessionId, message, imageData = null) => {
+  sendMessageSync: async (sessionId, message, imageData = null, allowWebSearch = false) => {
     const response = await apiClient.post("/chat", {
       session_id: sessionId,
       message,
       image_data: imageData,
+      allow_web_search: allowWebSearch,
     });
     return response.data;
   },
 
-  streamMessage: async ({ sessionId, message, imageData = null, onEvent, onError, signal }) => {
+  streamMessage: async ({ sessionId, message, imageData = null, allowWebSearch = false, onEvent, onError, signal }) => {
     try {
       let token = await getCurrentToken();
 
@@ -36,6 +37,7 @@ export const chatApi = {
           session_id: sessionId,
           message,
           image_data: imageData,
+          allow_web_search: allowWebSearch,
         }),
         signal,
       });

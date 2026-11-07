@@ -214,7 +214,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  const sendMessage = async (userPrompt, imageData = null) => {
+  const sendMessage = async (userPrompt, imageData = null, allowWebSearch = false) => {
     if ((!userPrompt.trim() && !imageData) || isStreaming) return;
 
     let targetSessionId = activeSessionId;
@@ -272,6 +272,7 @@ export const ChatProvider = ({ children }) => {
         sessionId: targetSessionId,
         message: userPrompt,
         imageData,
+        allowWebSearch,
         signal: controller.signal,
         onEvent: (event) => {
           if (!isStillActive()) return;
