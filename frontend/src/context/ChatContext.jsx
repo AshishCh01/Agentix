@@ -4,7 +4,11 @@ import { sessionApi } from "../api/sessionApi";
 import { chatApi } from "../api/chatApi";
 import { AuthContext } from "./AuthContext";
 import { MAX_RETAINED_MESSAGE_IMAGES } from "../utils/constants";
-import { extractFinalReflection } from "../utils/chatHelpers";
+import {
+  extractFinalReflection,
+  updateMessagesOnNodeStart,
+  updateMessagesOnToken,
+} from "../utils/chatHelpers";
 
 export const ChatContext = createContext(null);
 
@@ -269,6 +273,8 @@ export const ChatProvider = ({ children }) => {
     const isStillActive = () => activeSessionIdRef.current === targetSessionId;
 
     try {
+      let currentActiveNode = "supervisor";
+
       await chatApi.streamMessage({
         sessionId: targetSessionId,
         message: userPrompt,
@@ -278,23 +284,15 @@ export const ChatProvider = ({ children }) => {
         onEvent: (event) => {
           if (!isStillActive()) return;
           if (event.type === "node_start") {
+            currentActiveNode = event.node;
             setActiveNode(event.node);
+            setMessages((prev) => updateMessagesOnNodeStart(prev, event.node));
           } else if (event.type === "token") {
-            setMessages((prev) => {
-              const updated = [...prev];
-              const lastMsg = updated[updated.length - 1];
-              if (lastMsg && lastMsg.role === "assistant") {
-                return [
-                  ...updated.slice(0, -1),
-                  {
-                    ...lastMsg,
-                    content: (lastMsg.content || "") + (event.content || ""),
-                  },
-                ];
-              }
-              return updated;
-            });
+            setMessages((prev) =>
+              updateMessagesOnToken(prev, event.content, currentActiveNode)
+            );
           } else if (event.type === "completion") {
+            currentActiveNode = null;
             const { reflection, verified, reflection_verdict } = extractFinalReflection(event);
             setMessages((prev) => {
               const updated = [...prev];

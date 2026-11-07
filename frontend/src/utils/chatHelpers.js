@@ -4,6 +4,68 @@
  */
 
 /**
+ * Checks whether an agent node is responsible for generating answer text to display to the user.
+ *
+ * @param {string|null} nodeName
+ * @returns {boolean}
+ */
+export const isAnswerNode = (nodeName) => {
+  return nodeName === "answer" || nodeName === "greeting" || nodeName === "direct_answer";
+};
+
+/**
+ * Resets the in-progress assistant draft content when a new answer-producing node begins.
+ * This guarantees retried drafts replace earlier rejected drafts rather than concatenating.
+ *
+ * @param {Array} messages - List of chat messages
+ * @param {string} nodeName - The node that just started
+ * @returns {Array} Updated messages array
+ */
+export const updateMessagesOnNodeStart = (messages, nodeName) => {
+  if (!isAnswerNode(nodeName) || !messages || messages.length === 0) {
+    return messages;
+  }
+  const updated = [...messages];
+  const lastIndex = updated.length - 1;
+  const lastMsg = updated[lastIndex];
+  if (lastMsg && lastMsg.role === "assistant" && lastMsg.isStreaming) {
+    updated[lastIndex] = {
+      ...lastMsg,
+      content: "",
+    };
+  }
+  return updated;
+};
+
+/**
+ * Appends streamed tokens to the active assistant message, discarding tokens from non-answer nodes
+ * (e.g. structured reflection evaluations or supervisor query rewrites).
+ *
+ * @param {Array} messages - List of chat messages
+ * @param {string} tokenContent - Token text chunk
+ * @param {string|null} currentNode - Current active node name
+ * @returns {Array} Updated messages array
+ */
+export const updateMessagesOnToken = (messages, tokenContent, currentNode) => {
+  if (!tokenContent || !messages || messages.length === 0) {
+    return messages;
+  }
+  if (currentNode && !isAnswerNode(currentNode)) {
+    return messages;
+  }
+  const updated = [...messages];
+  const lastIndex = updated.length - 1;
+  const lastMsg = updated[lastIndex];
+  if (lastMsg && lastMsg.role === "assistant") {
+    updated[lastIndex] = {
+      ...lastMsg,
+      content: (lastMsg.content || "") + tokenContent,
+    };
+  }
+  return updated;
+};
+
+/**
  * Extracts final reflection verdict and verification status from a completion event.
  * Ensures that the final verdict from the last reflection pass is preserved.
  *
