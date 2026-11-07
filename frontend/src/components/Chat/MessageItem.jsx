@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { User, Globe } from "lucide-react";
 import { SourceBadge } from "./SourceBadge";
+import { VerificationBadge } from "./VerificationBadge";
 import { formatDate } from "../../utils/helpers";
 import { isNotCoveredReply } from "../../utils/chatHelpers";
 import { useChat } from "../../hooks/useChat";
@@ -51,11 +52,14 @@ export const MessageItem = memo(function MessageItem({
             : "bg-slate-50 border border-slate-200 text-slate-700 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100 rounded-tl-none"
         }`}
       >
-        <div className="flex items-center justify-between space-x-4 mb-1.5 text-[10px] opacity-70">
-          <span className="font-semibold uppercase tracking-wider">
-            {isUser ? "You" : "Assistant"}
-          </span>
-          <span>{formatDate(message.created_at)}</span>
+        <div className="flex items-center justify-between space-x-4 mb-1.5 text-[10px]">
+          <div className="flex items-center flex-wrap gap-2">
+            <span className="font-semibold uppercase tracking-wider opacity-70">
+              {isUser ? "You" : "Assistant"}
+            </span>
+            {!isUser && <VerificationBadge message={message} />}
+          </div>
+          <span className="opacity-70">{formatDate(message.created_at)}</span>
         </div>
 
         {message.image_data && (

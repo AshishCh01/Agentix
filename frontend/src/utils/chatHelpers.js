@@ -85,6 +85,44 @@ export const isNotCoveredReply = (content) => {
 };
 
 /**
+ * Determines the verification badge configuration for an assistant message.
+ * Returns null if the message is unverified, older/history, web answer, or not-covered.
+ *
+ * @param {Object} message - Chat message object
+ * @returns {{ type: "verified"|"unverified", label: string, title: string, ariaLabel: string } | null}
+ */
+export const getVerificationBadgeConfig = (message) => {
+  if (!message || message.role !== "assistant" || message.isStreaming) {
+    return null;
+  }
+
+  // Do not show a badge on the not-covered reply
+  if (isNotCoveredReply(message.content)) {
+    return null;
+  }
+
+  if (message.verified === true) {
+    return {
+      type: "verified",
+      label: "Verified against your documents",
+      title: "Verified against your documents",
+      ariaLabel: "Verified against your documents",
+    };
+  }
+
+  if (message.verified === false) {
+    return {
+      type: "unverified",
+      label: "Could not be fully verified",
+      title: "Could not be fully verified",
+      ariaLabel: "Could not be fully verified",
+    };
+  }
+
+  return null;
+};
+
+/**
  * Extracts final reflection verdict and verification status from a completion event.
  * Ensures that the final verdict from the last reflection pass is preserved.
  *
