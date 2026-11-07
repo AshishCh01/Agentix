@@ -211,6 +211,95 @@ def build_fallback_standalone_query(query: str, chat_history: List[Dict[str, Any
     return query
 
 
+WEB_CONFIRMATION_PATTERN = re.compile(
+    r"^(?:"
+    r"(?:yes|yeah|yep|yup|sure|sure\s+thing|ok|okay)?\s*,?\s*"
+    r"(?:"
+    r"please\s+do(?:\s+(?:that|so))?|"
+    r"do\s+(?:that|it|so)|"
+    r"go\s+ahead|"
+    r"look\s+it\s+up(?:\s+online)?|"
+    r"look\s+online|"
+    r"(?:search|look\s+it\s+up)\s+(?:the\s+)?(?:web|online|internet)(?:\s+instead)?(?:\s+please)?|"
+    r"please(?:\s+search(?:\s+(?:the\s+)?(?:web|online|internet))?)?|"
+    r"search(?:\s+for\s+it)?"
+    r")|"
+    r"yes|yeah|yep|yup|sure|sure\s+thing|ok|okay|please"
+    r")[\.\?!]*$",
+    re.IGNORECASE,
+)
+
+
+def is_web_confirmation_phrase(query: str) -> bool:
+    """
+    Checks if a query is an affirmative confirmation phrase confirming web search.
+    Examples: 'Yes, search the web', 'sure', 'please do', 'look it up online', 'yes please'.
+    """
+    if not query:
+        return False
+    return bool(WEB_CONFIRMATION_PATTERN.match(query.strip()))
+
+
+def is_web_search_offer(text: str) -> bool:
+    """
+    Checks if an assistant message offered to search the web following an ungrounded or
+    uncovered document query.
+    """
+    if not text:
+        return False
+    t = text.lower()
+    return "would you like me to search the web" in t or (
+        "couldn't find this in your uploaded documents" in t and "search the web" in t
+    )
+
+
+def get_last_assistant_message(chat_history: List[Dict[str, Any]]) -> Optional[str]:
+    """
+    Retrieves the content of the most recent assistant message from chat history.
+    """
+    if not chat_history:
+        return None
+    for msg in reversed(chat_history):
+        role = msg.get("role") or msg.get("sender")
+        if role == "assistant":
+            return msg.get("content", "")
+    return None
+
+
+def get_previous_unanswered_question(chat_history: List[Dict[str, Any]]) -> Optional[str]:
+    """
+    Finds the user question that prompted the 'not covered' web-search offer.
+    Searches backwards from the 'not covered' assistant message for the preceding user question.
+    """
+    if not chat_history:
+        return None
+    found_offer = False
+    for msg in reversed(chat_history):
+        role = msg.get("role") or msg.get("sender")
+        content = (msg.get("content") or "").strip()
+        if not found_offer:
+            if role == "assistant" and is_web_search_offer(content):
+                found_offer = True
+        else:
+            if role == "user" and content and not is_web_confirmation_phrase(content):
+                return content
+    return None
+
+
+def get_last_non_confirmation_user_query(chat_history: List[Dict[str, Any]]) -> Optional[str]:
+    """
+    Finds the most recent user query that is not a confirmation phrase.
+    """
+    if not chat_history:
+        return None
+    for msg in reversed(chat_history):
+        role = msg.get("role") or msg.get("sender")
+        content = (msg.get("content") or "").strip()
+        if role == "user" and content and not is_web_confirmation_phrase(content):
+            return content
+    return None
+
+
 async def classify_intent(state: AgentState) -> Dict[str, Any]:
     """
     Classifies user intent into GREETING, RAG_QUERY, WEB_SEARCH, or DIRECT_ANSWER
@@ -221,7 +310,27 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
     image_data = state.get("image_data")
     chat_history = state.get("chat_history", [])
 
-    # Fast-path heuristic for simple greetings to bypass LLM latency
+    # Fast-path 1: Deterministic web-search confirmation following a 'not covered' offer
+    last_assistant_msg = get_last_assistant_message(chat_history)
+    if (
+        last_assistant_msg
+        and is_web_search_offer(last_assistant_msg)
+        and is_web_confirmation_phrase(user_query)
+    ):
+        original_query = (
+            get_previous_unanswered_question(chat_history)
+            or get_last_non_confirmation_user_query(chat_history)
+        )
+        logger.info(
+            f"🌐 [Supervisor] Detected affirmative web search confirmation '{user_query}'. "
+            f"Routing to WEB_SEARCH with original question: '{original_query}'"
+        )
+        return {
+            "intent": "WEB_SEARCH",
+            "standalone_query": original_query or user_query,
+        }
+
+    # Fast-path 2: Fast-path heuristic for simple greetings to bypass LLM latency
     if not chat_history and not image_data:
         q_lower = user_query.strip().lower()
         if q_lower in ["hi", "hello", "hey", "hi there", "hello there", "greetings"]:
@@ -271,6 +380,20 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
             if standalone == user_query:
                 standalone = build_fallback_standalone_query(user_query, chat_history)
 
+        # Guard: if LLM classified as WEB_SEARCH but left standalone_query as a confirmation phrase,
+        # or if user confirmed web search after a 'not covered' offer, resolve it to original query.
+        if intent == "WEB_SEARCH" and (
+            is_web_confirmation_phrase(standalone)
+            or (last_assistant_msg and is_web_search_offer(last_assistant_msg) and is_web_confirmation_phrase(user_query))
+        ):
+            resolved_q = (
+                get_previous_unanswered_question(chat_history)
+                or get_last_non_confirmation_user_query(chat_history)
+            )
+            if resolved_q:
+                logger.info(f"🌐 Resolved generic WEB_SEARCH standalone query to: '{resolved_q}'")
+                standalone = resolved_q
+
         return {
             "intent": intent,
             "standalone_query": standalone
@@ -282,6 +405,17 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
         if image_data:
             fallback_intent = "RAG_QUERY"
             fallback_query = user_query
+        elif (
+            last_assistant_msg
+            and is_web_search_offer(last_assistant_msg)
+            and is_web_confirmation_phrase(user_query)
+        ):
+            fallback_intent = "WEB_SEARCH"
+            fallback_query = (
+                get_previous_unanswered_question(chat_history)
+                or get_last_non_confirmation_user_query(chat_history)
+                or user_query
+            )
         elif is_greeting(user_query):
             fallback_intent = "GREETING"
             fallback_query = user_query

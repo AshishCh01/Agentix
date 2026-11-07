@@ -41,6 +41,8 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
 
     # Fallback when no context is retrieved AND no image is provided
     if not formatted_context and not image_data:
+        if state.get("final_response"):
+            return {"final_response": state["final_response"]}
         if context_source == "web":
             return {
                 "final_response": (
