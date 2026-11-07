@@ -20,11 +20,26 @@ export const MessageList = () => {
   // re-renders just that one item instead of the whole list.
   const messageItems = useMemo(
     () =>
-      messages.map((msg) => (
-        <ErrorBoundary key={msg.id}>
-          <MessageItem message={msg} />
-        </ErrorBoundary>
-      )),
+      messages.map((msg, idx) => {
+        let previousUserMessage = null;
+        if (msg.role === "assistant") {
+          for (let i = idx - 1; i >= 0; i--) {
+            if (messages[i].role === "user") {
+              previousUserMessage = messages[i];
+              break;
+            }
+          }
+        }
+
+        return (
+          <ErrorBoundary key={msg.id}>
+            <MessageItem
+              message={msg}
+              previousUserMessage={previousUserMessage}
+            />
+          </ErrorBoundary>
+        );
+      }),
     [messages]
   );
 

@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, ImagePlus, X } from "lucide-react";
+import { Send, Sparkles, ImagePlus, X, Globe } from "lucide-react";
 import { useChat } from "../../hooks/useChat";
 import { MAX_UPLOAD_BYTES } from "../../utils/constants";
 
 export const ChatInput = () => {
   const [prompt, setPrompt] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [allowWebSearch, setAllowWebSearch] = useState(false);
   const { sendMessage, isStreaming } = useChat();
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -68,7 +69,7 @@ export const ChatInput = () => {
       textareaRef.current.style.height = "auto";
     }
 
-    sendMessage(textToSend, imageToSend);
+    sendMessage(textToSend, imageToSend, allowWebSearch);
   };
 
   const handleKeyDown = (e) => {
@@ -107,15 +108,41 @@ export const ChatInput = () => {
             className="hidden"
           />
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isStreaming}
-            className="pl-3.5 pr-1 text-slate-400 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 disabled:opacity-50 transition-colors flex items-center justify-center"
-            title="Attach image"
-          >
-            <ImagePlus className="w-5 h-5" />
-          </button>
+          <div className="flex items-center pl-2.5 space-x-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isStreaming}
+              className="p-1.5 text-slate-400 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 disabled:opacity-50 transition-colors flex items-center justify-center rounded-xl"
+              title="Attach image"
+            >
+              <ImagePlus className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAllowWebSearch((prev) => !prev)}
+              disabled={isStreaming}
+              className={`p-1.5 rounded-xl transition-all flex items-center justify-center ${
+                allowWebSearch
+                  ? "text-blue-600 bg-blue-100/80 dark:text-blue-400 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 shadow-xs"
+                  : "text-slate-400 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+              } disabled:opacity-50`}
+              title={
+                allowWebSearch
+                  ? "Web search fallback active (click to disable)"
+                  : "Enable web search fallback (searches web if not in documents)"
+              }
+              aria-label={
+                allowWebSearch
+                  ? "Web search fallback active"
+                  : "Enable web search fallback"
+              }
+              aria-pressed={allowWebSearch}
+            >
+              <Globe className="w-4 h-4" />
+            </button>
+          </div>
 
           <textarea
             ref={textareaRef}
@@ -142,7 +169,16 @@ export const ChatInput = () => {
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 px-2 mt-2">
-          <span>Press Enter to send, Shift + Enter for new line</span>
+          <span>
+            {allowWebSearch ? (
+              <span className="text-blue-600 dark:text-blue-400 font-medium inline-flex items-center gap-1">
+                <Globe className="w-3 h-3" />
+                Web search fallback active
+              </span>
+            ) : (
+              "Press Enter to send, Shift + Enter for new line"
+            )}
+          </span>
           <span>Powered by Agentix RAG Pipeline</span>
         </div>
       </form>
