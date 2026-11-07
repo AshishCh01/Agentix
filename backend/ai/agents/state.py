@@ -26,3 +26,4 @@ class AgentState(TypedDict):
     previous_queries: Optional[List[str]]
     verified: Optional[bool]
     reflection_verdict: Optional[str]
+    not_covered: Optional[bool]

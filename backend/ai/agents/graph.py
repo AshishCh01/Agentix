@@ -9,7 +9,13 @@ from ai.agents.greeting import run_greeting_agent
 from ai.agents.direct_answer import run_direct_answer_agent
 from ai.agents.reflection import UNVERIFIED_ANSWER_CAVEAT, evaluate_response
 from ai.agents.state import AgentState
-from ai.agents.supervisor import classify_intent, rewrite_query_for_retry
+from ai.agents.supervisor import (
+    classify_intent,
+    rewrite_query_for_retry,
+    is_web_confirmation_phrase,
+    get_previous_unanswered_question,
+    get_last_non_confirmation_user_query,
+)
 from ai.services.llm_service import llm_service
 from ai.tools.vector_search import vector_search_tool
 from ai.tools.web_search import web_search_tool
@@ -143,7 +149,7 @@ def route_after_answer(state: AgentState) -> str:
     # Guard for Issue #10: The "not covered" path (0 chunks after thresholding)
     # has nothing to verify and must NOT enter reflection or the retry loop.
     final_resp = state.get("final_response", "")
-    if "I couldn't find this in your uploaded documents" in final_resp:
+    if state.get("not_covered") or "I couldn't find this in your uploaded documents" in final_resp:
         logger.info("⏩ Skipping reflection node for 'not covered' response.")
         return END
 
@@ -234,6 +240,35 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
 async def web_search_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Web search engine retrieval node."""
     search_query = state.get("standalone_query") or state.get("user_query", "")
+    chat_history = state.get("chat_history", [])
+
+    if is_web_confirmation_phrase(search_query):
+        fallback_query = (
+            get_previous_unanswered_question(chat_history)
+            or get_last_non_confirmation_user_query(chat_history)
+        )
+        if fallback_query:
+            logger.info(
+                f"🌐 [Web Search Node] Search query '{search_query}' was a confirmation phrase; "
+                f"falling back to '{fallback_query}'."
+            )
+            search_query = fallback_query
+        else:
+            logger.warning(
+                f"⚠️ [Web Search Node] Search query '{search_query}' was a confirmation phrase "
+                "but no prior user question was found in chat history."
+            )
+            return {
+                "context_source": "web",
+                "formatted_context": "",
+                "retrieved_chunks": [],
+                "final_response": "What would you like me to search the web for? Please provide a specific question or topic.",
+                "tool_outputs": state.get("tool_outputs", []) + [{
+                    "tool": "web_search",
+                    "result": {"error": "Missing search query: generic confirmation without prior question"},
+                }],
+            }
+
     tool_result = await web_search_tool(query=search_query, max_results=4)
     return {
         # NOTE: intent is deliberately NOT overwritten here. Leaving the
