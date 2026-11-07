@@ -83,6 +83,7 @@ async def _setup_chat_state(
         "final_response": "",
         "error": None,
         "retry_count": 0,
+        "previous_queries": [],
     }
 
     # Persist user message

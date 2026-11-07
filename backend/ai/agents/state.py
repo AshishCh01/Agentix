@@ -23,3 +23,4 @@ class AgentState(TypedDict):
     retrieval_error: Optional[bool]
     retrieval_error_message: Optional[str]
     retry_count: int
+    previous_queries: Optional[List[str]]
