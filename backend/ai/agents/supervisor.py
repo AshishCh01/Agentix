@@ -165,6 +165,52 @@ Generate a new, distinct retrieval query targeting the missing information."""
 
     return None
 
+FOLLOW_UP_INDICATORS = re.compile(
+    r"\b(it|its|that|this|these|those|the\s+(second|first|third|fourth|last|previous|other)\s*(one|point|item|step)?|"
+    r"(second|first|third|fourth|last|previous)\s+(point|item|step|part|section)|"
+    r"more\s+detail|explain\s+(further|more|in\s+detail)|"
+    r"elaborate|what\s+about|why\s+is\s+that|how\s+about|tell\s+me\s+more|can\s+you\s+clarify|"
+    r"how\s+does\s+that|what\s+does\s+that)\b",
+    re.IGNORECASE,
+)
+
+
+def is_followup_query(query: str, chat_history: List[Dict[str, Any]]) -> bool:
+    """
+    Checks if a query appears to be a conversational follow-up referencing earlier turns.
+    """
+    if not chat_history:
+        return False
+    q_stripped = query.strip()
+    if len(q_stripped.split()) <= 4:
+        return True
+    return bool(FOLLOW_UP_INDICATORS.search(q_stripped))
+
+
+def build_fallback_standalone_query(query: str, chat_history: List[Dict[str, Any]]) -> str:
+    """
+    Builds a safer standalone query fallback when LLM intent classification fails or times out.
+    When chat history exists and the query is a follow-up, combines the last user question
+    with the follow-up query to retain topic context for vector search.
+    """
+    if not chat_history or not is_followup_query(query, chat_history):
+        return query
+
+    # Find the most recent substantive user question in chat history
+    last_user_question = None
+    for msg in reversed(chat_history):
+        if msg.get("role") == "user" and msg.get("content"):
+            last_user_question = msg.get("content").strip()
+            break
+
+    if last_user_question:
+        if query.lower() in last_user_question.lower():
+            return last_user_question
+        return f"{last_user_question} - {query}".strip()
+
+    return query
+
+
 async def classify_intent(state: AgentState) -> Dict[str, Any]:
     """
     Classifies user intent into GREETING, RAG_QUERY, WEB_SEARCH, or DIRECT_ANSWER
@@ -189,7 +235,7 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
     user_content: List[Dict[str, Any]] = []
     
     if chat_history:
-        history_str = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in chat_history[-4:]])
+        history_str = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in chat_history[-6:]])
         user_content.append({"type": "text", "text": f"Chat History:\n{history_str}\n\n"})
 
     if user_query.strip():
@@ -210,9 +256,24 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
         llm = llm_service.get_chat_model(temperature=0.0, streaming=False)
         structured_llm = llm.with_structured_output(IntentClassification)
         result = await structured_llm.ainvoke(messages)
+        intent = result.intent
+        standalone = result.standalone_query.strip() if result.standalone_query else user_query
+
+        # Guard: follow-ups in knowledge-base chats or conversational follow-ups referencing
+        # prior document answers must route to RAG_QUERY, never DIRECT_ANSWER.
+        if (
+            intent == "DIRECT_ANSWER"
+            and chat_history
+            and (state.get("knowledge_base_id") or is_followup_query(user_query, chat_history))
+        ):
+            logger.info("🔄 Reclassifying conversational follow-up from DIRECT_ANSWER to RAG_QUERY.")
+            intent = "RAG_QUERY"
+            if standalone == user_query:
+                standalone = build_fallback_standalone_query(user_query, chat_history)
+
         return {
-            "intent": result.intent,
-            "standalone_query": result.standalone_query
+            "intent": intent,
+            "standalone_query": standalone
         }
     except Exception as e:
         logger.warning(
@@ -220,14 +281,17 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
         )
         if image_data:
             fallback_intent = "RAG_QUERY"
+            fallback_query = user_query
         elif is_greeting(user_query):
             fallback_intent = "GREETING"
+            fallback_query = user_query
         else:
             fallback_intent = "RAG_QUERY"
-            
+            fallback_query = build_fallback_standalone_query(user_query, chat_history)
+
         return {
             "intent": fallback_intent,
-            "standalone_query": user_query
+            "standalone_query": fallback_query
         }
 
 
