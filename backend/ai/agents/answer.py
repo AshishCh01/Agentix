@@ -54,7 +54,8 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
             "final_response": (
                 "I couldn't find this in your uploaded documents. "
                 "Would you like me to search the web instead?"
-            )
+            ),
+            "not_covered": True,
         }
 
     # Select prompt template based on where the context actually came from

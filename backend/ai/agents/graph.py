@@ -149,7 +149,7 @@ def route_after_answer(state: AgentState) -> str:
     # Guard for Issue #10: The "not covered" path (0 chunks after thresholding)
     # has nothing to verify and must NOT enter reflection or the retry loop.
     final_resp = state.get("final_response", "")
-    if "I couldn't find this in your uploaded documents" in final_resp:
+    if state.get("not_covered") or "I couldn't find this in your uploaded documents" in final_resp:
         logger.info("⏩ Skipping reflection node for 'not covered' response.")
         return END
 
