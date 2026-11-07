@@ -7,9 +7,9 @@ from langchain_core.runnables import RunnableConfig
 from ai.agents.answer import run_answer_agent
 from ai.agents.greeting import run_greeting_agent
 from ai.agents.direct_answer import run_direct_answer_agent
-from ai.agents.reflection import evaluate_response
+from ai.agents.reflection import UNVERIFIED_ANSWER_CAVEAT, evaluate_response
 from ai.agents.state import AgentState
-from ai.agents.supervisor import classify_intent
+from ai.agents.supervisor import classify_intent, rewrite_query_for_retry
 from ai.services.llm_service import llm_service
 from ai.tools.vector_search import vector_search_tool
 from ai.tools.web_search import web_search_tool
@@ -26,10 +26,57 @@ logger = logging.getLogger(__name__)
 # --- 1. Node Definitions & Edge Functions ---
 
 async def supervisor_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
-    """Classifies user intent (GREETING, RAG_QUERY, WEB_SEARCH, DIRECT_ANSWER)."""
+    """Classifies user intent (GREETING, RAG_QUERY, WEB_SEARCH, DIRECT_ANSWER) or rewrites query on retry."""
+    is_retry = bool(state.get("error"))
+    previous_queries = list(state.get("previous_queries") or [])
+
+    if is_retry:
+        original_query = state.get("standalone_query") or state.get("user_query", "")
+        if original_query and original_query not in previous_queries:
+            previous_queries.append(original_query)
+
+        feedback = state.get("error", "")
+        new_query = await rewrite_query_for_retry(
+            state=state,
+            original_query=original_query,
+            reflection_feedback=feedback,
+            previous_queries=previous_queries,
+        )
+
+        if not new_query or new_query in previous_queries:
+            logger.warning(
+                f"⚠️ [Supervisor Node] Could not produce a new query distinct from previous queries "
+                f"({previous_queries}). Stopping retry loop."
+            )
+            final_resp = state.get("final_response", "")
+            if UNVERIFIED_ANSWER_CAVEAT not in final_resp:
+                final_resp = f"{final_resp.rstrip()}{UNVERIFIED_ANSWER_CAVEAT}"
+            return {
+                "intent": "STOP_RETRY",
+                "final_response": final_resp,
+                "verified": False,
+                "reflection_verdict": "failed",
+                "previous_queries": previous_queries,
+            }
+
+        previous_queries.append(new_query)
+        logger.info(
+            f"🔄 [Supervisor Node] Rewrote retrieval query for retry: '{new_query}' "
+            f"(previous: {previous_queries[:-1]})"
+        )
+        return {
+            "intent": "RAG_QUERY",
+            "standalone_query": new_query,
+            "previous_queries": previous_queries,
+        }
+
+    # Initial pass: classify intent
     result = await classify_intent(state)
-    # classify_intent returns {"intent": "...", "standalone_query": "..."}
-    # Return it directly so both keys are merged into graph state
+    initial_query = result.get("standalone_query") or state.get("user_query", "")
+    if initial_query and initial_query not in previous_queries:
+        previous_queries.append(initial_query)
+
+    result["previous_queries"] = previous_queries
     return result
 
 
@@ -42,6 +89,8 @@ def route_intent(state: AgentState) -> str:
         return "web_search"
     elif intent == "DIRECT_ANSWER":
         return "direct_answer"
+    elif intent == "STOP_RETRY":
+        return END
     return "vector_search"
 
 
@@ -73,7 +122,8 @@ def route_after_vector_search(state: AgentState) -> str:
 
 def route_after_answer(state: AgentState) -> str:
     """
-    Conditional router: skips reflection if set in settings or for non-RAG queries.
+    Conditional router: skips reflection if set in settings, for non-RAG queries,
+    or when 0 chunks were retrieved (the 'not covered' path).
 
     `intent` here reflects the supervisor's original classification, not
     whether web_search happened to run — web_search_node no longer overwrites
@@ -88,6 +138,21 @@ def route_after_answer(state: AgentState) -> str:
     intent = state.get("intent")
     if intent in ["WEB_SEARCH", "GREETING", "DIRECT_ANSWER"]:
         logger.info(f"⏩ Skipping reflection node for intent: {intent}.")
+        return END
+
+    # Guard for Issue #10: The "not covered" path (0 chunks after thresholding)
+    # has nothing to verify and must NOT enter reflection or the retry loop.
+    final_resp = state.get("final_response", "")
+    if "I couldn't find this in your uploaded documents" in final_resp:
+        logger.info("⏩ Skipping reflection node for 'not covered' response.")
+        return END
+
+    if state.get("context_source") != "web" and not state.get("retrieved_chunks") and not state.get("image_data"):
+        logger.info("⏩ Skipping reflection node: no document chunks passed relevance threshold ('not covered' response).")
+        return END
+
+    if state.get("retrieval_error"):
+        logger.info("⏩ Skipping reflection node: retrieval error occurred.")
         return END
 
     return "reflection"
@@ -228,6 +293,7 @@ def build_graph():
             "direct_answer": "direct_answer",
             "vector_search": "vector_search",
             "web_search": "web_search",
+            END: END,
         },
     )
 

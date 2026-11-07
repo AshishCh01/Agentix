@@ -63,6 +63,9 @@ async def test_reflection_loop_stops_at_max_retry_cap():
             return_value={"intent": "RAG_QUERY", "standalone_query": "refund policy"}
         ),
     ), patch(
+        "ai.agents.graph.rewrite_query_for_retry",
+        new=AsyncMock(side_effect=["refund policy window", "refund policy conditions"]),
+    ), patch(
         "ai.agents.graph.vector_search_tool",
         new=AsyncMock(
             return_value={"chunks": [{"content": "refund info"}], "context_text": "refund info"}

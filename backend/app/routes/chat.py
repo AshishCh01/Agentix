@@ -83,6 +83,9 @@ async def _setup_chat_state(
         "final_response": "",
         "error": None,
         "retry_count": 0,
+        "previous_queries": [],
+        "verified": None,
+        "reflection_verdict": None,
     }
 
     # Persist user message
@@ -185,6 +188,8 @@ async def chat_endpoint(
         assistant_message=clean_answer,
         intent=final_state.get("intent"),
         sources=sources,
+        verified=final_state.get("verified"),
+        reflection_verdict=final_state.get("reflection_verdict"),
     )
 
 
@@ -300,6 +305,8 @@ async def chat_stream_endpoint(
                 "assistant_message": clean_final_response,
                 "sources": sources,
                 "reflection": reflection_data,
+                "verified": final_state.get("verified"),
+                "reflection_verdict": final_state.get("reflection_verdict"),
             })
             yield f"data: {completion_payload}\n\n"
 
