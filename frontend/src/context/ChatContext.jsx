@@ -4,6 +4,11 @@ import { sessionApi } from "../api/sessionApi";
 import { chatApi } from "../api/chatApi";
 import { AuthContext } from "./AuthContext";
 import { MAX_RETAINED_MESSAGE_IMAGES } from "../utils/constants";
+import {
+  extractFinalReflection,
+  updateMessagesOnNodeStart,
+  updateMessagesOnToken,
+} from "../utils/chatHelpers";
 
 export const ChatContext = createContext(null);
 
@@ -214,7 +219,12 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  const sendMessage = async (userPrompt, imageData = null, allowWebSearch = false) => {
+  const sendMessage = async (
+    userPrompt,
+    imageData = null,
+    allowWebSearch = false,
+    options = {}
+  ) => {
     if ((!userPrompt.trim() && !imageData) || isStreaming) return;
 
     let targetSessionId = activeSessionId;
@@ -231,14 +241,6 @@ export const ChatProvider = ({ children }) => {
       activeSessionIdRef.current = targetSessionId;
     }
 
-    const userMsg = {
-      id: Date.now().toString(),
-      role: "user",
-      content: userPrompt,
-      image_data: imageData,
-      created_at: new Date().toISOString(),
-    };
-
     const assistantPlaceholder = {
       id: (Date.now() + 1).toString(),
       role: "assistant",
@@ -248,7 +250,19 @@ export const ChatProvider = ({ children }) => {
       created_at: new Date().toISOString(),
     };
 
-    setMessages((prev) => pruneOldImageData([...prev, userMsg, assistantPlaceholder]));
+    if (options?.skipUserMessageInTranscript) {
+      setMessages((prev) => pruneOldImageData([...prev, assistantPlaceholder]));
+    } else {
+      const userMsg = {
+        id: Date.now().toString(),
+        role: "user",
+        content: userPrompt,
+        image_data: imageData,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => pruneOldImageData([...prev, userMsg, assistantPlaceholder]));
+    }
+
     setIsStreaming(true);
     setActiveNode("supervisor");
 
@@ -268,6 +282,8 @@ export const ChatProvider = ({ children }) => {
     const isStillActive = () => activeSessionIdRef.current === targetSessionId;
 
     try {
+      let currentActiveNode = "supervisor";
+
       await chatApi.streamMessage({
         sessionId: targetSessionId,
         message: userPrompt,
@@ -277,23 +293,16 @@ export const ChatProvider = ({ children }) => {
         onEvent: (event) => {
           if (!isStillActive()) return;
           if (event.type === "node_start") {
+            currentActiveNode = event.node;
             setActiveNode(event.node);
+            setMessages((prev) => updateMessagesOnNodeStart(prev, event.node));
           } else if (event.type === "token") {
-            setMessages((prev) => {
-              const updated = [...prev];
-              const lastMsg = updated[updated.length - 1];
-              if (lastMsg && lastMsg.role === "assistant") {
-                return [
-                  ...updated.slice(0, -1),
-                  {
-                    ...lastMsg,
-                    content: (lastMsg.content || "") + (event.content || ""),
-                  },
-                ];
-              }
-              return updated;
-            });
+            setMessages((prev) =>
+              updateMessagesOnToken(prev, event.content, currentActiveNode)
+            );
           } else if (event.type === "completion") {
+            currentActiveNode = null;
+            const { reflection, verified, reflection_verdict } = extractFinalReflection(event);
             setMessages((prev) => {
               const updated = [...prev];
               const lastMsg = updated[updated.length - 1];
@@ -305,7 +314,9 @@ export const ChatProvider = ({ children }) => {
                     content: event.assistant_message || lastMsg.content,
                     sources: event.sources || [],
                     intent: event.intent,
-                    reflection: event.reflection || null,
+                    reflection,
+                    verified,
+                    reflection_verdict,
                     isStreaming: false,
                   },
                 ];

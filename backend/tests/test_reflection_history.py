@@ -234,3 +234,78 @@ async def test_end_to_end_graph_exhausted_retries_surfaces_caveat():
     assert final_state.get("reflection_verdict") == "failed"
     assert "Unverifiable draft about revenues." in final_state["final_response"]
     assert UNVERIFIED_ANSWER_CAVEAT in final_state["final_response"]
+
+
+@pytest.mark.asyncio
+async def test_retry_success_retains_final_reflection_verdict():
+    """
+    Issue #12: when an initial draft fails reflection but the retry passes,
+    tool_outputs accumulates both reflection entries. The last reflection entry
+    and final state must reflect the passing verdict ('passed', verified=True).
+    """
+    initial_state = _base_state(
+        retry_count=0,
+        final_response="",
+    )
+
+    # First call fails reflection, second call passes reflection
+    fail_output = ReflectionOutput(
+        is_grounded=False,
+        is_relevant=False,
+        reason="First draft was incomplete.",
+    )
+    pass_output = ReflectionOutput(
+        is_grounded=True,
+        is_relevant=True,
+        reason="Second draft is fully grounded and relevant.",
+    )
+
+    mock_structured = AsyncMock()
+    mock_structured.ainvoke.side_effect = [fail_output, pass_output]
+    mock_reflection_llm = MagicMock()
+    mock_reflection_llm.with_structured_output.return_value = mock_structured
+
+    with patch(
+        "ai.agents.graph.classify_intent",
+        new=AsyncMock(
+            return_value={"intent": "RAG_QUERY", "standalone_query": "Q3 revenue"}
+        ),
+    ), patch(
+        "ai.agents.graph.rewrite_query_for_retry",
+        new=AsyncMock(return_value="Q3 financials breakdown"),
+    ), patch(
+        "ai.agents.graph.vector_search_tool",
+        new=AsyncMock(
+            return_value={"chunks": [{"content": "financial data"}], "context_text": "financial data"}
+        ),
+    ), patch(
+        "ai.agents.answer.llm_service.generate_response",
+        new=AsyncMock(side_effect=["Draft 1", "Draft 2"]),
+    ), patch(
+        "ai.agents.reflection.llm_service.get_chat_model",
+        return_value=mock_reflection_llm,
+    ):
+        final_state = await rag_graph.ainvoke(
+            initial_state,
+            config={"configurable": {"db": object()}, "recursion_limit": 25},
+        )
+
+    assert final_state.get("verified") is True
+    assert final_state.get("reflection_verdict") == "passed"
+    assert final_state["final_response"] == "Draft 2"
+
+    tool_outputs = final_state.get("tool_outputs", [])
+    reflection_entries = [t for t in tool_outputs if isinstance(t, dict) and t.get("node") == "reflection"]
+    assert len(reflection_entries) == 2
+    assert reflection_entries[0]["verified"] is False
+    assert reflection_entries[1]["verified"] is True
+
+    # The stream completion payload extracts the last entry
+    last_reflection = next(
+        (t for t in reversed(tool_outputs) if isinstance(t, dict) and t.get("node") == "reflection"),
+        None,
+    )
+    assert last_reflection is not None
+    assert last_reflection["verified"] is True
+    assert last_reflection["result"]["reason"] == "Second draft is fully grounded and relevant."
+
