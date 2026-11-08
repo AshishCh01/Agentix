@@ -11,7 +11,8 @@ class AgentState(TypedDict):
     allow_web_search: Optional[bool]  # Opt-in flag for web search fallback when 0 chunks pass relevance threshold
     user_query: str
     standalone_query: Optional[str]  # <-- ADDED: Rewritten query with conversation context
-    image_data: Optional[str]  # <-- ADDED: Base64 image payload
+    image_data: Optional[str]  # Base64 image payload
+    extracted_image_query: Optional[str]  # Extracted query from image (prevents re-extracting on reflection retries)
     intent: Optional[str]
     chat_history: List[Dict[str, Any]]
     retrieved_chunks: List[Dict[str, Any]]

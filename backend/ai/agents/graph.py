@@ -18,6 +18,7 @@ from ai.agents.supervisor import (
 )
 from ai.services.llm_service import llm_service
 from ai.services.summarization_service import generate_document_summary
+from ai.services.vision_service import resolve_image_query
 from ai.tools.vector_search import vector_search_tool
 from ai.tools.web_search import web_search_tool
 from app.config.settings import settings
@@ -77,7 +78,39 @@ async def supervisor_node(state: AgentState, config: RunnableConfig) -> Dict[str
             "previous_queries": previous_queries,
         }
 
-    # Initial pass: classify intent
+    # Initial pass: handle image queries or classify intent
+    image_data = state.get("image_data")
+    if image_data and not state.get("extracted_image_query"):
+        user_query = state.get("user_query", "")
+        resolved_query, error_msg = await resolve_image_query(image_data=image_data, user_query=user_query)
+        if error_msg:
+            logger.warning("Image query extraction failed: %s", error_msg)
+            return {
+                "intent": "STOP_RETRY",
+                "final_response": error_msg,
+                "not_covered": False,
+                "allow_web_search": False,
+                "retrieved_chunks": [],
+                "formatted_context": "",
+                "context_source": None,
+                "verified": None,
+                "reflection_verdict": None,
+                "standalone_query": None,
+                "extracted_image_query": None,
+            }
+
+        logger.info("Resolved image search query: '%s'", resolved_query)
+        if resolved_query and resolved_query not in previous_queries:
+            previous_queries.append(resolved_query)
+
+        return {
+            "intent": "RAG_QUERY",
+            "standalone_query": resolved_query,
+            "extracted_image_query": resolved_query,
+            "previous_queries": previous_queries,
+            "not_covered": False,
+        }
+
     result = await classify_intent(state)
     initial_query = result.get("standalone_query") or state.get("user_query", "")
     if initial_query and initial_query not in previous_queries:

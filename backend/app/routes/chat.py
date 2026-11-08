@@ -74,6 +74,7 @@ async def _setup_chat_state(
         "allow_web_search": request.allow_web_search,
         "user_query": user_query_text,
         "image_data": request.image_data,
+        "extracted_image_query": None,
         "intent": None,
         "chat_history": chat_history,
         "retrieved_chunks": [],

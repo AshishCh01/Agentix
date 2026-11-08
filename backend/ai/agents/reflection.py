@@ -38,6 +38,19 @@ async def evaluate_response(state: AgentState) -> Dict[str, Any]:
       user-visible caveat is appended to the final_response.
     """
     user_query = state.get("user_query", "")
+    # For image-only queries where user_query is empty, fall back to standalone_query
+    # or extracted_image_query so reflection evaluates relevance against the actual topic.
+    uq_clean = user_query.strip()
+    if uq_clean:
+        eval_query = uq_clean
+    else:
+        eval_query = (
+            (state.get("standalone_query") or "").strip()
+            or (state.get("extracted_image_query") or "").strip()
+        )
+    if not eval_query and state.get("image_data"):
+        eval_query = "Query extracted from user-provided image"
+
     formatted_context = state.get("formatted_context", "")
     final_response = state.get("final_response", "")
     intent = state.get("intent", "RAG_QUERY")
@@ -78,7 +91,7 @@ Recent Chat History:
 """
     eval_prompt += f"""
 User Query:
-{user_query}
+{eval_query}
 
 Assistant Response:
 {final_response}

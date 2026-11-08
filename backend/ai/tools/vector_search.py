@@ -24,6 +24,9 @@ async def vector_search_tool(
     result as LLM-ready context. When knowledge_base_id is set, retrieval includes
     both documents from that knowledge base and documents uploaded directly to the
     chat session.
+
+    If query is empty and image_data is provided, resolves the image to a textual
+    search query before executing retrieval.
     """
     if not user_id:
         logger.warning("vector_search_tool called without user_id; failing closed.")
@@ -38,6 +41,16 @@ async def vector_search_tool(
     elif not isinstance(user_id, uuid.UUID):
         logger.warning("vector_search_tool called with non-UUID user_id type '%s'; failing closed.", type(user_id))
         return {"chunks": [], "context_text": ""}
+
+    # Fallback: if query is empty and image_data is provided, resolve image into text query
+    if not query and image_data:
+        from ai.services.vision_service import resolve_image_query
+        resolved_q, err = await resolve_image_query(image_data=image_data, user_query="")
+        if resolved_q:
+            query = resolved_q
+        else:
+            logger.warning("vector_search_tool could not resolve image query: %s", err)
+            return {"chunks": [], "context_text": ""}
 
     try:
         chunks = await search_similar_chunks(
