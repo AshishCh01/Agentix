@@ -225,15 +225,33 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
                 kb_uuid = None
 
     user_id = state.get("user_id")
+    if not user_id:
+        logger.warning("vector_search_node called without user_id in state; failing closed.")
+        return {
+            "retrieval_error": False,
+            "retrieval_error_message": None,
+            "retrieved_chunks": [],
+            "formatted_context": "",
+            "context_source": "document",
+            "tool_outputs": state.get("tool_outputs", []) + [{"tool": "vector_search", "result": {"chunks": [], "context_text": ""}}],
+        }
+
     user_uuid = None
-    if user_id:
-        if isinstance(user_id, uuid.UUID):
-            user_uuid = user_id
-        else:
-            try:
-                user_uuid = uuid.UUID(str(user_id))
-            except (ValueError, TypeError):
-                user_uuid = None
+    if isinstance(user_id, uuid.UUID):
+        user_uuid = user_id
+    else:
+        try:
+            user_uuid = uuid.UUID(str(user_id))
+        except (ValueError, TypeError):
+            logger.warning("vector_search_node received invalid user_id '%s'; failing closed.", user_id)
+            return {
+                "retrieval_error": False,
+                "retrieval_error_message": None,
+                "retrieved_chunks": [],
+                "formatted_context": "",
+                "context_source": "document",
+                "tool_outputs": state.get("tool_outputs", []) + [{"tool": "vector_search", "result": {"chunks": [], "context_text": ""}}],
+            }
 
     tool_result = await vector_search_tool(
         db=db,

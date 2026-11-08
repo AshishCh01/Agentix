@@ -39,7 +39,8 @@ async def test_search_endpoint_empty_session():
     # Mock authentication to allow request
     app.dependency_overrides = {}
     from app.auth.dependencies import get_current_user
-    app.dependency_overrides[get_current_user] = lambda: {"id": "12345", "sub": "12345"}
+    valid_user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: {"id": valid_user_id, "sub": valid_user_id}
 
     # Mock the database to return an empty session to simulate access denied / not found
     from app.database import crud
@@ -68,12 +69,17 @@ async def test_search_endpoint_success():
     """
     app.dependency_overrides = {}
     from app.auth.dependencies import get_current_user
-    app.dependency_overrides[get_current_user] = lambda: {"id": "12345"}
+    valid_user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: {"id": valid_user_id, "sub": valid_user_id}
 
     from app.database import crud
     
     with patch("app.database.crud.get_chat_session", new_callable=AsyncMock) as mock_get_session:
-        mock_get_session.return_value = {"id": "session-123"}
+        mock_session = MagicMock()
+        mock_session.id = uuid.UUID("11111111-1111-1111-1111-111111111111")
+        mock_session.user_id = uuid.UUID(valid_user_id)
+        mock_session.knowledge_base_id = None
+        mock_get_session.return_value = mock_session
         
         with patch("app.routes.search.search_similar_chunks", new_callable=AsyncMock) as mock_search:
             mock_search.return_value = [
@@ -126,10 +132,15 @@ async def test_search_endpoint_empty_results():
     """
     app.dependency_overrides = {}
     from app.auth.dependencies import get_current_user
-    app.dependency_overrides[get_current_user] = lambda: {"id": "12345"}
+    valid_user_id = str(uuid.uuid4())
+    app.dependency_overrides[get_current_user] = lambda: {"id": valid_user_id, "sub": valid_user_id}
 
     with patch("app.database.crud.get_chat_session", new_callable=AsyncMock) as mock_get_session:
-        mock_get_session.return_value = {"id": "session-123"}
+        mock_session = MagicMock()
+        mock_session.id = uuid.UUID("11111111-1111-1111-1111-111111111111")
+        mock_session.user_id = uuid.UUID(valid_user_id)
+        mock_session.knowledge_base_id = None
+        mock_get_session.return_value = mock_session
         
         with patch("app.routes.search.search_similar_chunks", new_callable=AsyncMock) as mock_search:
             # Simulate DB returning empty lists natively
@@ -257,7 +268,7 @@ async def test_vector_search_db_error():
     
     with patch("ai.tools.vector_search.search_similar_chunks", new_callable=AsyncMock) as mock_search:
         mock_search.side_effect = Exception("DB Connection Error")
-        result = await vector_search_tool(db=None, session_id=uuid.uuid4(), query="test")
+        result = await vector_search_tool(db=None, session_id=uuid.uuid4(), query="test", user_id=uuid.uuid4())
         
         assert result["chunks"] == []
         assert "retrieval_error" in result
@@ -339,10 +350,11 @@ async def test_hybrid_sql_dense_branch_structure_and_limit():
     """
     db = _MockDBSession()
     session_id = uuid.uuid4()
+    user_id = uuid.uuid4()
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
-        await search_similar_chunks(db, query_text="machine learning", session_id=session_id)
+        await search_similar_chunks(db, query_text="machine learning", session_id=session_id, user_id=user_id)
 
     hybrid_sql = next(q for q in db.executed_queries if "dense_inner" in q)
 
@@ -375,10 +387,11 @@ async def test_hybrid_sql_sparse_branch_structure_and_limit():
     """
     db = _MockDBSession()
     session_id = uuid.uuid4()
+    user_id = uuid.uuid4()
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
-        await search_similar_chunks(db, query_text="natural language processing search", session_id=session_id)
+        await search_similar_chunks(db, query_text="natural language processing search", session_id=session_id, user_id=user_id)
 
     hybrid_sql = next(q for q in db.executed_queries if "sparse_inner" in q)
 
@@ -409,10 +422,11 @@ async def test_hybrid_sql_sparse_branch_fallback_on_empty_query():
     """
     db = _MockDBSession()
     session_id = uuid.uuid4()
+    user_id = uuid.uuid4()
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
-        await search_similar_chunks(db, query_text="??? !!! ...", session_id=session_id)
+        await search_similar_chunks(db, query_text="??? !!! ...", session_id=session_id, user_id=user_id)
 
     hybrid_sql = next(q for q in db.executed_queries if "SELECT" in q and "document_chunks" in q)
 
@@ -439,10 +453,11 @@ async def test_hybrid_sql_outer_query_deterministic_candidate_selection():
     """
     db = _MockDBSession()
     session_id = uuid.uuid4()
+    user_id = uuid.uuid4()
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
-        await search_similar_chunks(db, query_text="cloud infrastructure", session_id=session_id, top_k=7)
+        await search_similar_chunks(db, query_text="cloud infrastructure", session_id=session_id, user_id=user_id, top_k=7)
 
     query_idx = next(i for i, q in enumerate(db.executed_queries) if "rrf_score DESC" in q)
     hybrid_sql = db.executed_queries[query_idx]
@@ -473,20 +488,21 @@ async def test_hybrid_sql_scope_filter_subquery_placement():
     """
     session_id = uuid.uuid4()
     kb_id = uuid.uuid4()
+    user_id = uuid.uuid4()
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
 
         # 1. Session scoped
         db_session = _MockDBSession()
-        await search_similar_chunks(db_session, query_text="vector database", session_id=session_id, knowledge_base_id=None)
+        await search_similar_chunks(db_session, query_text="vector database", session_id=session_id, knowledge_base_id=None, user_id=user_id)
         sql_session = next(q for q in db_session.executed_queries if "dense_inner" in q)
         assert "d.session_id = :scope_id" in sql_session
         assert "d.knowledge_base_id" not in sql_session
 
         # 2. Knowledge Base scoped (includes session uploads)
         db_kb = _MockDBSession()
-        await search_similar_chunks(db_kb, query_text="vector database", session_id=session_id, knowledge_base_id=kb_id)
+        await search_similar_chunks(db_kb, query_text="vector database", session_id=session_id, knowledge_base_id=kb_id, user_id=user_id)
         sql_kb = next(q for q in db_kb.executed_queries if "dense_inner" in q)
         assert "(d.knowledge_base_id = :kb_id OR d.session_id = :session_id)" in sql_kb
 
@@ -524,7 +540,7 @@ async def test_candidate_count_scenario_1_reranker_succeeds(monkeypatch):
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
-        results = await search_similar_chunks(db, query_text="test", session_id=uuid.uuid4(), top_k=3)
+        results = await search_similar_chunks(db, query_text="test", session_id=uuid.uuid4(), user_id=uuid.uuid4(), top_k=3)
 
     assert len(results) == 3, f"Expected exactly top_k=3 candidates, got {len(results)}"
     assert results[0]["chunk_id"] == "c4"
@@ -564,7 +580,7 @@ async def test_candidate_count_scenario_2_reranker_fails_open(monkeypatch):
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
-        results = await search_similar_chunks(db, query_text="test", session_id=uuid.uuid4(), top_k=4)
+        results = await search_similar_chunks(db, query_text="test", session_id=uuid.uuid4(), user_id=uuid.uuid4(), top_k=4)
 
     assert len(results) == 4, f"Expected exactly top_k=4 candidates, got {len(results)}"
     assert [r["chunk_id"] for r in results] == ["c1", "c2", "c3", "c4"], "Intended RRF fallback ordering must be preserved"
@@ -597,7 +613,7 @@ async def test_candidate_count_scenario_3_reranking_disabled(monkeypatch):
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
-        results = await search_similar_chunks(db, query_text="test", session_id=uuid.uuid4(), top_k=3)
+        results = await search_similar_chunks(db, query_text="test", session_id=uuid.uuid4(), user_id=uuid.uuid4(), top_k=3)
 
     assert len(results) == 3, f"Expected exactly top_k=3 candidates, got {len(results)}"
     assert [r["chunk_id"] for r in results] == ["c1", "c2", "c3"]
@@ -626,7 +642,7 @@ async def test_candidate_count_scenario_4_insufficient_candidates(monkeypatch):
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
-        results = await search_similar_chunks(db, query_text="test", session_id=uuid.uuid4(), top_k=5)
+        results = await search_similar_chunks(db, query_text="test", session_id=uuid.uuid4(), user_id=uuid.uuid4(), top_k=5)
 
     assert len(results) == 2, f"Expected exactly 2 available candidates, got {len(results)}"
     assert [r["chunk_id"] for r in results] == ["c1", "c2"]
@@ -660,7 +676,7 @@ async def test_set_local_failure_handling_and_transaction_usability(caplog, monk
         mock_embed.return_value = [0.0] * settings.EMBEDDING_DIMENSIONS
 
         with caplog.at_level(logging.WARNING):
-            results = await search_similar_chunks(db, query_text="test query", session_id=uuid.uuid4(), top_k=2)
+            results = await search_similar_chunks(db, query_text="test query", session_id=uuid.uuid4(), user_id=uuid.uuid4(), top_k=2)
 
     # 1. Retrieval continues and returns candidates
     assert len(results) == 2
@@ -835,7 +851,7 @@ async def test_integration_dense_nearest_neighbor(integration_db: AsyncSession, 
 
     with patch.object(embedding_service, "generate_embedding", new_callable=AsyncMock) as mock_embed:
         mock_embed.return_value = q_vec
-        results = await search_similar_chunks(integration_db, query_text="query", session_id=session_id, top_k=3)
+        results = await search_similar_chunks(integration_db, query_text="query", session_id=session_id, user_id=user_id, top_k=3)
 
     assert len(results) >= 1
     # True nearest neighbor must have dense_rank = 1 and appears first
@@ -887,6 +903,7 @@ async def test_integration_sparse_multi_word_retrieval(integration_db: AsyncSess
             integration_db,
             query_text="postgresql inverted reciprocal",
             session_id=session_id,
+            user_id=user_id,
             top_k=2,
         )
 
@@ -939,6 +956,7 @@ async def test_integration_scope_isolation(integration_db: AsyncSession, monkeyp
             query_text="roadmap guidelines",
             session_id=dummy_session,
             knowledge_base_id=kb1.id,
+            user_id=user_id,
             top_k=5,
         )
 
@@ -968,6 +986,7 @@ async def test_integration_scope_isolation(integration_db: AsyncSession, monkeyp
             integration_db,
             query_text="private notes",
             session_id=session1.id,
+            user_id=user_id,
             top_k=5,
         )
 
@@ -1014,6 +1033,7 @@ async def test_integration_deterministic_ordering_with_ties(integration_db: Asyn
                 integration_db,
                 query_text="deterministic benchmark",
                 session_id=session_id,
+                user_id=user_id,
                 top_k=4,
             )
             run_orders.append([r["chunk_id"] for r in results])
@@ -1060,6 +1080,7 @@ async def test_integration_set_local_failure_recovery(integration_db: AsyncSessi
                 integration_db,
                 query_text="sample content",
                 session_id=session_id,
+                user_id=user_id,
                 top_k=2,
             )
 
