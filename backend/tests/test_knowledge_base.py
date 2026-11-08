@@ -318,15 +318,16 @@ async def test_vector_search_tool_forwards_knowledge_base_scope():
 
     assert mock_tool.call_args.kwargs["knowledge_base_id"] == uuid.UUID(kb_id)
     assert str(mock_tool.call_args.kwargs["session_id"]) == session_id
+    assert mock_tool.call_args.kwargs["user_id"] == uuid.UUID(USER_A["user_id"])
 
 
 @pytest.mark.asyncio
 async def test_search_similar_chunks_scopes_sql_by_knowledge_base():
     """
-    search_similar_chunks must filter on d.knowledge_base_id (not
-    d.session_id) when a knowledge_base_id is supplied, and must fall back
-    to the existing d.session_id filter when it is not -- preserving prior
-    session-scoped retrieval behavior for chats with no KB attached.
+    search_similar_chunks includes both d.knowledge_base_id and d.session_id
+    when both a knowledge_base_id and session_id are supplied (fixing #28),
+    and falls back to the existing d.session_id filter when knowledge_base_id is
+    omitted -- preserving prior session-scoped retrieval behavior for chats with no KB attached.
     """
     from ai.services.retrieval_service import search_similar_chunks
 
@@ -346,19 +347,19 @@ async def test_search_similar_chunks_scopes_sql_by_knowledge_base():
     ) as mock_embed:
         mock_embed.return_value = [0.0] * 8
 
-        # KB-scoped call
+        # KB-scoped call with session_id (Issue #28 unified scope)
         await search_similar_chunks(
             db=fake_db, query_text="q", session_id=session_id, knowledge_base_id=kb_id
         )
         sql_text, params = fake_db.execute.call_args.args
-        assert "d.knowledge_base_id = :scope_id" in str(sql_text)
-        assert "d.session_id = :scope_id" not in str(sql_text)
-        assert params["scope_id"] == str(kb_id)
+        assert "(d.knowledge_base_id = :kb_id OR d.session_id = :session_id)" in str(sql_text)
+        assert params["kb_id"] == str(kb_id)
+        assert params["session_id"] == str(session_id)
 
         # Session-scoped call (default/backward-compatible behavior)
         fake_db.execute.reset_mock()
         await search_similar_chunks(db=fake_db, query_text="q", session_id=session_id)
         sql_text, params = fake_db.execute.call_args.args
         assert "d.session_id = :scope_id" in str(sql_text)
-        assert "d.knowledge_base_id = :scope_id" not in str(sql_text)
+        assert "d.knowledge_base_id" not in str(sql_text)
         assert params["scope_id"] == str(session_id)
