@@ -10,7 +10,7 @@ from ai.agents.reflection import ReflectionOutput
 def _base_state(**overrides):
     state = {
         "session_id": str(uuid.uuid4()),
-        "user_id": "test-user",
+        "user_id": str(uuid.uuid4()),
         "user_query": "What is the refund policy?",
         "standalone_query": None,
         "image_data": None,

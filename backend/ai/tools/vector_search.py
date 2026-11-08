@@ -25,6 +25,20 @@ async def vector_search_tool(
     both documents from that knowledge base and documents uploaded directly to the
     chat session.
     """
+    if not user_id:
+        logger.warning("vector_search_tool called without user_id; failing closed.")
+        return {"chunks": [], "context_text": ""}
+
+    if isinstance(user_id, str):
+        try:
+            uuid.UUID(user_id)
+        except (ValueError, TypeError):
+            logger.warning("vector_search_tool called with invalid user_id '%s'; failing closed.", user_id)
+            return {"chunks": [], "context_text": ""}
+    elif not isinstance(user_id, uuid.UUID):
+        logger.warning("vector_search_tool called with non-UUID user_id type '%s'; failing closed.", type(user_id))
+        return {"chunks": [], "context_text": ""}
+
     try:
         chunks = await search_similar_chunks(
             db=db,

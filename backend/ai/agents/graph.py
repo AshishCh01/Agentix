@@ -17,6 +17,7 @@ from ai.agents.supervisor import (
     get_last_non_confirmation_user_query,
 )
 from ai.services.llm_service import llm_service
+from ai.services.summarization_service import generate_document_summary
 from ai.tools.vector_search import vector_search_tool
 from ai.tools.web_search import web_search_tool
 from app.config.settings import settings
@@ -95,6 +96,8 @@ def route_intent(state: AgentState) -> str:
         return "web_search"
     elif intent == "DIRECT_ANSWER":
         return "direct_answer"
+    elif intent == "SUMMARIZE_DOCUMENT":
+        return "summarize_document"
     elif intent == "STOP_RETRY":
         return END
     return "vector_search"
@@ -142,7 +145,7 @@ def route_after_answer(state: AgentState) -> str:
         return END
 
     intent = state.get("intent")
-    if intent in ["WEB_SEARCH", "GREETING", "DIRECT_ANSWER"]:
+    if intent in ["WEB_SEARCH", "GREETING", "DIRECT_ANSWER", "SUMMARIZE_DOCUMENT"]:
         logger.info(f"⏩ Skipping reflection node for intent: {intent}.")
         return END
 
@@ -193,6 +196,87 @@ async def direct_answer_node(state: AgentState, config: RunnableConfig) -> Dict[
     return await run_direct_answer_agent(state)
 
 
+async def summarize_document_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
+    """
+    Whole-document summarization node (Issue #18).
+    Bypasses vector similarity search, relevance threshold filtering, and top_k.
+    Loads all chunks of the resolved target document in order and synthesizes
+    a comprehensive summary with rate-limit protections and bounded backoff.
+    """
+    configurable = config.get("configurable", {}) if config else {}
+    db = configurable.get("db")
+    if db is None:
+        raise ValueError("AsyncSession 'db' was not provided in RunnableConfig['configurable']")
+
+    user_id = state.get("user_id")
+    if not user_id:
+        logger.warning("summarize_document_node called without user_id in state; failing closed.")
+        return {
+            "final_response": "Could not verify user identity. Please try again.",
+            "retrieved_chunks": [],
+            "formatted_context": "",
+            "context_source": "document",
+            "verified": None,
+            "reflection_verdict": None,
+            "not_covered": False,
+        }
+
+    try:
+        user_uuid = user_id if isinstance(user_id, uuid.UUID) else uuid.UUID(str(user_id))
+    except (ValueError, TypeError):
+        logger.warning("summarize_document_node received invalid user_id '%s'; failing closed.", user_id)
+        return {
+            "final_response": "Invalid user identity format. Please try again.",
+            "retrieved_chunks": [],
+            "formatted_context": "",
+            "context_source": "document",
+            "verified": None,
+            "reflection_verdict": None,
+            "not_covered": False,
+        }
+
+    session_id = state.get("session_id")
+    session_uuid = None
+    if session_id:
+        try:
+            session_uuid = session_id if isinstance(session_id, uuid.UUID) else uuid.UUID(str(session_id))
+        except (ValueError, TypeError):
+            session_uuid = None
+
+    kb_id = state.get("knowledge_base_id")
+    kb_uuid = None
+    if kb_id:
+        try:
+            kb_uuid = kb_id if isinstance(kb_id, uuid.UUID) else uuid.UUID(str(kb_id))
+        except (ValueError, TypeError):
+            kb_uuid = None
+
+    summary_result = await generate_document_summary(
+        db=db,
+        user_id=user_uuid,
+        session_id=session_uuid,
+        knowledge_base_id=kb_uuid,
+        query=state.get("user_query", ""),
+    )
+
+    return {
+        "final_response": summary_result["final_response"],
+        "retrieved_chunks": summary_result["retrieved_chunks"],
+        "formatted_context": summary_result["formatted_context"],
+        "context_source": "document",
+        "verified": None,
+        "reflection_verdict": None,
+        "not_covered": False,
+        "tool_outputs": state.get("tool_outputs", []) + [{
+            "tool": "summarize_document",
+            "result": {
+                "target_document": summary_result.get("target_document"),
+                "chunk_count": len(summary_result["retrieved_chunks"]),
+            },
+        }],
+    }
+
+
 async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Vector database retrieval node with query contextualization."""
     configurable = config.get("configurable", {}) if config else {}
@@ -225,15 +309,33 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
                 kb_uuid = None
 
     user_id = state.get("user_id")
+    if not user_id:
+        logger.warning("vector_search_node called without user_id in state; failing closed.")
+        return {
+            "retrieval_error": False,
+            "retrieval_error_message": None,
+            "retrieved_chunks": [],
+            "formatted_context": "",
+            "context_source": "document",
+            "tool_outputs": state.get("tool_outputs", []) + [{"tool": "vector_search", "result": {"chunks": [], "context_text": ""}}],
+        }
+
     user_uuid = None
-    if user_id:
-        if isinstance(user_id, uuid.UUID):
-            user_uuid = user_id
-        else:
-            try:
-                user_uuid = uuid.UUID(str(user_id))
-            except (ValueError, TypeError):
-                user_uuid = None
+    if isinstance(user_id, uuid.UUID):
+        user_uuid = user_id
+    else:
+        try:
+            user_uuid = uuid.UUID(str(user_id))
+        except (ValueError, TypeError):
+            logger.warning("vector_search_node received invalid user_id '%s'; failing closed.", user_id)
+            return {
+                "retrieval_error": False,
+                "retrieval_error_message": None,
+                "retrieved_chunks": [],
+                "formatted_context": "",
+                "context_source": "document",
+                "tool_outputs": state.get("tool_outputs", []) + [{"tool": "vector_search", "result": {"chunks": [], "context_text": ""}}],
+            }
 
     tool_result = await vector_search_tool(
         db=db,
@@ -333,6 +435,7 @@ def build_graph():
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("greeting", greeting_node)
     workflow.add_node("direct_answer", direct_answer_node)
+    workflow.add_node("summarize_document", summarize_document_node)
     workflow.add_node("vector_search", vector_search_node)
     workflow.add_node("web_search", web_search_node)
     workflow.add_node("answer", answer_node)
@@ -348,11 +451,14 @@ def build_graph():
         {
             "greeting": "greeting",
             "direct_answer": "direct_answer",
+            "summarize_document": "summarize_document",
             "vector_search": "vector_search",
             "web_search": "web_search",
             END: END,
         },
     )
+
+    workflow.add_edge("summarize_document", END)
 
     workflow.add_conditional_edges(
         "vector_search",

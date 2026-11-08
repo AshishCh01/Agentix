@@ -25,11 +25,25 @@ async def perform_vector_search(
     Performs cosine similarity vector search against stored document chunks
     for a given session_id.
     """
-    user_id = str(current_user.get("id") or current_user.get("sub", ""))
-    
+    user_id_raw = current_user.get("id") or current_user.get("sub", "")
+    if not user_id_raw:
+        logger.warning("Search endpoint called without resolvable user ID.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not resolve user identity.",
+        )
+    try:
+        target_user_id = uuid.UUID(str(user_id_raw))
+    except (ValueError, TypeError):
+        logger.warning("Search endpoint called with invalid user ID '%s'.", user_id_raw)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user identity format.",
+        )
+
     from app.database import crud
     try:
-        session = await crud.get_chat_session(db, session_id=request.session_id, user_id=user_id)
+        session = await crud.get_chat_session(db, session_id=request.session_id, user_id=target_user_id)
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -41,20 +55,9 @@ async def perform_vector_search(
             detail="Database error while verifying session.",
         )
 
-    kb_id = (
-        session.get("knowledge_base_id")
-        if isinstance(session, dict)
-        else getattr(session, "knowledge_base_id", None)
-    )
+    kb_id = session.knowledge_base_id
     if kb_id and isinstance(kb_id, str):
         kb_id = uuid.UUID(kb_id)
-
-    target_user_id = None
-    if user_id:
-        try:
-            target_user_id = uuid.UUID(user_id)
-        except (ValueError, TypeError):
-            target_user_id = None
 
     try:
         raw_chunks = await search_similar_chunks(

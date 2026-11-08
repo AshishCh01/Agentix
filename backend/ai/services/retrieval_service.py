@@ -46,15 +46,45 @@ async def search_similar_chunks(
     """
     from sqlalchemy import text
 
-    if isinstance(session_id, str):
-        session_id = uuid.UUID(session_id)
-    if isinstance(knowledge_base_id, str):
-        knowledge_base_id = uuid.UUID(knowledge_base_id)
-    if isinstance(user_id, str):
+    if not user_id:
+        logger.warning("search_similar_chunks called without user_id; failing closed with 0 chunks.")
+        return []
+
+    if isinstance(user_id, uuid.UUID):
+        user_uuid = user_id
+    elif isinstance(user_id, str):
         try:
-            user_id = uuid.UUID(user_id)
+            user_uuid = uuid.UUID(user_id)
         except (ValueError, TypeError):
-            user_id = None
+            logger.warning("search_similar_chunks called with invalid user_id '%s'; failing closed with 0 chunks.", user_id)
+            return []
+    else:
+        logger.warning("search_similar_chunks called with non-UUID user_id type '%s'; failing closed with 0 chunks.", type(user_id))
+        return []
+
+    session_uuid = None
+    if session_id:
+        if isinstance(session_id, uuid.UUID):
+            session_uuid = session_id
+        elif isinstance(session_id, str):
+            try:
+                session_uuid = uuid.UUID(session_id)
+            except (ValueError, TypeError):
+                session_uuid = None
+
+    kb_uuid = None
+    if knowledge_base_id:
+        if isinstance(knowledge_base_id, uuid.UUID):
+            kb_uuid = knowledge_base_id
+        elif isinstance(knowledge_base_id, str):
+            try:
+                kb_uuid = uuid.UUID(knowledge_base_id)
+            except (ValueError, TypeError):
+                kb_uuid = None
+
+    if session_uuid is None and kb_uuid is None:
+        logger.warning("search_similar_chunks called with neither valid session_id nor knowledge_base_id; failing closed.")
+        return []
 
     # 1. Generate embedding vector for the search query
     query_vector = await embedding_service.generate_embedding(query_text, mode=EmbeddingTask.QUERY)
@@ -73,23 +103,22 @@ async def search_similar_chunks(
     }
 
     scope_conditions = []
-    if knowledge_base_id is not None and session_id is not None:
+    if kb_uuid is not None and session_uuid is not None:
         scope_conditions.append("(d.knowledge_base_id = :kb_id OR d.session_id = :session_id)")
-        params["kb_id"] = str(knowledge_base_id)
-        params["session_id"] = str(session_id)
-        params["scope_id"] = str(knowledge_base_id)
-    elif knowledge_base_id is not None:
+        params["kb_id"] = str(kb_uuid)
+        params["session_id"] = str(session_uuid)
+        params["scope_id"] = str(kb_uuid)
+    elif kb_uuid is not None:
         scope_conditions.append("d.knowledge_base_id = :scope_id")
-        params["scope_id"] = str(knowledge_base_id)
-        params["kb_id"] = str(knowledge_base_id)
+        params["scope_id"] = str(kb_uuid)
+        params["kb_id"] = str(kb_uuid)
     else:
         scope_conditions.append("d.session_id = :scope_id")
-        params["scope_id"] = str(session_id)
-        params["session_id"] = str(session_id)
+        params["scope_id"] = str(session_uuid)
+        params["session_id"] = str(session_uuid)
 
-    if user_id is not None:
-        scope_conditions.append("d.user_id = :user_id")
-        params["user_id"] = str(user_id)
+    scope_conditions.append("d.user_id = :user_id")
+    params["user_id"] = str(user_uuid)
 
     scope_conditions.append("d.status = 'ready'")
     scope_filter = " AND ".join(scope_conditions)

@@ -75,6 +75,7 @@ async def test_threshold_filter_above_kept_and_below_dropped():
                 db=db_mock,
                 query_text="test query",
                 session_id=uuid.uuid4(),
+                user_id=uuid.uuid4(),
                 top_k=4,
             )
 
@@ -134,6 +135,7 @@ async def test_threshold_filter_boundary_value():
                 db=db_mock,
                 query_text="boundary query",
                 session_id=uuid.uuid4(),
+                user_id=uuid.uuid4(),
                 top_k=4,
             )
 
@@ -191,6 +193,7 @@ async def test_threshold_filter_all_chunks_dropped():
                 db=db_mock,
                 query_text="completely off-topic query",
                 session_id=uuid.uuid4(),
+                user_id=uuid.uuid4(),
                 top_k=4,
             )
 
@@ -255,6 +258,7 @@ async def test_threshold_filter_fallback_when_rerank_disabled():
                 db=db_mock,
                 query_text="dense query",
                 session_id=uuid.uuid4(),
+                user_id=uuid.uuid4(),
                 top_k=4,
             )
 

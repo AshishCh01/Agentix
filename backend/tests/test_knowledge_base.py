@@ -347,19 +347,22 @@ async def test_search_similar_chunks_scopes_sql_by_knowledge_base():
     ) as mock_embed:
         mock_embed.return_value = [0.0] * 8
 
+        user_id = uuid.uuid4()
         # KB-scoped call with session_id (Issue #28 unified scope)
         await search_similar_chunks(
-            db=fake_db, query_text="q", session_id=session_id, knowledge_base_id=kb_id
+            db=fake_db, query_text="q", session_id=session_id, knowledge_base_id=kb_id, user_id=user_id
         )
         sql_text, params = fake_db.execute.call_args.args
         assert "(d.knowledge_base_id = :kb_id OR d.session_id = :session_id)" in str(sql_text)
         assert params["kb_id"] == str(kb_id)
         assert params["session_id"] == str(session_id)
+        assert params["user_id"] == str(user_id)
 
         # Session-scoped call (default/backward-compatible behavior)
         fake_db.execute.reset_mock()
-        await search_similar_chunks(db=fake_db, query_text="q", session_id=session_id)
+        await search_similar_chunks(db=fake_db, query_text="q", session_id=session_id, user_id=user_id)
         sql_text, params = fake_db.execute.call_args.args
         assert "d.session_id = :scope_id" in str(sql_text)
         assert "d.knowledge_base_id" not in str(sql_text)
         assert params["scope_id"] == str(session_id)
+        assert params["user_id"] == str(user_id)

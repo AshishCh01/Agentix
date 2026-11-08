@@ -13,7 +13,7 @@ from ai.agents.reflection import (
 def _base_state(**overrides):
     state = {
         "session_id": str(uuid.uuid4()),
-        "user_id": "test-user",
+        "user_id": str(uuid.uuid4()),
         "knowledge_base_id": str(uuid.uuid4()),
         "allow_web_search": False,
         "user_query": "What about Q3?",
