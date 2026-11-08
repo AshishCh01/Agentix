@@ -101,7 +101,7 @@ async def run_answer_agent(state: AgentState) -> Dict[str, Any]:
         response = await llm_service.generate_response(
             messages=messages,
             temperature=0.2,
-            max_tokens=1000,
+            max_tokens=2500,
         )
         return {"final_response": response}
     except Exception as e:

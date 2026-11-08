@@ -474,3 +474,49 @@ async def test_text_only_query_bypasses_image_pipeline():
         mock_resolve.assert_not_called()
         assert output["intent"] == "GREETING"
 
+
+@pytest.mark.asyncio
+async def test_reflection_evaluates_relevance_using_extracted_query():
+    from ai.agents.reflection import evaluate_response, ReflectionOutput
+
+    state: AgentState = {
+        "session_id": "11111111-1111-1111-1111-111111111111",
+        "user_id": "22222222-2222-2222-2222-222222222222",
+        "knowledge_base_id": None,
+        "allow_web_search": False,
+        "user_query": "",
+        "image_data": SAMPLE_PNG_DATA_URL,
+        "extracted_image_query": "Compare Continuous vs Discrete Optimization",
+        "standalone_query": "Compare Continuous vs Discrete Optimization",
+        "intent": "RAG_QUERY",
+        "chat_history": [],
+        "retrieved_chunks": [{"chunk_id": "c1", "content": "Optimization notes"}],
+        "formatted_context": "Continuous optimization optimizes continuous variables...",
+        "context_source": "document",
+        "tool_outputs": [],
+        "final_response": "Continuous optimization deals with continuous parameter spaces.",
+        "error": None,
+        "retry_count": 0,
+        "previous_queries": [],
+        "verified": None,
+        "reflection_verdict": None,
+    }
+
+    mock_llm = MagicMock()
+    mock_structured = AsyncMock()
+    mock_structured.ainvoke.return_value = ReflectionOutput(
+        is_grounded=True, is_relevant=True, reason="Grounded and addresses the image query."
+    )
+    mock_llm.with_structured_output.return_value = mock_structured
+
+    with patch("ai.agents.reflection.llm_service.get_chat_model", return_value=mock_llm):
+        result = await evaluate_response(state)
+        assert result["verified"] is True
+        assert result["error"] is None
+
+        # Verify that the prompt sent to the reflection evaluator contained the extracted query
+        called_messages = mock_structured.ainvoke.call_args[0][0]
+        human_msg = next(m.content for m in called_messages if m.type == "human")
+        assert "Compare Continuous vs Discrete Optimization" in human_msg
+
+
