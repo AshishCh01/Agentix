@@ -225,6 +225,7 @@ async def chat_stream_endpoint(
                     "answer",
                     "greeting",
                     "reflection",
+                    "summarize_document",
                 ]:
                     payload = json.dumps({"type": "node_start", "node": node_name})
                     yield f"data: {payload}\n\n"

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from ai.agents.state import AgentState
 from ai.prompts.supervisor_prompt import SUPERVISOR_PROMPT
 from ai.services.llm_service import llm_service
+from ai.services.summarization_service import is_summarize_document_query
 from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ def is_greeting(query: str) -> bool:
 
 
 class IntentClassification(BaseModel):
-    intent: Literal["GREETING", "RAG_QUERY", "WEB_SEARCH", "DIRECT_ANSWER"] = Field(
+    intent: Literal["GREETING", "RAG_QUERY", "WEB_SEARCH", "DIRECT_ANSWER", "SUMMARIZE_DOCUMENT"] = Field(
         description="The classified intent of the user query."
     )
     standalone_query: str = Field(
@@ -340,6 +341,14 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
                 "standalone_query": user_query
             }
 
+    # Fast-path 3: Deterministic whole-document summarization pre-check
+    if is_summarize_document_query(user_query):
+        logger.info(f"📄 [Supervisor] Deterministic whole-document summarization detected: '{user_query}'")
+        return {
+            "intent": "SUMMARIZE_DOCUMENT",
+            "standalone_query": user_query,
+        }
+
     # Build Multimodal Content for LLM Classification
     user_content: List[Dict[str, Any]] = []
     
@@ -418,6 +427,9 @@ async def classify_intent(state: AgentState) -> Dict[str, Any]:
             )
         elif is_greeting(user_query):
             fallback_intent = "GREETING"
+            fallback_query = user_query
+        elif is_summarize_document_query(user_query):
+            fallback_intent = "SUMMARIZE_DOCUMENT"
             fallback_query = user_query
         else:
             fallback_intent = "RAG_QUERY"

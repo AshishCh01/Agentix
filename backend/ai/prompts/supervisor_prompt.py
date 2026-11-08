@@ -6,6 +6,7 @@ Intent Categories:
 2. "RAG_QUERY": User asks about content, summaries, key points, questions, or facts from uploaded PDFs, notes, or documents. (DEFAULT for study/document queries and ANY conversational follow-up discussing prior document answers).
 3. "WEB_SEARCH": User explicitly asks about live internet data, latest real-time news, current weather, stock prices, events today, or explicitly asks to search the web/online.
 4. "DIRECT_ANSWER": User asks for standalone coding help, writing tasks, general math, logic reasoning, or general knowledge that requires no external document or web lookup and does NOT reference prior document chat history.
+5. "SUMMARIZE_DOCUMENT": User asks for a complete summary, overview, tl;dr, or gist of an entire document, file, pdf, or upload (e.g. "summarize this document", "give me an overview of the pdf", "tl;dr of this file", "can you summarize the document I just uploaded?", "summarize handbook.pdf"). CRITICAL NOTE: Topic-specific requests (e.g. "summarize the section on refunds", "summarize what it says about pricing") seek information on a specific subject and MUST be classified as "RAG_QUERY", NOT "SUMMARIZE_DOCUMENT".
 
 CRITICAL ROUTING RULE FOR FOLLOW-UPS:
 If the user's query asks to explain, clarify, elaborate, compare, or continue discussing points from previous turns in the chat (e.g. "explain the second point in more detail", "what about Q3?", "tell me more about that"), you MUST classify the intent as "RAG_QUERY", NEVER "DIRECT_ANSWER".
@@ -47,4 +48,19 @@ Example 4:
 User Query: Write a python function to check if a string is a palindrome.
 Intent: DIRECT_ANSWER
 Standalone Query: Write a python function to check if a string is a palindrome.
+
+Example 5:
+User Query: Summarize this document
+Intent: SUMMARIZE_DOCUMENT
+Standalone Query: Summarize this document
+
+Example 6:
+User Query: summarize the section on warranty coverage
+Intent: RAG_QUERY
+Standalone Query: summarize the section on warranty coverage in the document
+
+Example 7:
+User Query: Give me an overview of employee_handbook.pdf
+Intent: SUMMARIZE_DOCUMENT
+Standalone Query: Give me an overview of employee_handbook.pdf
 """
