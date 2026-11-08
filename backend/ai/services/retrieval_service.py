@@ -28,33 +28,71 @@ def build_sparse_query(text: str) -> str:
 async def search_similar_chunks(
     db: AsyncSession,
     query_text: str,
-    session_id: uuid.UUID,
+    session_id: uuid.UUID | str,
     top_k: int = 4,
-    knowledge_base_id: Optional[uuid.UUID] = None,
+    knowledge_base_id: Optional[uuid.UUID | str] = None,
+    user_id: Optional[uuid.UUID | str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Performs hybrid search (Dense pgvector + Sparse FTS) with Reciprocal Rank Fusion (RRF),
     then reranks the top results using a cross-encoder.
 
-    Scoping: when `knowledge_base_id` is provided, retrieval is restricted to
-    documents belonging to that knowledge base (d.knowledge_base_id) rather
-    than the chat session -- this is how a chat started against a selected
-    Knowledge Base only ever retrieves that KB's documents. When it is
-    omitted (the existing/default behavior for sessions with no KB
-    attached), retrieval is scoped to `session_id` exactly as before.
+    Scoping: when `knowledge_base_id` is provided, retrieval includes both documents
+    belonging to that knowledge base (d.knowledge_base_id) and documents uploaded directly
+    to the chat session (d.session_id) in a single unified query. When it is
+    omitted (the existing/default behavior for sessions with no KB attached),
+    retrieval is scoped to `session_id` exactly as before. Only documents with
+    status 'ready' and valid embeddings and full-text tokens are queried.
     """
     from sqlalchemy import text
+
+    if isinstance(session_id, str):
+        session_id = uuid.UUID(session_id)
+    if isinstance(knowledge_base_id, str):
+        knowledge_base_id = uuid.UUID(knowledge_base_id)
+    if isinstance(user_id, str):
+        try:
+            user_id = uuid.UUID(user_id)
+        except (ValueError, TypeError):
+            user_id = None
 
     # 1. Generate embedding vector for the search query
     query_vector = await embedding_service.generate_embedding(query_text, mode=EmbeddingTask.QUERY)
     query_vector_str = "[" + ",".join(map(str, query_vector)) + "]"
 
-    if knowledge_base_id is not None:
-        scope_filter = "d.knowledge_base_id = :scope_id"
-        scope_id = str(knowledge_base_id)
+    # Build hybrid SQL query parameters and scope conditions
+    sparse_query = build_sparse_query(query_text)
+
+    params: Dict[str, Any] = {
+        "query": query_text,
+        "sparse_query": sparse_query,
+        "query_vector": query_vector_str,
+        "list_size": settings.RETRIEVAL_LIST_SIZE,
+        "rrf_k": settings.RRF_K,
+        "rerank_candidates": max(settings.RERANK_CANDIDATES, top_k),
+    }
+
+    scope_conditions = []
+    if knowledge_base_id is not None and session_id is not None:
+        scope_conditions.append("(d.knowledge_base_id = :kb_id OR d.session_id = :session_id)")
+        params["kb_id"] = str(knowledge_base_id)
+        params["session_id"] = str(session_id)
+        params["scope_id"] = str(knowledge_base_id)
+    elif knowledge_base_id is not None:
+        scope_conditions.append("d.knowledge_base_id = :scope_id")
+        params["scope_id"] = str(knowledge_base_id)
+        params["kb_id"] = str(knowledge_base_id)
     else:
-        scope_filter = "d.session_id = :scope_id"
-        scope_id = str(session_id)
+        scope_conditions.append("d.session_id = :scope_id")
+        params["scope_id"] = str(session_id)
+        params["session_id"] = str(session_id)
+
+    if user_id is not None:
+        scope_conditions.append("d.user_id = :user_id")
+        params["user_id"] = str(user_id)
+
+    scope_conditions.append("d.status = 'ready'")
+    scope_filter = " AND ".join(scope_conditions)
 
     # 2. HNSW Settings
     try:
@@ -68,8 +106,6 @@ async def search_similar_chunks(
         logger.warning(f"Failed to set pgvector HNSW parameters: {e}")
 
     # 3. Hybrid SQL Query with RRF
-    sparse_query = build_sparse_query(query_text)
-    
     if sparse_query:
         sparse_cte = f"""
         sparse_inner AS (
@@ -79,6 +115,7 @@ async def search_similar_chunks(
             FROM document_chunks dc
             JOIN documents d ON dc.document_id = d.id
             WHERE {scope_filter}
+              AND dc.fts_tokens IS NOT NULL
               AND dc.fts_tokens @@ websearch_to_tsquery('english', :sparse_query)
             ORDER BY rank_score DESC
             LIMIT :list_size
@@ -101,6 +138,7 @@ async def search_similar_chunks(
         FROM document_chunks dc
         JOIN documents d ON dc.document_id = d.id
         WHERE {scope_filter}
+          AND dc.embedding IS NOT NULL
         ORDER BY distance
         LIMIT :list_size
     ),
@@ -138,15 +176,7 @@ async def search_similar_chunks(
     """
     
     # 4. Execute the hybrid query
-    result = await db.execute(text(hybrid_sql), {
-        "query": query_text,
-        "sparse_query": sparse_query,
-        "scope_id": scope_id,
-        "query_vector": query_vector_str,
-        "list_size": settings.RETRIEVAL_LIST_SIZE,
-        "rrf_k": settings.RRF_K,
-        "rerank_candidates": max(settings.RERANK_CANDIDATES, top_k)
-    })
+    result = await db.execute(text(hybrid_sql), params)
 
     # 5. Format retrieved chunks
     retrieved_chunks = []

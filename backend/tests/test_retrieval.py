@@ -469,7 +469,7 @@ async def test_hybrid_sql_scope_filter_subquery_placement():
     """
     Verify scope filtering is placed inside both sparse_inner and dense_inner:
     - Session scope: d.session_id = :scope_id in both subqueries
-    - KB scope: d.knowledge_base_id = :scope_id in both subqueries
+    - KB + Session scope: (d.knowledge_base_id = :kb_id OR d.session_id = :session_id) in both subqueries
     """
     session_id = uuid.uuid4()
     kb_id = uuid.uuid4()
@@ -484,12 +484,11 @@ async def test_hybrid_sql_scope_filter_subquery_placement():
         assert "d.session_id = :scope_id" in sql_session
         assert "d.knowledge_base_id" not in sql_session
 
-        # 2. Knowledge Base scoped
+        # 2. Knowledge Base scoped (includes session uploads)
         db_kb = _MockDBSession()
         await search_similar_chunks(db_kb, query_text="vector database", session_id=session_id, knowledge_base_id=kb_id)
         sql_kb = next(q for q in db_kb.executed_queries if "dense_inner" in q)
-        assert "d.knowledge_base_id = :scope_id" in sql_kb
-        assert "d.session_id = :scope_id" not in sql_kb
+        assert "(d.knowledge_base_id = :kb_id OR d.session_id = :session_id)" in sql_kb
 
 
 # ---------------------------------------------------------------------
@@ -781,7 +780,7 @@ async def _create_test_document_and_chunks(
         file_type="application/pdf",
         file_path=f"/test/{filename}",
         file_size=1024,
-        status="completed",
+        status="ready",
     )
     db.add(doc)
     await db.flush()

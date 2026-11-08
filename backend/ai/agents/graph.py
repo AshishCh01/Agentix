@@ -214,13 +214,35 @@ async def vector_search_node(state: AgentState, config: RunnableConfig) -> Dict[
         logger.info(f"🔍 Using standalone query from supervisor: '{search_query}'")
 
     kb_id = state.get("knowledge_base_id")
+    kb_uuid = None
+    if kb_id:
+        if isinstance(kb_id, uuid.UUID):
+            kb_uuid = kb_id
+        else:
+            try:
+                kb_uuid = uuid.UUID(str(kb_id))
+            except (ValueError, TypeError):
+                kb_uuid = None
+
+    user_id = state.get("user_id")
+    user_uuid = None
+    if user_id:
+        if isinstance(user_id, uuid.UUID):
+            user_uuid = user_id
+        else:
+            try:
+                user_uuid = uuid.UUID(str(user_id))
+            except (ValueError, TypeError):
+                user_uuid = None
+
     tool_result = await vector_search_tool(
         db=db,
         session_id=session_uuid,
         query=search_query,
         image_data=state.get("image_data"),
         top_k=4,
-        knowledge_base_id=uuid.UUID(kb_id) if kb_id else None,
+        knowledge_base_id=kb_uuid,
+        user_id=user_uuid,
     )
     
     retrieval_error = tool_result.get("retrieval_error")

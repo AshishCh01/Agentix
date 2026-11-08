@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,12 +41,29 @@ async def perform_vector_search(
             detail="Database error while verifying session.",
         )
 
+    kb_id = (
+        session.get("knowledge_base_id")
+        if isinstance(session, dict)
+        else getattr(session, "knowledge_base_id", None)
+    )
+    if kb_id and isinstance(kb_id, str):
+        kb_id = uuid.UUID(kb_id)
+
+    target_user_id = None
+    if user_id:
+        try:
+            target_user_id = uuid.UUID(user_id)
+        except (ValueError, TypeError):
+            target_user_id = None
+
     try:
         raw_chunks = await search_similar_chunks(
             db=db,
             query_text=request.query,
             session_id=request.session_id,
             top_k=request.top_k,
+            knowledge_base_id=kb_id,
+            user_id=target_user_id,
         )
 
         # Convert dictionary list into ChunkResult objects for strict type checking
