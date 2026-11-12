@@ -1,133 +1,87 @@
 import { useState } from "react";
 import { BookMarked, Plus, TriangleAlert } from "lucide-react";
 import { useKnowledgeBase } from "../hooks/useKnowledgeBase";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { Spinner } from "../components/Common/Loader";
+import { Button } from "../components/ui/Button";
+import { PageHeader } from "../components/ui/PageHeader";
+import { StateMessage } from "../components/ui/StateMessage";
 import { KnowledgeBaseCard } from "../components/KnowledgeBase/KnowledgeBaseCard";
 import { KnowledgeBaseFormModal } from "../components/KnowledgeBase/KnowledgeBaseFormModal";
 
-export const KnowledgeBaseListPage = () => {
-  const {
-    knowledgeBases,
-    loading,
-    error,
-    fetchKnowledgeBases,
-    createKnowledgeBase,
-    updateKnowledgeBase,
-    deleteKnowledgeBase,
-  } = useKnowledgeBase();
+export default function KnowledgeBaseListPage() {
+  usePageTitle("Knowledge bases");
+  const { knowledgeBases, loading, error, fetchKnowledgeBases, createKnowledgeBase, updateKnowledgeBase, deleteKnowledgeBase } =
+    useKnowledgeBase();
+  const [modal, setModal] = useState(null); // null | "create" | "edit"
+  const [editing, setEditing] = useState(null);
 
-  const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
-  const [editingKb, setEditingKb] = useState(null);
-
-  const openCreateModal = () => {
-    setEditingKb(null);
-    setModalMode("create");
+  const close = () => {
+    setModal(null);
+    setEditing(null);
   };
+  const submit = ({ name, description }) =>
+    modal === "edit" ? updateKnowledgeBase(editing.id, { name, description }) : createKnowledgeBase(name, description);
 
-  const openRenameModal = (kb) => {
-    setEditingKb(kb);
-    setModalMode("edit");
-  };
-
-  const closeModal = () => {
-    setModalMode(null);
-    setEditingKb(null);
-  };
-
-  const handleSubmit = async ({ name, description }) => {
-    if (modalMode === "edit" && editingKb) {
-      await updateKnowledgeBase(editingKb.id, { name, description });
-    } else {
-      await createKnowledgeBase(name, description);
-    }
-  };
+  const newButton = (
+    <Button onClick={() => setModal("create")}>
+      <Plus className="size-4" aria-hidden="true" />
+      New knowledge base
+    </Button>
+  );
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <BookMarked className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            Knowledge Bases
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Organize documents into collections you can chat against.
-          </p>
-        </div>
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+      <PageHeader
+        title="Knowledge bases"
+        description="Group documents together, then start a chat that searches only that group."
+        actions={knowledgeBases.length > 0 && newButton}
+      />
 
-        <button
-          onClick={openCreateModal}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm rounded-xl transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Knowledge Base</span>
-        </button>
+      <div className="mt-8">
+        {loading && knowledgeBases.length === 0 ? (
+          <div className="flex justify-center py-24"><Spinner size="lg" /></div>
+        ) : error && knowledgeBases.length === 0 ? (
+          <StateMessage
+            icon={TriangleAlert}
+            tone="danger"
+            title="Couldn’t load your knowledge bases"
+            description={typeof error === "string" ? error : "Check your connection and try again."}
+            action={<Button variant="secondary" onClick={fetchKnowledgeBases}>Try again</Button>}
+          />
+        ) : knowledgeBases.length === 0 ? (
+          <StateMessage
+            icon={BookMarked}
+            title="No knowledge bases yet"
+            description="Create one, upload a few documents, and chat with just that set."
+            action={newButton}
+          />
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {knowledgeBases.map((kb) => (
+              <li key={kb.id}>
+                <KnowledgeBaseCard
+                  kb={kb}
+                  onRename={(k) => {
+                    setEditing(k);
+                    setModal("edit");
+                  }}
+                  onDelete={deleteKnowledgeBase}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">
-          <Spinner size="lg" />
-          <span className="mt-3 text-xs">Loading knowledge bases...</span>
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-          <div className="p-3 bg-red-50 border border-red-100 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 rounded-2xl">
-            <TriangleAlert className="w-8 h-8" />
-          </div>
-          <p className="text-sm text-slate-600 dark:text-slate-300">{error}</p>
-          <button
-            onClick={fetchKnowledgeBases}
-            className="px-4 py-2 text-xs font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 rounded-lg transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && knowledgeBases.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 max-w-sm mx-auto">
-          <div className="p-3 bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 rounded-2xl">
-            <BookMarked className="w-8 h-8" />
-          </div>
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-            No knowledge bases yet
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Create one to group related documents and chat against just that collection.
-          </p>
-          <button
-            onClick={openCreateModal}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl transition-colors shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Knowledge Base</span>
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && knowledgeBases.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {knowledgeBases.map((kb) => (
-            <KnowledgeBaseCard
-              key={kb.id}
-              kb={kb}
-              onRename={openRenameModal}
-              onDelete={deleteKnowledgeBase}
-            />
-          ))}
-        </div>
-      )}
-
-      {modalMode && (
+      {modal && (
         <KnowledgeBaseFormModal
-          mode={modalMode}
-          initialValues={editingKb}
-          onSubmit={handleSubmit}
-          onClose={closeModal}
+          mode={modal}
+          initialValues={editing}
+          onSubmit={submit}
+          onClose={close}
         />
       )}
     </div>
   );
-};
+}

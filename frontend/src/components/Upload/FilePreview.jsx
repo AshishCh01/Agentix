@@ -1,72 +1,55 @@
-import { FileText, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { CircleAlert, CheckCircle2, FileText, X } from "lucide-react";
 import { Spinner } from "../Common/Loader";
+import { IconButton } from "../ui/Button";
+import { formatFileSize } from "../../utils/files";
 
 export const FilePreview = ({ file, progress, isUploading, error, success, onClear }) => {
   if (!file) return null;
-
-  const formatFileSize = (bytes) => {
-    if (!bytes) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-  };
-
   return (
-    <div className="p-3 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-xl space-y-2 text-xs">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2.5 min-w-0 pr-2">
-          <div className="p-2 bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 rounded-lg flex-shrink-0">
-            <FileText className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-medium text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500">{formatFileSize(file.size)}</p>
-          </div>
+    <div className="space-y-3 rounded-xl border border-line bg-sunken p-3.5">
+      <div className="flex items-center gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-accent">
+          <FileText className="size-5" aria-hidden="true" />
         </div>
-
-        <button
-          onClick={onClear}
-          disabled={isUploading}
-          className="p-1 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 disabled:opacity-50 rounded"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-ink" title={file.name}>{file.name}</p>
+          <p className="text-xs text-ink-3">{formatFileSize(file.size)}</p>
+        </div>
+        <IconButton label="Remove file" size="sm" onClick={onClear} disabled={isUploading}>
+          <X className="size-4" />
+        </IconButton>
       </div>
 
-      {/* Uploading Progress */}
       {isUploading && (
-        <div className="space-y-1.5 pt-1">
-          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Spinner size="sm" />
-              Transferring file to server...
-            </span>
-            <span>{progress}%</span>
+        <div className="space-y-1.5" role="status">
+          <div className="flex items-center justify-between text-xs text-ink-2">
+            <span className="inline-flex items-center gap-1.5"><Spinner size="sm" /> Uploading…</span>
+            <span className="tabular-nums">{progress}%</span>
           </div>
-          <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-            <div
-              className="bg-blue-500 h-full transition-all duration-300 rounded-full"
-              style={{ width: `${progress}%` }}
-            />
+          <div
+            className="h-1.5 overflow-hidden rounded-full bg-line"
+            role="progressbar"
+            aria-valuenow={progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div className="h-full bg-accent transition-[width] duration-200" style={{ width: `${progress}%` }} />
           </div>
         </div>
       )}
 
-      {/* Success Badge - Updated to reflect 202 Accepted status accurately */}
       {success && (
-        <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-medium pt-1">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          <span>Upload complete! Processing in background.</span>
-        </div>
+        <p role="status" className="flex items-center gap-2 text-xs text-accent">
+          <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
+          Uploaded. The file is being processed in the background.
+        </p>
       )}
 
-      {/* Error Badge */}
       {error && (
-        <div className="flex items-center space-x-1.5 text-red-600 dark:text-red-400 font-medium pt-1">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{error}</span>
-        </div>
+        <p role="alert" className="flex items-start gap-2 text-xs text-danger">
+          <CircleAlert className="mt-px size-4 shrink-0" aria-hidden="true" />
+          {error}
+        </p>
       )}
     </div>
   );

@@ -78,6 +78,13 @@ export const ChatProvider = ({ children }) => {
     abortController();
     setIsStreaming(false);
     setActiveNode(null);
+    // Finalize any half-streamed assistant message so it doesn't stay in a
+    // "streaming" state forever after the user hits Stop.
+    setMessages((prev) =>
+      prev.some((m) => m.isStreaming)
+        ? prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false, stopped: true } : m))
+        : prev
+    );
   }, [abortController]);
 
   // Defense in depth: if the active session ever changes out from under an

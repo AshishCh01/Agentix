@@ -4,7 +4,11 @@ import { ArrowLeft, BookMarked, MessageSquarePlus, Pencil, TriangleAlert } from 
 import { knowledgeBaseApi } from "../api/knowledgeBaseApi";
 import { useKnowledgeBase } from "../hooks/useKnowledgeBase";
 import { useChat } from "../hooks/useChat";
+import { useUI } from "../hooks/useUI";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { Spinner } from "../components/Common/Loader";
+import { Button, IconButton } from "../components/ui/Button";
+import { StateMessage } from "../components/ui/StateMessage";
 import { DocumentRow } from "../components/KnowledgeBase/DocumentRow";
 import { KnowledgeBaseUpload } from "../components/KnowledgeBase/KnowledgeBaseUpload";
 import { KnowledgeBaseFormModal } from "../components/KnowledgeBase/KnowledgeBaseFormModal";
@@ -12,9 +16,10 @@ import { getErrorMessage } from "../utils/helpers";
 
 const POLL_INTERVAL_MS = 4000;
 
-export const KnowledgeBaseDetailPage = () => {
+export default function KnowledgeBaseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useUI();
   const { updateKnowledgeBase } = useKnowledgeBase();
   const { createNewSession } = useChat();
 
@@ -23,9 +28,10 @@ export const KnowledgeBaseDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showRename, setShowRename] = useState(false);
-  const [isStartingChat, setIsStartingChat] = useState(false);
-
+  const [startingChat, setStartingChat] = useState(false);
   const pollRef = useRef(null);
+
+  usePageTitle(kb?.name || "Knowledge base");
 
   const loadAll = useCallback(async () => {
     const [kbData, docsData] = await Promise.all([
@@ -34,71 +40,51 @@ export const KnowledgeBaseDetailPage = () => {
     ]);
     setKb(kbData);
     setDocuments(docsData);
-    return docsData;
   }, [id]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const load = async () => {
+    let mounted = true;
+    (async () => {
       setLoading(true);
       setError(null);
       try {
         await loadAll();
       } catch (err) {
-        if (isMounted) setError(getErrorMessage(err));
+        if (mounted) setError(getErrorMessage(err));
       } finally {
-        if (isMounted) setLoading(false);
+        if (mounted) setLoading(false);
       }
-    };
-    load();
-
+    })();
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, [loadAll]);
 
-  // Poll while any document is still processing, so status/progress badges
-  // update without a manual refresh -- stops itself once nothing is pending.
+  // Poll while any document is still processing; stops once nothing is pending.
   useEffect(() => {
-    const hasProcessing = documents.some((d) => d.status === "processing");
-    if (!hasProcessing) {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      return;
-    }
-
-    if (pollRef.current) return;
+    if (!documents.some((d) => d.status === "processing")) return;
     pollRef.current = setInterval(async () => {
       try {
-        const docsData = await knowledgeBaseApi.getDocuments(id);
-        setDocuments(docsData);
+        setDocuments(await knowledgeBaseApi.getDocuments(id));
       } catch {
-        // Transient poll failures are ignored -- the next tick retries.
+        /* transient — next tick retries */
       }
     }, POLL_INTERVAL_MS);
-
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-    };
+    return () => clearInterval(pollRef.current);
   }, [documents, id]);
 
   const handleUpload = async (file, onProgress) => {
     await knowledgeBaseApi.uploadDocument(id, file, onProgress);
-    const docsData = await knowledgeBaseApi.getDocuments(id);
-    setDocuments(docsData);
-    setKb((prev) => (prev ? { ...prev, document_count: docsData.length } : prev));
+    const docs = await knowledgeBaseApi.getDocuments(id);
+    setDocuments(docs);
+    setKb((prev) => (prev ? { ...prev, document_count: docs.length } : prev));
   };
 
   const handleDeleteDocument = async (documentId) => {
     await knowledgeBaseApi.deleteDocument(id, documentId);
     setDocuments((prev) => prev.filter((d) => d.id !== documentId));
-    setKb((prev) => (prev ? { ...prev, document_count: prev.document_count - 1 } : prev));
+    setKb((prev) => (prev ? { ...prev, document_count: Math.max(0, (prev.document_count || 1) - 1) } : prev));
+    toast.success("Document deleted.");
   };
 
   const handleRename = async ({ name, description }) => {
@@ -107,122 +93,83 @@ export const KnowledgeBaseDetailPage = () => {
   };
 
   const handleStartChat = async () => {
-    if (isStartingChat) return;
-    setIsStartingChat(true);
+    if (startingChat) return;
+    setStartingChat(true);
     try {
       await createNewSession(`Chat: ${kb.name}`, id);
-      navigate("/");
+      navigate("/app");
     } catch (err) {
-      console.error("Failed to start chat scoped to knowledge base:", err);
-      setIsStartingChat(false);
+      toast.error(getErrorMessage(err) || "Couldn’t start a chat.");
+      setStartingChat(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-slate-400 dark:text-slate-500">
-        <Spinner size="lg" />
-        <span className="mt-3 text-xs">Loading knowledge base...</span>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex justify-center py-32"><Spinner size="lg" /></div>;
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center space-y-3">
-        <div className="p-3 bg-red-50 border border-red-100 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 rounded-2xl">
-          <TriangleAlert className="w-8 h-8" />
-        </div>
-        <p className="text-sm text-slate-600 dark:text-slate-300">{error}</p>
-        <Link
-          to="/knowledge-bases"
-          className="px-4 py-2 text-xs font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 rounded-lg transition-colors"
-        >
-          Back to Knowledge Bases
-        </Link>
-      </div>
+      <StateMessage
+        className="py-32"
+        icon={TriangleAlert}
+        tone="danger"
+        title="Couldn’t open this knowledge base"
+        description={error}
+        action={<Button as={Link} to="/app/knowledge-bases" variant="secondary">Back to knowledge bases</Button>}
+      />
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div>
-        <Link
-          to="/knowledge-bases"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 mb-3 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Knowledge Bases
-        </Link>
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      <Link to="/app/knowledge-bases" className="inline-flex items-center gap-1.5 text-sm text-ink-2 hover:text-ink">
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        Knowledge bases
+      </Link>
 
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start space-x-3 min-w-0">
-            <div className="p-2.5 bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 rounded-xl flex-shrink-0">
-              <BookMarked className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-                  {kb.name}
-                </h1>
-                <button
-                  onClick={() => setShowRename(true)}
-                  title="Rename"
-                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-blue-400 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {kb.description || "No description"}
-              </p>
-            </div>
+      <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-lg border border-accent-line bg-accent-soft text-accent">
+            <BookMarked className="size-5" aria-hidden="true" />
           </div>
-
-          <button
-            onClick={handleStartChat}
-            disabled={isStartingChat}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium text-sm rounded-xl transition-colors shadow-sm flex-shrink-0"
-          >
-            {isStartingChat ? <Spinner size="sm" className="text-white" /> : <MessageSquarePlus className="w-4 h-4" />}
-            <span>Chat with this KB</span>
-          </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1">
+              <h1 className="truncate font-display text-3xl leading-tight text-ink sm:text-4xl">{kb.name}</h1>
+              <IconButton label="Edit name and description" size="sm" onClick={() => setShowRename(true)}>
+                <Pencil className="size-3.5" />
+              </IconButton>
+            </div>
+            <p className="mt-1 text-sm text-ink-2">{kb.description || "No description"}</p>
+          </div>
         </div>
+        <Button onClick={handleStartChat} loading={startingChat} className="sm:mt-1">
+          {!startingChat && <MessageSquarePlus className="size-4" aria-hidden="true" />}
+          Chat with this knowledge base
+        </Button>
       </div>
 
-      <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
-        <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-          Upload Document
-        </h2>
+      <section className="mt-10" aria-labelledby="upload-h">
+        <h2 id="upload-h" className="label-mono mb-3">Add a document</h2>
         <KnowledgeBaseUpload onUpload={handleUpload} />
-      </div>
+      </section>
 
-      <div>
-        <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-          Documents ({documents.length})
-        </h2>
-
+      <section className="mt-10" aria-labelledby="docs-h">
+        <h2 id="docs-h" className="label-mono mb-3">Documents · {documents.length}</h2>
         {documents.length === 0 ? (
-          <div className="text-center py-10 px-4 text-slate-400 dark:text-slate-500 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+          <p className="rounded-xl border border-dashed border-line-strong px-4 py-10 text-center text-sm text-ink-3">
             No documents yet. Upload one above to get started.
-          </div>
+          </p>
         ) : (
-          <div className="space-y-2">
+          <ul className="space-y-2">
             {documents.map((doc) => (
               <DocumentRow key={doc.id} document={doc} onDelete={handleDeleteDocument} />
             ))}
-          </div>
+          </ul>
         )}
-      </div>
+      </section>
 
       {showRename && (
-        <KnowledgeBaseFormModal
-          mode="edit"
-          initialValues={kb}
-          onSubmit={handleRename}
-          onClose={() => setShowRename(false)}
-        />
+        <KnowledgeBaseFormModal mode="edit" initialValues={kb} onSubmit={handleRename} onClose={() => setShowRename(false)} />
       )}
     </div>
   );
-};
+}

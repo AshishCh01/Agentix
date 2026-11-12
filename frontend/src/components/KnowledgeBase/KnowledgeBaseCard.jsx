@@ -1,74 +1,74 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BookMarked, FileText, Pencil, Trash2 } from "lucide-react";
-import { formatDate, truncateText } from "../../utils/helpers";
+import { IconButton } from "../ui/Button";
+import { useUI } from "../../hooks/useUI";
+import { formatDate, getErrorMessage, truncateText } from "../../utils/helpers";
 
 export const KnowledgeBaseCard = ({ kb, onRename, onDelete }) => {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { confirm, toast } = useUI();
+  const [deleting, setDeleting] = useState(false);
 
-  const handleDelete = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (isDeleting) return;
-    if (!window.confirm(`Delete "${kb.name}"? This removes all of its documents too.`)) return;
-    setIsDeleting(true);
+  const handleDelete = async () => {
+    if (deleting) return;
+    const ok = await confirm({
+      title: `Delete “${kb.name}”?`,
+      description: "This also removes every document in it. This can’t be undone.",
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (!ok) return;
+    setDeleting(true);
     try {
       await onDelete(kb.id);
+      toast.success("Knowledge base deleted.");
     } catch (err) {
-      console.error("Failed to delete knowledge base:", err);
-      setIsDeleting(false);
+      toast.error(getErrorMessage(err) || "Couldn’t delete the knowledge base.");
+      setDeleting(false);
     }
   };
 
-  const handleRename = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onRename(kb);
-  };
+  const count = kb.document_count ?? 0;
 
   return (
-    <Link
-      to={`/knowledge-bases/${kb.id}`}
-      className="group block p-4 bg-white border border-slate-200 hover:border-blue-300 dark:bg-slate-900 dark:border-slate-800 dark:hover:border-blue-500/50 rounded-2xl shadow-sm hover:shadow-md transition-all"
-    >
-      <div className="flex items-start justify-between">
-        <div className="p-2.5 bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-600/10 dark:border-blue-500/20 dark:text-blue-400 rounded-xl">
-          <BookMarked className="w-5 h-5" />
+    <article className="group relative flex flex-col rounded-xl border border-line bg-surface p-4 transition hover:border-accent-line focus-within:border-accent-line">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex size-9 items-center justify-center rounded-lg border border-accent-line bg-accent-soft text-accent">
+          <BookMarked className="size-[18px]" aria-hidden="true" />
         </div>
-
-        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={handleRename}
-            title="Rename"
-            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-blue-400 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button
+        {/* Sit above the stretched link; always visible so touch users can reach them */}
+        <div className="relative z-10 -mr-1.5 -mt-1 flex items-center">
+          <IconButton label={`Rename ${kb.name}`} size="sm" onClick={() => onRename(kb)}>
+            <Pencil className="size-3.5" />
+          </IconButton>
+          <IconButton
+            label={`Delete ${kb.name}`}
+            size="sm"
+            disabled={deleting}
             onClick={handleDelete}
-            disabled={isDeleting}
-            title="Delete"
-            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-red-400 dark:hover:bg-slate-800 disabled:opacity-50 rounded-lg transition-colors"
+            className="hover:text-danger"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+            <Trash2 className="size-3.5" />
+          </IconButton>
         </div>
       </div>
 
-      <h3 className="mt-3 text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
-        {kb.name}
+      <h3 className="mt-3 truncate text-[15px] font-semibold text-ink">
+        <Link to={`/app/knowledge-bases/${kb.id}`} className="after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none">
+          {kb.name}
+        </Link>
       </h3>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[2rem]">
-        {kb.description ? truncateText(kb.description, 90) : "No description"}
+      <p className="mt-1 line-clamp-2 min-h-10 text-[13px] leading-5 text-ink-2">
+        {kb.description ? truncateText(kb.description, 110) : "No description"}
       </p>
 
-      <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
-        <span className="flex items-center gap-1">
-          <FileText className="w-3.5 h-3.5" />
-          {kb.document_count} {kb.document_count === 1 ? "document" : "documents"}
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-line pt-3 text-xs text-ink-3">
+        <span className="inline-flex items-center gap-1.5">
+          <FileText className="size-3.5" aria-hidden="true" />
+          {count} {count === 1 ? "document" : "documents"}
         </span>
-        <span>Updated {formatDate(kb.updated_at)}</span>
+        {kb.updated_at && <span className="truncate">Updated {formatDate(kb.updated_at)}</span>}
       </div>
-    </Link>
+    </article>
   );
 };
