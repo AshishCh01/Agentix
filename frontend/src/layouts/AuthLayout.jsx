@@ -1,30 +1,39 @@
 import { Outlet } from "react-router-dom";
+import { ShieldCheck } from "lucide-react";
+import { Logo } from "../components/ui/Logo";
 import { ThemeToggle } from "../components/Common/ThemeToggle";
 
-export const AuthLayout = () => {
+export default function AuthLayout() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4 relative">
-      <ThemeToggle className="absolute top-4 right-4" />
+    <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+      <div className="flex flex-col px-5 pb-safe pt-safe sm:px-10">
+        <header className="flex h-16 items-center justify-between">
+          <Logo />
+          <ThemeToggle />
+        </header>
+        <main id="main" className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+          <Outlet />
+        </main>
+      </div>
 
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <img
-            src="/Agentix_logo_mark.png"
-            alt="Agentix"
-            className="h-11 w-auto mx-auto mb-2"
-          />
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Agentix
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Multi-Agent Document Intelligence
+      <aside className="relative hidden overflow-hidden border-l border-line bg-sunken lg:flex lg:flex-col lg:justify-end lg:p-14">
+        <img
+          src="/Agentix_logo_mark.png"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -top-6 h-[26rem] w-auto opacity-[0.14]"
+        />
+        <div className="relative max-w-md">
+          <p className="label-mono mb-4">Multi-agent document Q&amp;A</p>
+          <p className="font-display text-5xl leading-[1.05] text-ink">
+            Answers you can <em className="text-accent">check</em>, not just trust.
+          </p>
+          <p className="mt-5 flex items-start gap-2.5 text-sm leading-relaxed text-ink-2">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+            Every answer lists its sources and is reviewed against them before it reaches you.
           </p>
         </div>
-
-        <div className="bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-2xl p-6 shadow-xl dark:shadow-2xl">
-          <Outlet />
-        </div>
-      </div>
+      </aside>
     </div>
   );
-};
+}

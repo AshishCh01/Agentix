@@ -1,35 +1,48 @@
 import { Component } from "react";
+import { TriangleAlert } from "lucide-react";
+import { StateMessage } from "../ui/StateMessage";
+import { Button } from "../ui/Button";
 
 class ErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
   }
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error("React Error Boundary Caught:", error, errorInfo);
+  componentDidCatch(error, info) {
+    console.error("React error boundary caught:", error, info);
   }
 
   render() {
-    if (this.state.hasError) {
+    if (!this.state.hasError) return this.props.children;
+
+    if (this.props.fullPage) {
       return (
-        <div className="p-4 my-2 border border-red-200 bg-red-50 text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 rounded-lg text-sm">
-          <p className="font-semibold">Failed to render this message stream.</p>
-          <button
-            onClick={() => this.setState({ hasError: false })}
-            className="mt-2 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-500/20 dark:hover:bg-red-500/30 dark:text-red-200 rounded text-xs transition"
-          >
-            Retry Rendering
-          </button>
+        <div className="flex min-h-dvh items-center justify-center bg-bg">
+          <StateMessage
+            icon={TriangleAlert}
+            tone="danger"
+            title="Something went wrong"
+            description="The page hit an unexpected error. Reloading usually fixes it."
+            action={<Button onClick={() => window.location.reload()}>Reload page</Button>}
+          />
         </div>
       );
     }
 
-    return this.props.children;
+    return (
+      <div role="alert" className="my-2 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+        <p className="font-medium">This message couldn’t be displayed.</p>
+        <button
+          type="button"
+          onClick={() => this.setState({ hasError: false })}
+          className="mt-1 text-xs underline underline-offset-2"
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
 }
 

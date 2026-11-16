@@ -1,83 +1,67 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { Spinner } from "../components/Common/Loader";
-import { getErrorMessage } from "../utils/helpers";
+import { usePageTitle } from "../hooks/usePageTitle";
+import { Button } from "../components/ui/Button";
+import { Field, Input } from "../components/ui/Field";
+import { PasswordInput } from "../components/ui/PasswordInput";
 
-export const Login = () => {
+export default function Login() {
+  usePageTitle("Sign in");
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     setLoading(true);
-
     try {
-      await login(email, password);
-      navigate("/");
+      await login(email.trim(), password);
+      navigate(location.state?.from || "/app", { replace: true });
     } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
+      setError(err?.message || "We couldn’t sign you in. Please try again.");
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="p-3 text-xs rounded-lg bg-red-50 border border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400">
-          {error}
-        </div>
-      )}
+    <div className="animate-fade-up">
+      <h1 className="font-display text-4xl leading-tight text-ink">Welcome back</h1>
+      <p className="mt-2 text-sm text-ink-2">Sign in to continue to your workspace.</p>
 
-      <div>
-        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-          Email Address
-        </label>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="developer@example.com"
-          className="w-full px-3 py-2 bg-white border border-slate-300 dark:bg-slate-950 dark:border-slate-800 rounded-lg text-sm text-slate-900 placeholder-slate-400 dark:text-slate-100 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-        />
-      </div>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate={false}>
+        <Field label="Email">
+          {(p) => (
+            <Input {...p} type="email" required autoComplete="email" inputMode="email" autoFocus
+              placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Password">
+          {(p) => (
+            <PasswordInput {...p} required autoComplete="current-password" placeholder="Your password"
+              value={password} onChange={(e) => setPassword(e.target.value)} />
+          )}
+        </Field>
 
-      <div>
-        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-          Password
-        </label>
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          className="w-full px-3 py-2 bg-white border border-slate-300 dark:bg-slate-950 dark:border-slate-800 rounded-lg text-sm text-slate-900 placeholder-slate-400 dark:text-slate-100 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-        />
-      </div>
+        {error && (
+          <p role="alert" className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>
+        )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 font-medium text-sm text-white rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
-      >
-        {loading ? <Spinner size="sm" /> : "Sign In"}
-      </button>
+        <Button type="submit" size="lg" loading={loading} className="w-full">Sign in</Button>
+      </form>
 
-      <div className="text-center text-xs text-slate-500 dark:text-slate-400 pt-2">
-        Don't have an account?{" "}
-        <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-          Create Account
+      <p className="mt-6 text-center text-sm text-ink-2">
+        New to Agentix?{" "}
+        <Link to="/register" state={location.state} className="font-medium text-accent underline underline-offset-4">
+          Create an account
         </Link>
-      </div>
-    </form>
+      </p>
+    </div>
   );
-};
+}
