@@ -1,110 +1,140 @@
-import { memo, useState } from "react";
-import { User, Globe } from "lucide-react";
-import { SourceBadge } from "./SourceBadge";
+import { lazy, memo, Suspense, useDeferredValue, useState } from "react";
+import { Check, CircleAlert, Copy, Globe } from "lucide-react";
+import { LogoMark } from "../ui/Logo";
+import { Button } from "../ui/Button";
+import { SourceList } from "./SourceList";
 import { VerificationBadge } from "./VerificationBadge";
-import { formatDate } from "../../utils/helpers";
+import { AgentActivity } from "./AgentActivity";
 import { isNotCoveredReply } from "../../utils/chatHelpers";
-import { useChat } from "../../hooks/useChat";
 
-// Memoized so that during token streaming -- where ChatContext rebuilds the
-// `messages` array on every token but only replaces the last message's
-// object -- every other message keeps the same `message` prop reference and
-// skips re-rendering entirely, instead of the whole list re-rendering per
-// token.
-export const MessageItem = memo(function MessageItem({
-  message,
-  previousUserMessage = null,
-  isLatestAssistant = false,
-}) {
-  const isUser = message.role === "user";
-  const { sendMessage, isStreaming } = useChat();
-  const [hasSearched, setHasSearched] = useState(false);
+// Heavy (markdown + KaTeX + highlighting): loaded on first render of a message.
+const Markdown = lazy(() => import("./Markdown"));
 
-  const handleSearchWeb = () => {
-    if (isStreaming || hasSearched || message.webSearchInitiated) return;
-    const query = previousUserMessage?.content?.trim();
-    if (!query) return;
+const AssistantBody = ({ message, activeNode }) => {
+  // Defer re-parsing markdown while tokens arrive so typing stays smooth.
+  const content = useDeferredValue(message.content || "");
+  const isError = !message.isStreaming && /^Error:/.test(message.content || "");
 
-    setHasSearched(true);
-    sendMessage(query, null, true, { skipUserMessageInTranscript: true });
-  };
-
-  const isNotCovered = !isUser && !message.isStreaming && isNotCoveredReply(message.content);
-  const showSearchWebButton = isNotCovered && isLatestAssistant;
-  const isSearchDisabled = isStreaming || hasSearched || Boolean(message.webSearchInitiated);
+  if (isError) {
+    return (
+      <div role="alert" className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+        <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <p className="min-w-0 break-words">{message.content.replace(/^Error:\s*/, "") || "Something went wrong."}</p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`flex space-x-3 max-w-4xl mx-auto ${
-        isUser ? "justify-end" : "justify-start"
-      }`}
-    >
-      {!isUser && (
-        <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 dark:bg-blue-600/10 dark:border-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <img src="/Agentix_logo_mark.png" alt="Agentix" className="w-4 h-4 object-contain" />
+    <>
+      {content && (
+        <Suspense fallback={<p className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{content}</p>}>
+          <Markdown content={content} />
+        </Suspense>
+      )}
+      {message.isStreaming && (
+        <div className={content ? "mt-3" : ""}>
+          <AgentActivity node={activeNode} />
         </div>
       )}
+      {message.stopped && !content && <p className="text-sm italic text-ink-3">Stopped before an answer was written.</p>}
+      {message.stopped && content && <p className="mt-2 text-xs italic text-ink-3">Stopped</p>}
+    </>
+  );
+};
 
-      <div
-        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 text-xs sm:text-sm shadow-sm dark:shadow-md leading-relaxed ${
-          isUser
-            ? "bg-blue-600 text-white rounded-tr-none"
-            : "bg-slate-50 border border-slate-200 text-slate-700 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100 rounded-tl-none"
-        }`}
-      >
-        <div className="flex items-center justify-between space-x-4 mb-1.5 text-[10px]">
-          <div className="flex items-center flex-wrap gap-2">
-            <span className="font-semibold uppercase tracking-wider opacity-70">
-              {isUser ? "You" : "Assistant"}
-            </span>
-            {!isUser && <VerificationBadge message={message} />}
-          </div>
-          <span className="opacity-70">{formatDate(message.created_at)}</span>
-        </div>
+// Props are primitives/stable refs so only the streaming message re-renders per token.
+export const MessageItem = memo(function MessageItem({
+  message,
+  isLatestAssistant = false,
+  activeNode = null,
+  busy = false,
+  previousQuery = "",
+  onSearchWeb,
+}) {
+  const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
+  const [searched, setSearched] = useState(false);
 
-        {message.image_data && (
-          <div className="mb-2.5">
+  const notCovered = !isUser && !message.isStreaming && isNotCoveredReply(message.content);
+  const canSearchWeb = notCovered && isLatestAssistant && Boolean(previousQuery);
+  const searchLocked = busy || searched || Boolean(message.webSearchInitiated);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content || "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[88%] space-y-2 rounded-2xl rounded-br-md border border-accent-line bg-accent-soft px-4 py-2.5 sm:max-w-[75%]">
+          {message.image_data && (
             <img
               src={message.image_data}
-              alt="User attachment"
-              className="max-w-full max-h-60 rounded-xl border border-black/10 dark:border-white/20 object-cover shadow"
+              alt="Attached by you"
+              className="max-h-56 max-w-full rounded-lg border border-line object-cover"
             />
-          </div>
-        )}
+          )}
+          {message.content && (
+            <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink">{message.content}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
-        {message.content && (
-          <div className="whitespace-pre-wrap break-words">{message.content}</div>
-        )}
+  const showMeta = !message.isStreaming && !notCovered;
 
-        {showSearchWebButton && (
-          <div className="mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={handleSearchWeb}
-              disabled={isSearchDisabled}
-              aria-label="Search the web for this question"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:text-blue-400 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 dark:border-blue-800/60 rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              title="Search the web for this question"
-            >
-              <Globe className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
-              <span>{hasSearched || message.webSearchInitiated ? "Searching web..." : "Search the web"}</span>
-            </button>
-            <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              Not in documents
-            </span>
-          </div>
-        )}
-
-        {!isUser && message.sources && message.sources.length > 0 && (
-          <SourceBadge sources={message.sources} />
-        )}
+  return (
+    <div className="flex gap-3">
+      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface">
+        <LogoMark className="h-4" />
       </div>
 
-      {isUser && (
-        <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <User className="w-4 h-4" />
-        </div>
-      )}
+      <div className="min-w-0 flex-1 space-y-3">
+        <AssistantBody message={message} activeNode={activeNode} />
+
+        {canSearchWeb && (
+          <div className="flex flex-wrap items-center gap-3 border-t border-line pt-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={searchLocked}
+              onClick={() => {
+                setSearched(true);
+                onSearchWeb?.(previousQuery);
+              }}
+            >
+              <Globe className="size-3.5" aria-hidden="true" />
+              {searchLocked && !busy ? "Searching the web…" : "Search the web instead"}
+            </Button>
+            <span className="text-xs text-ink-3">Not found in your documents</span>
+          </div>
+        )}
+
+        {!message.isStreaming && message.sources?.length > 0 && <SourceList sources={message.sources} />}
+
+        {showMeta && (
+          <div className="flex flex-wrap items-center gap-2">
+            <VerificationBadge message={message} />
+            {message.content && !/^Error:/.test(message.content) && (
+              <button
+                type="button"
+                onClick={copy}
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-ink-3 hover:bg-sunken hover:text-ink"
+              >
+                {copied ? <Check className="size-3.5 text-accent" /> : <Copy className="size-3.5" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 });

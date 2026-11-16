@@ -1,103 +1,92 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { MailCheck } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { Spinner } from "../components/Common/Loader";
-import { getErrorMessage } from "../utils/helpers";
+import { usePageTitle } from "../hooks/usePageTitle";
+import { Button } from "../components/ui/Button";
+import { Field, Input } from "../components/ui/Field";
+import { PasswordInput } from "../components/ui/PasswordInput";
+import { StateMessage } from "../components/ui/StateMessage";
 
-export const Register = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+const MIN_PASSWORD = 8;
 
+export default function Register() {
+  usePageTitle("Create account");
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+    if (loading) return;
+    if (password.length < MIN_PASSWORD) {
+      setError(`Use at least ${MIN_PASSWORD} characters for your password.`);
       return;
     }
-
+    setError("");
     setLoading(true);
     try {
-      await signup(email, password);
-      navigate("/");
+      const data = await signup(email.trim(), password);
+      // With email confirmation enabled there is no session until the link is clicked.
+      if (data?.session) {
+        navigate("/app", { replace: true });
+      } else {
+        setNeedsConfirmation(true);
+        setLoading(false);
+      }
     } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
+      setError(err?.message || "We couldn’t create your account. Please try again.");
       setLoading(false);
     }
   };
 
+  if (needsConfirmation) {
+    return (
+      <StateMessage
+        className="py-0"
+        icon={MailCheck}
+        title="Check your email"
+        description={`We sent a confirmation link to ${email}. Open it, then come back to sign in.`}
+        action={<Button as={Link} to="/login" variant="secondary">Go to sign in</Button>}
+      />
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="p-3 text-xs rounded-lg bg-red-50 border border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400">
-          {error}
-        </div>
-      )}
+    <div className="animate-fade-up">
+      <h1 className="font-display text-4xl leading-tight text-ink">Create your account</h1>
+      <p className="mt-2 text-sm text-ink-2">Upload a document and ask your first question in a minute.</p>
 
-      <div>
-        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-          Email Address
-        </label>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="developer@example.com"
-          className="w-full px-3 py-2 bg-white border border-slate-300 dark:bg-slate-950 dark:border-slate-800 rounded-lg text-sm text-slate-900 placeholder-slate-400 dark:text-slate-100 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-        />
-      </div>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <Field label="Email">
+          {(p) => (
+            <Input {...p} type="email" required autoComplete="email" inputMode="email" autoFocus
+              placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Password" hint={`At least ${MIN_PASSWORD} characters.`}>
+          {(p) => (
+            <PasswordInput {...p} required autoComplete="new-password" minLength={MIN_PASSWORD}
+              placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          )}
+        </Field>
 
-      <div>
-        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-          Password
-        </label>
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          className="w-full px-3 py-2 bg-white border border-slate-300 dark:bg-slate-950 dark:border-slate-800 rounded-lg text-sm text-slate-900 placeholder-slate-400 dark:text-slate-100 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-        />
-      </div>
+        {error && (
+          <p role="alert" className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>
+        )}
 
-      <div>
-        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-          Confirm Password
-        </label>
-        <input
-          type="password"
-          required
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="••••••••"
-          className="w-full px-3 py-2 bg-white border border-slate-300 dark:bg-slate-950 dark:border-slate-800 rounded-lg text-sm text-slate-900 placeholder-slate-400 dark:text-slate-100 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-        />
-      </div>
+        <Button type="submit" size="lg" loading={loading} className="w-full">Create account</Button>
+      </form>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 font-medium text-sm text-white rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
-      >
-        {loading ? <Spinner size="sm" /> : "Create Account"}
-      </button>
-
-      <div className="text-center text-xs text-slate-500 dark:text-slate-400 pt-2">
+      <p className="mt-6 text-center text-sm text-ink-2">
         Already have an account?{" "}
-        <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-          Sign In
-        </Link>
-      </div>
-    </form>
+        <Link to="/login" state={location.state} className="font-medium text-accent underline underline-offset-4">Sign in</Link>
+      </p>
+    </div>
   );
-};
+}

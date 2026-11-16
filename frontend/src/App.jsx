@@ -1,22 +1,22 @@
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
-import { ChatProvider } from "./context/ChatContext";
-import { KnowledgeBaseProvider } from "./context/KnowledgeBaseContext";
+import { UIProvider } from "./context/UIContext";
+import ErrorBoundary from "./components/Common/ErrorBoundary";
 import { AppRoutes } from "./routes/AppRoutes";
 
 export default function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <KnowledgeBaseProvider>
-            <ChatProvider>
+      <UIProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <ErrorBoundary fullPage>
               <AppRoutes />
-            </ChatProvider>
-          </KnowledgeBaseProvider>
-        </AuthProvider>
-      </BrowserRouter>
+            </ErrorBoundary>
+          </AuthProvider>
+        </BrowserRouter>
+      </UIProvider>
     </ThemeProvider>
   );
 }

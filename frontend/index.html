@@ -6,20 +6,37 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <title>Agentix — Multi-Agent RAG Assistant</title>
+    <meta name="theme-color" content="#faf9f4" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0f0e" media="(prefers-color-scheme: dark)" />
+    <title>Agentix — Ask your documents. Get answers you can check.</title>
+    <meta
+      name="description"
+      content="Agentix is a multi-agent assistant that answers from your documents, cites its sources, and reviews each answer before you rely on it."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Agentix — Ask your documents. Get answers you can check." />
+    <meta
+      property="og:description"
+      content="Upload your files, ask questions, and get cited answers that a second agent has reviewed."
+    />
+    <meta property="og:image" content="/Agentix_logo.png" />
+    <meta name="twitter:card" content="summary" />
     <script>
       // Applied before first paint to avoid a light/dark flash on load.
       (function () {
-        var stored = localStorage.getItem("theme");
-        var dark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-        document.documentElement.classList.toggle("dark", dark);
+        try {
+          var stored = localStorage.getItem("theme");
+          var dark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.classList.toggle("dark", dark);
+        } catch (e) {}
       })();
     </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>Agentix needs JavaScript to run.</noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
