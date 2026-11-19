@@ -1,0 +1,1285 @@
+{
+  "B01": {
+    "id": "B01",
+    "question": "How does a native Type 1 hypervisor differ from a hosted Type 2 hypervisor regarding direct physical hardware execution?",
+    "answerable": true,
+    "topic": "Type 1 vs Type 2 Hypervisor Hardware Execution",
+    "unanswerable_category": "answerable",
+    "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+    "expected_chunk_ids": [
+      "399fa082-27e0-4c0d-a00a-acdbea74909e"
+    ],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "399fa082-27e0-4c0d-a00a-acdbea74909e",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 79,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rrf_score": 0.03252247488101533,
+          "dense_similarity": 0.7917667354568224,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 2
+        },
+        {
+          "chunk_id": "c05fec4e-a861-440b-8de8-172412e735b1",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 78,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rrf_score": 0.0317780580075662,
+          "dense_similarity": 0.7214497297914079,
+          "source_type": "hybrid",
+          "dense_rank": 5,
+          "sparse_rank": 1
+        },
+        {
+          "chunk_id": "2a6ab551-34a5-4030-80f7-96c733d3f9ce",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 81,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rrf_score": 0.03149801587301587,
+          "dense_similarity": 0.7254455545929652,
+          "source_type": "hybrid",
+          "dense_rank": 4,
+          "sparse_rank": 3
+        },
+        {
+          "chunk_id": "5c68e929-9789-4b9a-a83e-9d194650b0d6",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 88,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rrf_score": 0.030536130536130537,
+          "dense_similarity": 0.7191059254535995,
+          "source_type": "hybrid",
+          "dense_rank": 6,
+          "sparse_rank": 5
+        }
+      ],
+      "stage_b_after_rerank_final4": [
+        {
+          "chunk_id": "c05fec4e-a861-440b-8de8-172412e735b1",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 78,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rerank_score": 0.9447100758552551,
+          "rerank_logit": 2.838287353515625,
+          "rrf_score": 0.0317780580075662,
+          "dense_similarity": 0.7214497297914079,
+          "source_type": "hybrid",
+          "content": "[5 Marks | CO3]\n\nAnswer:\n| Aspect | Process Virtual Machine | Host-based VMM (Hosted Hypervisor) | Native VMM (Bare-Metal Hypervisor) |\n| --- | --- | --- | --- |\n| Definition | A virtual machine that runs a single process, providing a platform-independent runtime environment for that process | A hypervisor (Type 2) that runs as an application on top of a conventional host operating system | A hypervisor (Type 1) that runs directly on the physical hardware, without a host OS underneath |"
+        },
+        {
+          "chunk_id": "399fa082-27e0-4c0d-a00a-acdbea74909e",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 79,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rerank_score": 0.8861172795295715,
+          "rerank_logit": 2.0516796112060547,
+          "rrf_score": 0.03252247488101533,
+          "dense_similarity": 0.7917667354568224,
+          "source_type": "hybrid",
+          "content": "operating system | A hypervisor (Type 1) that runs directly on the physical hardware, without a host OS underneath |\n| Layer of operation | Application level \u2014 abstracts an instruction set/runtime for one program | Sits above the host OS, which manages the actual hardware | Sits directly on hardware and manages hardware resources itself |\n| Example | Java Virtual Machine (JVM), .NET CLR | VMware Workstation, Oracle VirtualBox | VMware ESXi, Microsoft Hyper-V, Xen |"
+        },
+        {
+          "chunk_id": "5c68e929-9789-4b9a-a83e-9d194650b0d6",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 88,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rerank_score": 0.3502246141433716,
+          "rerank_logit": -0.6180521249771118,
+          "rrf_score": 0.030536130536130537,
+          "dense_similarity": 0.7191059254535995,
+          "source_type": "hybrid",
+          "content": "system \u2014 so that multiple virtual instances can run independently on a single set of shared physical hardware.\nA software layer called a hypervisor (or Virtual Machine Monitor, VMM) sits between the physical hardware and the virtual machines, allocating and managing the underlying CPU, memory, storage, and network resources among them, while making each virtual machine believe it has exclusive access to its own dedicated hardware."
+        }
+      ],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 3,
+      "top1_rerank_score": 0.9447100758552551,
+      "top1_dense_similarity": 0.7917667354568224,
+      "stage_a_metrics": {
+        "hit_at_1": 1.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 1.0,
+        "ndcg_at_4": 1.0,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 1.0,
+        "first_hit_rank": 1
+      },
+      "stage_b_metrics": {
+        "hit_at_1": 0.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 0.5,
+        "ndcg_at_4": 0.6309297535714575,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 0.5,
+        "first_hit_rank": 2
+      }
+    },
+    "agent_execution": {
+      "intent": "DIRECT_ANSWER",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": false,
+      "is_correct_abstention": false,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "The primary difference between a native (**Type 1**) hypervisor and a hosted (**Type 2**) hypervisor regarding direct physical hardware execution lies in **what sits between the hypervisor and the underlying hardware**, which dictates how hardware resources (CPU, memory, I/O) are accessed and managed.\n\nHere is the breakdown of how they differ:\n\n### 1. Native / Bare-Metal (Type 1) Hypervisor\n* **Execution Model:** The hypervisor installs directly onto the physical hardware, functioning as a lightweight operating system itself. Virtual machines (VMs) run directly on top of the hypervisor.\n* **Direct Hardware Access:** Type 1 hypervisors have **unmediated, direct access** to physical hardware resources. When a guest OS inside a VM executes instructions, the Type 1 hypervisor schedules them directly onto the physical CPU cores (often utilizing hardware virtualization extensions like Intel VT-x or AMD-V). \n* **Performance:** Because there is no underlying general-purpose OS overhead, resource scheduling, memory management, and I/O operations have minimal latency, resulting in near-native hardware performance.\n* *Examples:* VMware ESXi, Microsoft Hyper-V (technically runs as a micro-kernel architecture where the hypervisor sits directly on the hardware), Proxmox VE (KVM).\n\n### 2. Hosted (Type 2) Hypervisor\n* **Execution Model:** The hypervisor runs as an application *on top of* a conventional host operating system (e.g., Windows, macOS, Linux). \n* **Indirect Hardware Access:** Type 2 hypervisors do **not** have direct access to physical hardware. Instead, they rely entirely on the host OS kernel to interact with the CPU, memory, storage, and devices. When a VM requests hardware resources, the request goes through the hypervisor, which then makes a system call to the host OS, which in turn interacts with the physical hardware drivers.\n* **Performance:** This added layer introduces latency and overhead (often called the \"double-scheduling\" problem, where both the hypervisor and the host OS try to manage CPU and memory scheduling). Consequently, physical hardware execution is slower compared to Type 1.\n* *Examples:* Oracle VirtualBox, VMware Workstation, Parallels Desktop.\n\n---\n\n### Summary Comparison Table\n\n| Feature | Type 1 (Native / Bare-Metal) | Type 2 (Hosted) |\n| :--- | :--- | :--- |\n| **Hardware Interaction** | Direct (Hypervisor controls the hardware). | Indirect (Host OS controls the hardware; hypervisor acts as an app). |\n| **Performance Overhead** | Minimal; near-native execution speed. | Higher; bounded by host OS resource management and translation layers. |\n| **Boot Process** | Boots up as the primary system (no host OS required). | Launched like a standard application after the host OS boots. |\n| **Primary Use Case** | Enterprise data centers, cloud providers, production environments. | Desktop virtualization, software testing, development. |"
+    },
+    "judge_verdicts": {
+      "faithfulness": {
+        "supported": true,
+        "unsupported_claims": []
+      },
+      "correctness": {
+        "correct": true
+      }
+    },
+    "latency": {
+      "retrieval_ms": 3921.232199994847,
+      "e2e_answer_ms": 19748.035199940205
+    },
+    "is_failed": false,
+    "failure_reasons": []
+  },
+  "B02": {
+    "id": "B02",
+    "question": "Why does the Canny edge detector utilize hysteresis thresholding with two separate thresholds rather than a single cutoff?",
+    "answerable": true,
+    "topic": "Canny Hysteresis Dual Thresholding",
+    "unanswerable_category": "answerable",
+    "expected_document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+    "expected_chunk_ids": [
+      "cc237645-5ab3-430c-8490-e262089addad"
+    ],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "3978294b-8191-4f6d-b612-571d32f9a708",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 47,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.03278688524590164,
+          "dense_similarity": 0.7483071396905202,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 1
+        },
+        {
+          "chunk_id": "01270da2-62c5-4d25-ac0c-8e1c89ac0b77",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 9,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.03225806451612903,
+          "dense_similarity": 0.7152901792569011,
+          "source_type": "hybrid",
+          "dense_rank": 2,
+          "sparse_rank": 2
+        },
+        {
+          "chunk_id": "5d11f142-2f75-4f30-ba33-2e87e45ef589",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 11,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.031746031746031744,
+          "dense_similarity": 0.7006148282012927,
+          "source_type": "hybrid",
+          "dense_rank": 3,
+          "sparse_rank": 3
+        },
+        {
+          "chunk_id": "cc237645-5ab3-430c-8490-e262089addad",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 48,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.031009615384615385,
+          "dense_similarity": 0.6915977970383482,
+          "source_type": "hybrid",
+          "dense_rank": 5,
+          "sparse_rank": 4
+        }
+      ],
+      "stage_b_after_rerank_final4": [
+        {
+          "chunk_id": "cc237645-5ab3-430c-8490-e262089addad",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 48,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rerank_score": 0.9736424088478088,
+          "rerank_logit": 3.6092870235443115,
+          "rrf_score": 0.031009615384615385,
+          "dense_similarity": 0.6915977970383482,
+          "source_type": "hybrid",
+          "content": "It is simple, fast, and gives reasonable results, though it is somewhat sensitive to noise.\n2. Canny edge detector: A multi-stage algorithm combining Gaussian smoothing, gradient computation (Sobel-based), non-maximum suppression, and hysteresis thresholding. It is the most widely used technique because it produces thin, well-localized, and noise-robust edges.\n\nQuestion 1 \u2014 Set B (OR)\n\nQ.1 (A)  Illustrate with a diagram the steps involved in camera calibration.   [5 Marks | CO1]\n\nAnswer:"
+        },
+        {
+          "chunk_id": "3978294b-8191-4f6d-b612-571d32f9a708",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 47,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rerank_score": 0.943373441696167,
+          "rerank_logit": 2.8129849433898926,
+          "rrf_score": 0.03278688524590164,
+          "dense_similarity": 0.7483071396905202,
+          "source_type": "hybrid",
+          "content": "image is thinned so that only local maxima along the gradient direction are retained, giving single-pixel-wide edges.\nThresholding (often hysteresis-based, using a high and a low threshold) \u2014 strong, connected edge pixels are kept while weak, isolated responses (likely noise) are discarded.\n\nTwo commonly used edge detection techniques:\n\n1. Sobel operator: Uses two 3\u00d73 convolution kernels (one for horizontal and one for vertical gradients) to approximate the intensity gradient. It is simple, fast, and gives reasonable results, though it is somewhat sensitive to noise."
+        },
+        {
+          "chunk_id": "5d11f142-2f75-4f30-ba33-2e87e45ef589",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 11,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rerank_score": 0.9106042981147766,
+          "rerank_logit": 2.3210363388061523,
+          "rrf_score": 0.031746031746031744,
+          "dense_similarity": 0.7006148282012927,
+          "source_type": "hybrid",
+          "content": "Gaussian (LoG) \u2014 second-order derivative operator combined with Gaussian smoothing; detects edges via zero-crossings.\nCanny edge detector \u2014 the most widely used multi-stage algorithm combining Gaussian smoothing, gradient computation, non-maximum suppression, and hysteresis thresholding; produces thin, well-localized, and noise-robust edges.\n\n1.5 Image Segmentation"
+        },
+        {
+          "chunk_id": "01270da2-62c5-4d25-ac0c-8e1c89ac0b77",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 9,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rerank_score": 0.7592135071754456,
+          "rerank_logit": 1.148372769355774,
+          "rrf_score": 0.03225806451612903,
+          "dense_similarity": 0.7152901792569011,
+          "source_type": "hybrid",
+          "content": "Gradient computation \u2014 compute the derivative of intensity in x and y directions using an edge operator.\nNon-maximum suppression \u2014 thin the edges to a single-pixel width by keeping only local gradient maxima.\n\nThresholding (often hysteresis, with a high and low threshold) \u2014 retain only strong, connected edges and discard weak/noisy responses.\n\nCommon Edge Detection Techniques\n\nSobel operator \u2014 uses 3\u00d73 convolution kernels to approximate the gradient in the horizontal and vertical directions; simple and fast, moderately sensitive to noise."
+        }
+      ],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 4,
+      "top1_rerank_score": 0.9736424088478088,
+      "top1_dense_similarity": 0.7483071396905202,
+      "stage_a_metrics": {
+        "hit_at_1": 0.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 0.25,
+        "ndcg_at_4": 0.43067655807339306,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 0.25,
+        "first_hit_rank": 4
+      },
+      "stage_b_metrics": {
+        "hit_at_1": 1.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 1.0,
+        "ndcg_at_4": 1.0,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 1.0,
+        "first_hit_rank": 1
+      }
+    },
+    "agent_execution": {
+      "intent": "DIRECT_ANSWER",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": false,
+      "is_correct_abstention": false,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "The Canny edge detector uses **hysteresis thresholding with two thresholds** (upper and lower) primarily to solve the **streaking problem**\u2014a common issue with single-threshold edge detection\u2014and to produce more continuous, robust edge maps. \n\nHere is a step-by-step breakdown of why two thresholds are superior to one:\n\n### 1. The Flaw of a Single Threshold\nIf you use a single threshold to filter out noise based on gradient magnitude:\n* **High Threshold:** You miss weak edge segments. Because edges naturally fade out or have gaps due to noise and lighting variations, a high cutoff will cause continuous edges to appear broken (streaking).\n* **Low Threshold:** You capture all the true edges, but you also include a massive amount of false edges caused by noise, texture, and minor artifacts. \n\n### 2. How Hysteresis Thresholding Works\nHysteresis bypasses this dilemma by combining the benefits of both strict and lenient thresholds using two values: **High ($T_{high}$)** and **Low ($T_{low}$)**.\n\n1. **Definite Edges (Above $T_{high}$):** Any pixel with a gradient magnitude above the high threshold is immediately marked as a strong, definitive edge.\n2. **Non-Edges (Below $T_{low}$):** Any pixel below the low threshold is immediately discarded as background noise.\n3. **Candidate Edges (Between $T_{high}$ and $T_{low}$):** Pixels with gradients in this intermediate zone are deemed weak edges. They are kept **only if** they are spatially connected (contiguous) to a strong edge.\n\n### 3. Summary of Benefits\n* **Eliminates Gaps:** Weak edge pixels that naturally belong to an object's boundary (falling between the two thresholds) are preserved as long as they touch a strong edge. \n* **Suppresses Noise:** Isolated weak pixels caused by random noise are safely discarded because they do not connect to any strong edge.\n* **Produces Thin, Connected Lines:** The result is a clean, continuous outline of objects rather than a fragmented or noisy mess."
+    },
+    "judge_verdicts": {
+      "faithfulness": {
+        "supported": false,
+        "unsupported_claims": [
+          "The Canny edge detector uses hysteresis thresholding with two thresholds (upper and lower) primarily to solve the streaking problem\u2014a common issue with single-threshold edge detection\u2014and to produce more continuous, robust edge maps.",
+          "Here is a step-by-step breakdown of why two thresholds are superior to one...",
+          "1. The Flaw of a Single Threshold...",
+          "2. How Hysteresis Thresholding Works...",
+          "3. Summary of Benefits..."
+        ]
+      },
+      "correctness": {
+        "correct": true
+      }
+    },
+    "latency": {
+      "retrieval_ms": 4109.441000036895,
+      "e2e_answer_ms": 23061.176200048067
+    },
+    "is_failed": true,
+    "failure_reasons": [
+      "Unfaithful: ['The Canny edge detector uses hysteresis thresholding with two thresholds (upper and lower) primarily to solve the streaking problem\u2014a common issue with single-threshold edge detection\u2014and to produce more continuous, robust edge maps.', 'Here is a step-by-step breakdown of why two thresholds are superior to one...', '1. The Flaw of a Single Threshold...', '2. How Hysteresis Thresholding Works...', '3. Summary of Benefits...']"
+    ]
+  },
+  "B03": {
+    "id": "B03",
+    "question": "Why does the computational cost of inverting the Hessian matrix make standard Newton's method impractical for high-dimensional deep learning?",
+    "answerable": true,
+    "topic": "Newton Method Hessian Inversion O(n\u00b3) Complexity",
+    "unanswerable_category": "answerable",
+    "expected_document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+    "expected_chunk_ids": [
+      "ee9a42e4-4456-4ff2-bd81-b6cc711947b7"
+    ],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "ee9a42e4-4456-4ff2-bd81-b6cc711947b7",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 34,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.03278688524590164,
+          "dense_similarity": 0.8145182353832962,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 1
+        },
+        {
+          "chunk_id": "dbb787b4-5b8a-4062-bc87-aa6c7927fccb",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 33,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.03225806451612903,
+          "dense_similarity": 0.7872318790323181,
+          "source_type": "hybrid",
+          "dense_rank": 2,
+          "sparse_rank": 2
+        },
+        {
+          "chunk_id": "f9301e93-2919-46c8-810c-74ab04b0ebd2",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 70,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.031746031746031744,
+          "dense_similarity": 0.758095029876268,
+          "source_type": "hybrid",
+          "dense_rank": 3,
+          "sparse_rank": 3
+        },
+        {
+          "chunk_id": "b6bdf49b-7091-4bc8-8a14-610d3ddf46a6",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 36,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.03076923076923077,
+          "dense_similarity": 0.7300070211322859,
+          "source_type": "hybrid",
+          "dense_rank": 5,
+          "sparse_rank": 5
+        }
+      ],
+      "stage_b_after_rerank_final4": [
+        {
+          "chunk_id": "ee9a42e4-4456-4ff2-bd81-b6cc711947b7",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 34,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rerank_score": 0.9904848337173462,
+          "rerank_logit": 4.6453094482421875,
+          "rrf_score": 0.03278688524590164,
+          "dense_similarity": 0.8145182353832962,
+          "source_type": "hybrid",
+          "content": "O(n\u00b3) cost per step, making it impractical for the very high-dimensional parameter spaces typical in deep learning.\nQuasi-Newton Methods\n\nQuasi-Newton methods (e.g., BFGS and its limited-memory variant L-BFGS) approximate the inverse Hessian using only gradient information gathered across iterations, avoiding the expensive exact Hessian computation and inversion:\n\nBuild up an approximation B_k \u2248 \u2207\u00b2f(x_k) (or its inverse) incrementally using successive gradient differences (the secant/BFGS update equations)."
+        },
+        {
+          "chunk_id": "dbb787b4-5b8a-4062-bc87-aa6c7927fccb",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 33,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rerank_score": 0.98821622133255,
+          "rerank_logit": 4.42917537689209,
+          "rrf_score": 0.03225806451612903,
+          "dense_similarity": 0.7872318790323181,
+          "source_type": "hybrid",
+          "content": "in addition to the gradient to find the minimum more directly, by locally approximating f with a quadratic model:\nx_{k+1}  =  x_k  \u2212  [\u2207\u00b2f(x_k)]\u207b\u00b9 \u2207f(x_k)\n  \u2207\u00b2f(x_k) : Hessian matrix (matrix of second partial derivatives) at x_k\n\nConverges much faster than gradient descent near the optimum \u2014 quadratic convergence rate \u2014 because it accounts for the curvature of the objective, not just its slope.\n\nRequires computing and inverting the n\u00d7n Hessian at every iteration: O(n\u00b3) cost per step, making it impractical for the very high-dimensional parameter spaces typical in deep learning."
+        },
+        {
+          "chunk_id": "f9301e93-2919-46c8-810c-74ab04b0ebd2",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 70,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rerank_score": 0.9718966484069824,
+          "rerank_logit": 3.5433599948883057,
+          "rrf_score": 0.031746031746031744,
+          "dense_similarity": 0.758095029876268,
+          "source_type": "hybrid",
+          "content": "rate | Quadratic \u2014 very fast once close to the optimum | Superlinear \u2014 fast, but generally slower than exact Newton |\n| Computational cost / step | O(n\u00b3) to form and invert the n\u00d7n Hessian | O(n\u00b2) for BFGS, or O(n) for limited-memory L-BFGS |\n| Scalability | Impractical for high-dimensional problems (e.g., deep learning with millions of parameters) | More scalable; L-BFGS is used for medium/large-scale problems where exact Hessians are too costly |"
+        },
+        {
+          "chunk_id": "b155aa40-779b-4506-a8a6-2b3ba9576419",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 71,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rerank_score": 0.571343183517456,
+          "rerank_logit": 0.2873333692550659,
+          "rrf_score": 0.03055037313432836,
+          "dense_similarity": 0.7370198148373459,
+          "source_type": "hybrid",
+          "content": "of parameters) | More scalable; L-BFGS is used for medium/large-scale problems where exact Hessians are too costly |\nIn essence, Newton's method achieves the fastest theoretical convergence by using exact second-order (curvature) information but at a high per-iteration cost, while Quasi-Newton methods trade a small amount of convergence speed for a substantial reduction in computational and memory cost by approximating the Hessian using only first-order (gradient) information gathered over iterations."
+        }
+      ],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 4,
+      "top1_rerank_score": 0.9904848337173462,
+      "top1_dense_similarity": 0.8145182353832962,
+      "stage_a_metrics": {
+        "hit_at_1": 1.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 1.0,
+        "ndcg_at_4": 1.0,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 1.0,
+        "first_hit_rank": 1
+      },
+      "stage_b_metrics": {
+        "hit_at_1": 1.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 1.0,
+        "ndcg_at_4": 1.0,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 1.0,
+        "first_hit_rank": 1
+      }
+    },
+    "agent_execution": {
+      "intent": "DIRECT_ANSWER",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": false,
+      "is_correct_abstention": false,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "Standard Newton\u2019s optimization method is impractical for high-dimensional deep learning primarily because of the **computational complexity required to compute, store, and invert the Hessian matrix**. \n\nHere is a breakdown of why this happens:\n\n### 1. Astronomical Storage Complexity ($O(n^2)$)\nLet $n$ be the number of parameters (weights and biases) in a deep neural network. \n* Modern deep learning models routinely have millions to hundreds of billions of parameters ($n = 10^7$ to $10^{12}$).\n* The Hessian matrix $H$ is a second-order partial derivative matrix of size $n \\times n$.\n* **The Problem:** Storing an $n \\times n$ matrix requires $O(n^2)$ memory. For a modest model with 1 million parameters, the Hessian contains $10^{12}$ entries. Storing this in 32-bit floating-point format requires **4 terabytes** of RAM just for the matrix, which far exceeds the memory capacity of standard hardware accelerators.\n\n### 2. Prohibitive Computational Complexity ($O(n^3)$)\nThe standard Newton's update step is given by:\n$$\\theta_{t+1} = \\theta_t - H^{-1} \\nabla L(\\theta_t)$$\nThis requires solving the linear system $H \\Delta \\theta = -\\nabla L$ or explicitly inverting the Hessian $H^{-1}$.\n* **The Problem:** Computing the inverse of an $n \\times n$ dense matrix using standard methods (like Gaussian elimination or LU decomposition) has a computational complexity of **$O(n^3)$**. For a model with millions of parameters, $n^3$ operations are completely intractable, taking centuries or millennia even on supercomputers.\n\n### 3. Non-Convexity and Saddle Points\nIn deep learning, the loss landscape is highly non-convex.\n* **The Problem:** Unlike convex optimization where the Hessian is positive semi-definite everywhere, neural network Hessians often contain many negative eigenvalues (indicating saddle points or local maxima). In these regions, standard Newton's method is attracted to saddle points rather than minima unless heavily regularized (e.g., via modified trust-region methods), further complicating the math and computation.\n\n---\n\n### How Deep Learning Bypasses This\nBecause standard Newton's method is impossible for large models, deep learning relies on approximations:\n1. **First-Order Methods (SGD, Adam):** Avoid the Hessian entirely, relying only on gradients ($O(n)$ complexity per step).\n2. **Quasi-Newton Methods (e.g., L-BFGS):** Approximate the inverse Hessian using only gradient history, though still memory-intensive for massive models.\n3. **Hessian-Free Optimization:** Computes Hessian-vector products (via Pearlmutter's method) without ever explicitly forming or storing the full Hessian matrix."
+    },
+    "judge_verdicts": {
+      "faithfulness": {
+        "supported": false,
+        "unsupported_claims": [
+          "Modern deep learning models routinely have millions to hundreds of billions of parameters (n = 10^7 to 10^12).",
+          "Storing an n x n matrix requires O(n^2) memory. For a modest model with 1 million parameters, the Hessian contains 10^12 entries. Storing this in 32-bit floating-point format requires 4 terabytes of RAM...",
+          "Computing the inverse of an n x n dense matrix using standard methods (like Gaussian elimination or LU decomposition) has a computational complexity of O(n^3).",
+          "In deep learning, the loss landscape is highly non-convex...",
+          "neural network Hessians often contain many negative eigenvalues (indicating saddle points or local maxima)...",
+          "First-Order Methods (SGD, Adam): Avoid the Hessian entirely, relying only on gradients (O(n) complexity per step).",
+          "Hessian-Free Optimization: Computes Hessian-vector products (via Pearlmutter's method) without ever explicitly forming or storing the full Hessian matrix."
+        ]
+      },
+      "correctness": {
+        "correct": true
+      }
+    },
+    "latency": {
+      "retrieval_ms": 3940.7384999794886,
+      "e2e_answer_ms": 19911.165500059724
+    },
+    "is_failed": true,
+    "failure_reasons": [
+      "Unfaithful: ['Modern deep learning models routinely have millions to hundreds of billions of parameters (n = 10^7 to 10^12).', 'Storing an n x n matrix requires O(n^2) memory. For a modest model with 1 million parameters, the Hessian contains 10^12 entries. Storing this in 32-bit floating-point format requires 4 terabytes of RAM...', 'Computing the inverse of an n x n dense matrix using standard methods (like Gaussian elimination or LU decomposition) has a computational complexity of O(n^3).', 'In deep learning, the loss landscape is highly non-convex...', 'neural network Hessians often contain many negative eigenvalues (indicating saddle points or local maxima)...', 'First-Order Methods (SGD, Adam): Avoid the Hessian entirely, relying only on gradients (O(n) complexity per step).', \"Hessian-Free Optimization: Computes Hessian-vector products (via Pearlmutter's method) without ever explicitly forming or storing the full Hessian matrix.\"]"
+    ]
+  },
+  "B04": {
+    "id": "B04",
+    "question": "What geometric property distinguishes an affine transformation from a general projective homography regarding parallel lines?",
+    "answerable": true,
+    "topic": "Affine vs Homography Parallel Line Preservation",
+    "unanswerable_category": "answerable",
+    "expected_document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+    "expected_chunk_ids": [
+      "0b9cbd93-1ae0-48bd-9fc8-6018e5cd7c05"
+    ],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "0b9cbd93-1ae0-48bd-9fc8-6018e5cd7c05",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 19,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.03278688524590164,
+          "dense_similarity": 0.7676638154222781,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 1
+        },
+        {
+          "chunk_id": "05407c1e-ec21-47b4-b311-f66f45128a97",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 18,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.03225806451612903,
+          "dense_similarity": 0.672913091197096,
+          "source_type": "hybrid",
+          "dense_rank": 2,
+          "sparse_rank": 2
+        },
+        {
+          "chunk_id": "a878ef27-7454-427a-9d39-93cfe5a4b765",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 21,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.03149801587301587,
+          "dense_similarity": 0.6683663111571359,
+          "source_type": "hybrid",
+          "dense_rank": 4,
+          "sparse_rank": 3
+        },
+        {
+          "chunk_id": "b0141553-68cb-49ec-90a8-690c2e75d6a3",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 20,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.03149801587301587,
+          "dense_similarity": 0.6707951993023686,
+          "source_type": "hybrid",
+          "dense_rank": 3,
+          "sparse_rank": 4
+        }
+      ],
+      "stage_b_after_rerank_final4": [
+        {
+          "chunk_id": "0b9cbd93-1ae0-48bd-9fc8-6018e5cd7c05",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 19,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rerank_score": 0.9920588731765747,
+          "rerank_logit": 4.827729225158691,
+          "rrf_score": 0.03278688524590164,
+          "dense_similarity": 0.7676638154222781,
+          "source_type": "hybrid",
+          "content": "Affine transformation \u2014 combination of translation, rotation, scaling, and shear; preserves parallel lines.\nHomography (projective transformation) \u2014 a general 3\u00d73 matrix mapping that models the transformation between two planar views; does not preserve parallelism in general.\n\n3D-to-2D Transformations\n\nOrthographic projection \u2014 parallel projection rays; depth (Z) is discarded and object size in the image does not change with distance. Simple approximation valid when the object is far from the camera relative to its size."
+        },
+        {
+          "chunk_id": "05407c1e-ec21-47b4-b311-f66f45128a97",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 18,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rerank_score": 0.3817887008190155,
+          "rerank_logit": -0.4819629490375519,
+          "rrf_score": 0.03225806451612903,
+          "dense_similarity": 0.672913091197096,
+          "source_type": "hybrid",
+          "content": "1.8 Object-to-Image Geometric Transformations\nThese transformations map coordinates from the 3D object/world space to the 2D image space, and also describe transformations within the image plane itself.\n\n2D Transformations (within image plane)\n\nTranslation \u2014 shifting pixel positions by a fixed offset.\n\nRotation \u2014 rotating coordinates about a point by angle \u03b8.\n\nScaling \u2014 resizing along x/y axes.\n\nAffine transformation \u2014 combination of translation, rotation, scaling, and shear; preserves parallel lines."
+        }
+      ],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 2,
+      "top1_rerank_score": 0.9920588731765747,
+      "top1_dense_similarity": 0.7676638154222781,
+      "stage_a_metrics": {
+        "hit_at_1": 1.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 1.0,
+        "ndcg_at_4": 1.0,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 1.0,
+        "first_hit_rank": 1
+      },
+      "stage_b_metrics": {
+        "hit_at_1": 1.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 1.0,
+        "ndcg_at_4": 1.0,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 1.0,
+        "first_hit_rank": 1
+      }
+    },
+    "agent_execution": {
+      "intent": "DIRECT_ANSWER",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": false,
+      "is_correct_abstention": false,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "An **affine transformation** preserves the **parallelism of lines** (parallel lines remain parallel after the transformation). \n\nA general **projective homography**, on the other hand, does not necessarily preserve parallelism; it maps parallel lines so that they intersect at a vanishing point on the line at infinity (projective infinity)."
+    },
+    "judge_verdicts": {
+      "faithfulness": {
+        "supported": false,
+        "unsupported_claims": [
+          "it maps parallel lines so that they intersect at a vanishing point on the line at infinity (projective infinity)"
+        ]
+      },
+      "correctness": {
+        "correct": true
+      }
+    },
+    "latency": {
+      "retrieval_ms": 3829.1984000243247,
+      "e2e_answer_ms": 10908.333600033075
+    },
+    "is_failed": true,
+    "failure_reasons": [
+      "Unfaithful: ['it maps parallel lines so that they intersect at a vanishing point on the line at infinity (projective infinity)']"
+    ]
+  },
+  "B05": {
+    "id": "B05",
+    "question": "Under what constraint qualification condition does strong duality hold with zero duality gap for convex optimization problems?",
+    "answerable": true,
+    "topic": "Strong Duality and Slater's Condition",
+    "unanswerable_category": "answerable",
+    "expected_document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+    "expected_chunk_ids": [
+      "99ca75ba-b70a-434e-9e29-d793b334c940"
+    ],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "99ca75ba-b70a-434e-9e29-d793b334c940",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 38,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.03278688524590164,
+          "dense_similarity": 0.7911892212437011,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 1
+        },
+        {
+          "chunk_id": "2cde9791-57d6-4000-b85b-493a527900ba",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 39,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.03200204813108039,
+          "dense_similarity": 0.7653455587906277,
+          "source_type": "hybrid",
+          "dense_rank": 2,
+          "sparse_rank": 3
+        },
+        {
+          "chunk_id": "3fdcdaf7-f8d2-4757-a45f-26e66d5b7a5b",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 74,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.031754032258064516,
+          "dense_similarity": 0.7383587571842828,
+          "source_type": "hybrid",
+          "dense_rank": 4,
+          "sparse_rank": 2
+        },
+        {
+          "chunk_id": "df2a1e91-fce4-4346-ba3c-e0b17d3234f9",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 41,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.03149801587301587,
+          "dense_similarity": 0.7546067508419335,
+          "source_type": "hybrid",
+          "dense_rank": 3,
+          "sparse_rank": 4
+        }
+      ],
+      "stage_b_after_rerank_final4": [
+        {
+          "chunk_id": "3fdcdaf7-f8d2-4757-a45f-26e66d5b7a5b",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 74,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rerank_score": 0.9985446929931641,
+          "rerank_logit": 6.531088352203369,
+          "rrf_score": 0.031754032258064516,
+          "dense_similarity": 0.7383587571842828,
+          "source_type": "hybrid",
+          "content": "maximize  g(\u03bb, \u03bd)   subject to   \u03bb \u2265 0\nThis dual problem is always concave (regardless of whether the primal problem is convex), making it, in principle, easier to solve. Weak duality states that the optimal dual value is always a lower bound on the optimal primal value; under suitable conditions (e.g., Slater's condition, satisfied by many convex problems), strong duality holds, meaning the primal and dual optimal values coincide (zero duality gap).\n\nImportance in constrained optimization:"
+        },
+        {
+          "chunk_id": "99ca75ba-b70a-434e-9e29-d793b334c940",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 38,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rerank_score": 0.9985330104827881,
+          "rerank_logit": 6.523041725158691,
+          "rrf_score": 0.03278688524590164,
+          "dense_similarity": 0.7911892212437011,
+          "source_type": "hybrid",
+          "content": "maximize   g(\u03bb, \u03bd)   subject to   \u03bb \u2265 0\nWeak duality \u2014 the dual optimal value is always \u2264 the primal optimal value (holds for any optimization problem, convex or not).\n\nStrong duality \u2014 under suitable conditions (e.g., Slater's condition for convex problems), the dual optimal value equals the primal optimal value, i.e., zero duality gap."
+        },
+        {
+          "chunk_id": "2cde9791-57d6-4000-b85b-493a527900ba",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 39,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rerank_score": 0.9972473978996277,
+          "rerank_logit": 5.892472267150879,
+          "rrf_score": 0.03200204813108039,
+          "dense_similarity": 0.7653455587906277,
+          "source_type": "hybrid",
+          "content": "condition for convex problems), the dual optimal value equals the primal optimal value, i.e., zero duality gap.\nKKT conditions \u2014 at strong duality, the primal-dual optimal pair satisfies the Karush-Kuhn-Tucker conditions (stationarity, primal/dual feasibility, complementary slackness), which are used to characterize and solve constrained optima \u2014 e.g., in deriving the SVM dual formulation.\n\n2.9 Fenchel Duality\n\nFenchel duality generalizes Lagrangian duality using the notion of the convex conjugate (Fenchel conjugate) of a function f:\n\nf*(y)  =  sup_x [ y\u1d40x \u2212 f(x) ]"
+        },
+        {
+          "chunk_id": "df2a1e91-fce4-4346-ba3c-e0b17d3234f9",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 41,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rerank_score": 0.9962771534919739,
+          "rerank_logit": 5.589545249938965,
+          "rrf_score": 0.03149801587301587,
+          "dense_similarity": 0.7546067508419335,
+          "source_type": "hybrid",
+          "content": "convexity of f and h, strong duality typically holds (zero duality gap), connecting the primal and dual optimal values.\nWidely used in deriving dual formulations of regularized ML problems (e.g., the dual of ridge regression, SVMs, and LASSO), and in designing dual/primal-dual optimization algorithms.\n\nSOLVED PREVIOUS YEAR QUESTION PAPER\n\nInstitute of Engineering & Science \u2014 Department of CSE-DS | Session July\u2013Dec 2025 | Mid Term Test I | PEC-DS03(C) Optimization for ML | B.Tech IV Year, VII Sem (CSE-DS) | Time: 1 Hr 15 Min | Max Marks: 20"
+        }
+      ],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 6,
+      "top1_rerank_score": 0.9985446929931641,
+      "top1_dense_similarity": 0.7911892212437011,
+      "stage_a_metrics": {
+        "hit_at_1": 1.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 1.0,
+        "ndcg_at_4": 1.0,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 1.0,
+        "first_hit_rank": 1
+      },
+      "stage_b_metrics": {
+        "hit_at_1": 0.0,
+        "hit_at_4": 1.0,
+        "mrr_at_4": 0.5,
+        "ndcg_at_4": 0.6309297535714575,
+        "precision_at_4": 0.25,
+        "recall_at_4": 1.0,
+        "map_at_4": 0.5,
+        "first_hit_rank": 2
+      }
+    },
+    "agent_execution": {
+      "intent": "DIRECT_ANSWER",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": false,
+      "is_correct_abstention": false,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "For convex optimization problems, strong duality holds with a zero duality gap under several standard constraint qualifications (CQs). The most widely used and fundamental condition is **Slater's Condition**.\n\n### Slater's Condition\n\nConsider a standard convex optimization problem in the inequality-constrained form:\n\n$$\\begin{aligned}\n\\min_{x \\in D} \\quad & f_0(x) \\\\\n\\text{subject to} \\quad & f_i(x) \\le 0, \\quad i = 1, \\dots, m \\\\\n& Ax = b\n\\end{aligned}$$\n\nwhere:\n* $f_0, f_1, \\dots, f_m$ are convex functions.\n* $D$ is the domain of the problem (assumed to be convex).\n* The equality constraints are affine ($Ax = b$).\n\n**Slater's Condition states:**\nStrong duality holds (i.e., the primal optimal value equals the dual optimal value, and the dual optimum is attained) if the problem is strictly feasible. That is, there exists a point $x \\in \\text{relint}(D)$ (the relative interior of the domain) such that:\n1. $f_i(x) < 0 \\quad \\text{for all } i = 1, \\dots, m$ (inequalities are *strictly* satisfied).\n2. $Ax = b$.\n\n---\n\n### Other Common Constraint Qualifications for Convex Problems\n\nDepending on the specific structure of the convex problem, other constraint qualifications are also used:\n\n1. **Extended Slater's Condition (for infinite-dimensional spaces / cone programming):** \n   For cone programs (e.g., semidefinite programming), Slater's condition requires that there exists a strictly feasible point in the interior of the positive semi-definite cone.\n   \n2. **Affine Inequality Relaxation:**\n   If some of the inequality constraints $f_i(x) \\le 0$ are **affine** functions, they do not need to satisfy strict inequality. Slater's condition only requires strict feasibility for the *non-affine* inequality constraints, along with standard feasibility for the affine inequalities and linear equality constraints.\n\n3. **Mangasarian-Fromovitz Constraint Qualification (MFCQ):**\n   While MFCQ is generally used for non-convex problems to guarantee KKT conditions, in convex programming, Slater's condition is equivalent to MFCQ and ensures strong duality."
+    },
+    "judge_verdicts": {
+      "faithfulness": {
+        "supported": true,
+        "unsupported_claims": []
+      },
+      "correctness": {
+        "correct": true
+      }
+    },
+    "latency": {
+      "retrieval_ms": 4560.534400050528,
+      "e2e_answer_ms": 54305.428600055166
+    },
+    "is_failed": false,
+    "failure_reasons": []
+  },
+  "B06": {
+    "id": "B06",
+    "question": "What 24-bit Virtual Network Identifier (VNI) packet encapsulation structure is used in VXLAN overlay tunnels for multi-tenant hypervisor networks?",
+    "answerable": false,
+    "topic": "Borderline Negative: Cloud VXLAN 24-bit VNI Encapsulation",
+    "unanswerable_category": "same_subject_missing_detail",
+    "expected_document_id": null,
+    "expected_chunk_ids": [],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "5c68e929-9789-4b9a-a83e-9d194650b0d6",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 88,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rrf_score": 0.03154495777446597,
+          "dense_similarity": 0.6512469025697145,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 6
+        },
+        {
+          "chunk_id": "aab6cc10-3a8f-426d-9802-7a4a2f74343b",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 94,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rrf_score": 0.030414746543778803,
+          "dense_similarity": 0.622178125428891,
+          "source_type": "hybrid",
+          "dense_rank": 2,
+          "sparse_rank": 10
+        },
+        {
+          "chunk_id": "0bb83993-3b89-494e-a970-12b70b46e55e",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 96,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rrf_score": 0.030076888285843508,
+          "dense_similarity": 0.6185328905186482,
+          "source_type": "hybrid",
+          "dense_rank": 6,
+          "sparse_rank": 7
+        },
+        {
+          "chunk_id": "08f208cd-9a61-478e-855b-af6f055259c0",
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "chunk_index": 38,
+          "page_number": 1,
+          "filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "rrf_score": 0.02970950704225352,
+          "dense_similarity": 0.60205556178766,
+          "source_type": "hybrid",
+          "dense_rank": 11,
+          "sparse_rank": 4
+        }
+      ],
+      "stage_b_after_rerank_final4": [],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 0,
+      "top1_rerank_score": 0.001507811713963747,
+      "top1_dense_similarity": 0.6512469025697145,
+      "stage_a_metrics": null,
+      "stage_b_metrics": null
+    },
+    "agent_execution": {
+      "intent": "RAG_QUERY",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": true,
+      "is_correct_abstention": true,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "I couldn't find this in your uploaded documents. Would you like me to search the web instead?"
+    },
+    "judge_verdicts": {
+      "faithfulness": null,
+      "correctness": null
+    },
+    "latency": {
+      "retrieval_ms": 4361.221799976192,
+      "e2e_answer_ms": 12524.41660000477
+    },
+    "is_failed": false,
+    "failure_reasons": []
+  },
+  "B07": {
+    "id": "B07",
+    "question": "How do Vision Transformers (ViT) project 16x16 non-overlapping image patches into linear token embeddings with class tokens?",
+    "answerable": false,
+    "topic": "Borderline Negative: Vision Transformer Linear Patch Projection",
+    "unanswerable_category": "same_subject_missing_detail",
+    "expected_document_id": null,
+    "expected_chunk_ids": [],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "124460ef-e625-471f-8ec3-72e1652dfd54",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 1,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.03201844262295082,
+          "dense_similarity": 0.6262102572669472,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 4
+        },
+        {
+          "chunk_id": "05407c1e-ec21-47b4-b311-f66f45128a97",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 18,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.031099324975891997,
+          "dense_similarity": 0.6096929653106694,
+          "source_type": "hybrid",
+          "dense_rank": 8,
+          "sparse_rank": 1
+        },
+        {
+          "chunk_id": "0b9cbd93-1ae0-48bd-9fc8-6018e5cd7c05",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 19,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.030017921146953404,
+          "dense_similarity": 0.6033894769219574,
+          "source_type": "hybrid",
+          "dense_rank": 12,
+          "sparse_rank": 2
+        },
+        {
+          "chunk_id": "b6d9f116-aa1a-4fa6-af48-fb8a4ec20f25",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 25,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.02853124372111714,
+          "dense_similarity": 0.5976276041493062,
+          "source_type": "hybrid",
+          "dense_rank": 19,
+          "sparse_rank": 3
+        }
+      ],
+      "stage_b_after_rerank_final4": [],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 0,
+      "top1_rerank_score": 0.0002751240390352905,
+      "top1_dense_similarity": 0.6262102572669472,
+      "stage_a_metrics": null,
+      "stage_b_metrics": null
+    },
+    "agent_execution": {
+      "intent": "RAG_QUERY",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": true,
+      "is_correct_abstention": true,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "I couldn't find this in your uploaded documents. Would you like me to search the web instead?"
+    },
+    "judge_verdicts": {
+      "faithfulness": null,
+      "correctness": null
+    },
+    "latency": {
+      "retrieval_ms": 3515.48299996648,
+      "e2e_answer_ms": 11449.24170000013
+    },
+    "is_failed": false,
+    "failure_reasons": []
+  },
+  "B08": {
+    "id": "B08",
+    "question": "What default exponential decay rate parameters beta_1 and beta_2 are used in the Adam optimizer to compute bias-corrected first and second moment estimates?",
+    "answerable": false,
+    "topic": "Borderline Negative: Adam Optimizer Beta Moments",
+    "unanswerable_category": "same_subject_missing_detail",
+    "expected_document_id": null,
+    "expected_chunk_ids": [],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "955bd5c7-b196-4c63-b91d-47df23e2e286",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 32,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.032266458495966696,
+          "dense_similarity": 0.6729481793828134,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 3
+        },
+        {
+          "chunk_id": "850ff328-37e7-41cf-9f49-811b215ed892",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 26,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.030076888285843508,
+          "dense_similarity": 0.6518509917785541,
+          "source_type": "hybrid",
+          "dense_rank": 6,
+          "sparse_rank": 7
+        },
+        {
+          "chunk_id": "1749b197-7c2f-4c74-a7c8-0bc9754283dd",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 1,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.02987736900780379,
+          "dense_similarity": 0.6413693518510528,
+          "source_type": "hybrid",
+          "dense_rank": 9,
+          "sparse_rank": 5
+        },
+        {
+          "chunk_id": "036eee9e-da1d-462b-9a6d-93dffcbc1822",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 4,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.029116045245077504,
+          "dense_similarity": 0.6323667668203765,
+          "source_type": "hybrid",
+          "dense_rank": 17,
+          "sparse_rank": 2
+        }
+      ],
+      "stage_b_after_rerank_final4": [],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 0,
+      "top1_rerank_score": 0.0048529524356126785,
+      "top1_dense_similarity": 0.6729481793828134,
+      "stage_a_metrics": null,
+      "stage_b_metrics": null
+    },
+    "agent_execution": {
+      "intent": "RAG_QUERY",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": true,
+      "is_correct_abstention": true,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "I couldn't find this in your uploaded documents. Would you like me to search the web instead?"
+    },
+    "judge_verdicts": {
+      "faithfulness": null,
+      "correctness": null
+    },
+    "latency": {
+      "retrieval_ms": 3792.285899980925,
+      "e2e_answer_ms": 13998.680500080809
+    },
+    "is_failed": false,
+    "failure_reasons": []
+  },
+  "B09": {
+    "id": "B09",
+    "question": "What focal loss scaling factor gamma and alpha balancing hyperparameters are recommended for RetinaNet dense object detection?",
+    "answerable": false,
+    "topic": "Borderline Negative: RetinaNet Focal Loss Hyperparameters",
+    "unanswerable_category": "same_subject_missing_detail",
+    "expected_document_id": null,
+    "expected_chunk_ids": [],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "996136d8-b9f7-407d-ae8a-b90370667e93",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 29,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.032266458495966696,
+          "dense_similarity": 0.5825971914423148,
+          "source_type": "hybrid",
+          "dense_rank": 3,
+          "sparse_rank": 1
+        },
+        {
+          "chunk_id": "75d27f60-d656-478f-ac05-26746107c5a2",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 39,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.02987736900780379,
+          "dense_similarity": 0.576778283503461,
+          "source_type": "hybrid",
+          "dense_rank": 9,
+          "sparse_rank": 5
+        },
+        {
+          "chunk_id": "fe18877e-313c-48c9-be42-f9261f7d14ce",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 31,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.027984344422700588,
+          "dense_similarity": 0.5764610574569291,
+          "source_type": "hybrid",
+          "dense_rank": 10,
+          "sparse_rank": 13
+        },
+        {
+          "chunk_id": "b6d9f116-aa1a-4fa6-af48-fb8a4ec20f25",
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "chunk_index": 25,
+          "page_number": 1,
+          "filename": "Computer_Vision_Notes_Module1_2.docx",
+          "rrf_score": 0.027500922849760058,
+          "dense_similarity": 0.5653537225540983,
+          "source_type": "hybrid",
+          "dense_rank": 26,
+          "sparse_rank": 3
+        }
+      ],
+      "stage_b_after_rerank_final4": [],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 0,
+      "top1_rerank_score": 5.0617483793757856e-05,
+      "top1_dense_similarity": 0.5825971914423148,
+      "stage_a_metrics": null,
+      "stage_b_metrics": null
+    },
+    "agent_execution": {
+      "intent": "RAG_QUERY",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": true,
+      "is_correct_abstention": true,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "I couldn't find this in your uploaded documents. Would you like me to search the web instead?"
+    },
+    "judge_verdicts": {
+      "faithfulness": null,
+      "correctness": null
+    },
+    "latency": {
+      "retrieval_ms": 3307.6100999023765,
+      "e2e_answer_ms": 13769.295900012366
+    },
+    "is_failed": false,
+    "failure_reasons": []
+  },
+  "B10": {
+    "id": "B10",
+    "question": "How does the Alternating Direction Method of Multipliers (ADMM) split primal variable updates between two separate convex objective terms?",
+    "answerable": false,
+    "topic": "Borderline Negative: ADMM Primal Variable Splitting",
+    "unanswerable_category": "same_subject_missing_detail",
+    "expected_document_id": null,
+    "expected_chunk_ids": [],
+    "missing_ground_truth_in_db": [],
+    "retrieval": {
+      "stage_a_after_rrf_top4": [
+        {
+          "chunk_id": "5b815706-7447-46b7-8601-fe8f05397a3a",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 40,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.03131881575727918,
+          "dense_similarity": 0.6922711248701623,
+          "source_type": "hybrid",
+          "dense_rank": 1,
+          "sparse_rank": 7
+        },
+        {
+          "chunk_id": "3fdcdaf7-f8d2-4757-a45f-26e66d5b7a5b",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 74,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.030330882352941176,
+          "dense_similarity": 0.6602377098727935,
+          "source_type": "hybrid",
+          "dense_rank": 4,
+          "sparse_rank": 8
+        },
+        {
+          "chunk_id": "446e8f6a-56bd-4769-9ed1-f642cdde44b8",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 63,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.030017921146953404,
+          "dense_similarity": 0.6326611035896298,
+          "source_type": "hybrid",
+          "dense_rank": 12,
+          "sparse_rank": 2
+        },
+        {
+          "chunk_id": "2cde9791-57d6-4000-b85b-493a527900ba",
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "chunk_index": 39,
+          "page_number": 1,
+          "filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "rrf_score": 0.028693528693528692,
+          "dense_similarity": 0.6617262981566303,
+          "source_type": "hybrid",
+          "dense_rank": 3,
+          "sparse_rank": 18
+        }
+      ],
+      "stage_b_after_rerank_final4": [],
+      "candidates_retrieved": 20,
+      "chunks_passing_threshold": 0,
+      "top1_rerank_score": 0.015328298322856426,
+      "top1_dense_similarity": 0.6922711248701623,
+      "stage_a_metrics": null,
+      "stage_b_metrics": null
+    },
+    "agent_execution": {
+      "intent": "RAG_QUERY",
+      "retry_count": 0,
+      "verified": null,
+      "reflection_verdict": null,
+      "is_unverified": false,
+      "system_declined": true,
+      "is_correct_abstention": true,
+      "is_false_abstention": false,
+      "is_hallucination": false,
+      "final_response": "I couldn't find this in your uploaded documents. Would you like me to search the web instead?"
+    },
+    "judge_verdicts": {
+      "faithfulness": null,
+      "correctness": null
+    },
+    "latency": {
+      "retrieval_ms": 3905.352999921888,
+      "e2e_answer_ms": 14565.209799911827
+    },
+    "is_failed": false,
+    "failure_reasons": []
+  }
+}
