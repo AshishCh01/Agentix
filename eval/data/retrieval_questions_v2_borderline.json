@@ -1,0 +1,141 @@
+{
+  "metadata": {
+    "version": "2.0-borderline",
+    "description": "Borderline / Stress-Test Retrieval Evaluation Dataset for Agentix RAG system (Issue #9)",
+    "evaluation_scope": {
+      "knowledge_base_id": "54335692-b9bd-4693-b074-5b536bdd51af",
+      "knowledge_base_name": "Cloud Computing Notes",
+      "user_id": "42e4af12-1cec-491d-9f83-08a11baaf9ec",
+      "total_documents": 3,
+      "documents": [
+        {
+          "document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+          "document_filename": "Cloud_Computing_Notes_Module1_2.docx",
+          "total_chunks": 97
+        },
+        {
+          "document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+          "document_filename": "Computer_Vision_Notes_Module1_2.docx",
+          "total_chunks": 72
+        },
+        {
+          "document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+          "document_filename": "Optimization_for_ML_Notes_Module1_2.docx",
+          "total_chunks": 77
+        }
+      ],
+      "total_chunks": 246
+    },
+    "total_questions": 10,
+    "total_answerable": 5,
+    "total_unanswerable": 5,
+    "metrics_evaluated": [
+      "Hit Rate@1",
+      "Hit Rate@4",
+      "MRR@4",
+      "Binary nDCG@4"
+    ]
+  },
+  "questions": [
+    {
+      "id": "B01",
+      "question": "How does a native Type 1 hypervisor differ from a hosted Type 2 hypervisor regarding direct physical hardware execution?",
+      "answerable": true,
+      "expected_document_id": "607a4e68-8135-4686-a60b-5970d65fbada",
+      "expected_chunk_ids": [
+        "399fa082-27e0-4c0d-a00a-acdbea74909e"
+      ],
+      "expected_page": 1,
+      "source_passage": "operating system | A hypervisor (Type 1) that runs directly on the physical hardware, without a host OS underneath | | Layer of operation | Hardware level",
+      "topic": "Type 1 vs Type 2 Hypervisor Hardware Execution"
+    },
+    {
+      "id": "B02",
+      "question": "Why does the Canny edge detector utilize hysteresis thresholding with two separate thresholds rather than a single cutoff?",
+      "answerable": true,
+      "expected_document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+      "expected_chunk_ids": [
+        "cc237645-5ab3-430c-8490-e262089addad"
+      ],
+      "expected_page": 1,
+      "source_passage": "Canny edge detector: A multi-stage algorithm combining Gaussian smoothing, gradient calculation, non-maximum suppression, and hysteresis thresholding to detect clean, connected edge contours.",
+      "topic": "Canny Hysteresis Dual Thresholding"
+    },
+    {
+      "id": "B03",
+      "question": "Why does the computational cost of inverting the Hessian matrix make standard Newton's method impractical for high-dimensional deep learning?",
+      "answerable": true,
+      "expected_document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+      "expected_chunk_ids": [
+        "ee9a42e4-4456-4ff2-bd81-b6cc711947b7"
+      ],
+      "expected_page": 1,
+      "source_passage": "O(n³) cost per step, making it impractical for the very high-dimensional parameter spaces typical in deep learning. Quasi-Newton Methods avoid explicit Hessian inversion.",
+      "topic": "Newton Method Hessian Inversion O(n³) Complexity"
+    },
+    {
+      "id": "B04",
+      "question": "What geometric property distinguishes an affine transformation from a general projective homography regarding parallel lines?",
+      "answerable": true,
+      "expected_document_id": "f9ae765d-6b31-4bfe-8855-75d1627cd66f",
+      "expected_chunk_ids": [
+        "0b9cbd93-1ae0-48bd-9fc8-6018e5cd7c05"
+      ],
+      "expected_page": 1,
+      "source_passage": "Affine transformation — combination of translation, rotation, scaling, and shear; preserves parallel lines. Homography (projective transformation) — a general 3×3 matrix mapping that models the transformation between two planar views; does not preserve parallel lines.",
+      "topic": "Affine vs Homography Parallel Line Preservation"
+    },
+    {
+      "id": "B05",
+      "question": "Under what constraint qualification condition does strong duality hold with zero duality gap for convex optimization problems?",
+      "answerable": true,
+      "expected_document_id": "927c37b8-4608-450d-9ff9-84cd52edeaa1",
+      "expected_chunk_ids": [
+        "99ca75ba-b70a-434e-9e29-d793b334c940"
+      ],
+      "expected_page": 1,
+      "source_passage": "Strong duality — under suitable conditions (e.g., Slater's condition for convex problems), the dual optimal value equals the primal optimal value, i.e., zero duality gap.",
+      "topic": "Strong Duality and Slater's Condition"
+    },
+    {
+      "id": "B06",
+      "question": "What 24-bit Virtual Network Identifier (VNI) packet encapsulation structure is used in VXLAN overlay tunnels for multi-tenant hypervisor networks?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "Although the notes cover multi-tenancy, IaaS virtualization, and hypervisors, low-level VXLAN 24-bit VNI packet encapsulation headers are not in the document.",
+      "topic": "Borderline Negative: Cloud VXLAN 24-bit VNI Encapsulation"
+    },
+    {
+      "id": "B07",
+      "question": "How do Vision Transformers (ViT) project 16x16 non-overlapping image patches into linear token embeddings with class tokens?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "While computer vision notes cover digital images, spatial filtering, and CNNs, modern Vision Transformer (ViT) patch projection equations are absent from the notes.",
+      "topic": "Borderline Negative: Vision Transformer Linear Patch Projection"
+    },
+    {
+      "id": "B08",
+      "question": "What default exponential decay rate parameters beta_1 and beta_2 are used in the Adam optimizer to compute bias-corrected first and second moment estimates?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "The optimization document covers gradient descent, momentum, and second-order methods, but the specific Adam optimizer equations and beta hyperparameter estimates are absent.",
+      "topic": "Borderline Negative: Adam Optimizer Beta Moments"
+    },
+    {
+      "id": "B09",
+      "question": "What focal loss scaling factor gamma and alpha balancing hyperparameters are recommended for RetinaNet dense object detection?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "The computer vision notes discuss machine vision systems and edge detection, but RetinaNet focal loss hyperparameters are not in the notes.",
+      "topic": "Borderline Negative: RetinaNet Focal Loss Hyperparameters"
+    },
+    {
+      "id": "B10",
+      "question": "How does the Alternating Direction Method of Multipliers (ADMM) split primal variable updates between two separate convex objective terms?",
+      "answerable": false,
+      "unanswerable_category": "same_subject_missing_detail",
+      "reason": "The optimization document details Lagrangian duality, Slater's condition, and KKT conditions, but ADMM dual ascent variable splitting is not in the notes.",
+      "topic": "Borderline Negative: ADMM Primal Variable Splitting"
+    }
+  ]
+}
